@@ -41,7 +41,7 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     m_tableView = new QTableView(this);
     m_tableView->setModel(m_proxyModel);
     m_tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_tableView->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_tableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_tableView->setSortingEnabled(true);
     m_tableView->verticalHeader()->setVisible(false);
@@ -123,12 +123,14 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     connect(m_model, &PackageTableModel::checkedChanged, this, &PackageBrowser::onCheckedChanged);
     connect(m_tableView->selectionModel(), &QItemSelectionModel::currentRowChanged, this,
             &PackageBrowser::onCurrentRowChanged);
+    connect(m_tableView->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+            &PackageBrowser::onSelectionChanged);
     connect(m_tableView, &QTableView::customContextMenuRequested, this, &PackageBrowser::showContextMenu);
     connect(m_selectAllButton, &QPushButton::clicked, this, [this]() { m_model->checkAll(true); });
     connect(m_selectNoneButton, &QPushButton::clicked, this, [this]() { m_model->checkAll(false); });
     connect(m_installButton, &QPushButton::clicked, this, &PackageBrowser::installChecked);
-    connect(m_uninstallButton, &QPushButton::clicked, this, &PackageBrowser::uninstallChecked);
-    connect(m_reinstallButton, &QPushButton::clicked, this, &PackageBrowser::reinstallChecked);
+    connect(m_uninstallButton, &QPushButton::clicked, this, &PackageBrowser::uninstallUnchecked);
+    connect(m_reinstallButton, &QPushButton::clicked, this, &PackageBrowser::reinstallSelected);
     connect(m_updateButton, &QPushButton::clicked, this, &PackageBrowser::updateChecked);
 
     updateDescriptionPanel(nullptr);
@@ -159,6 +161,7 @@ void PackageBrowser::setBusy(bool busy)
         m_updateButton->setEnabled(false);
     } else {
         onCheckedChanged();
+        onSelectionChanged();
     }
 }
 
@@ -176,25 +179,41 @@ void PackageBrowser::onCheckedChanged()
         return;
     }
 
-    bool anyNotInstalled = false;
-    bool anyInstalled = false;
+    int toInstallCount = 0;
     for (const PackageInfo &pkg : checked) {
-        if (pkg.installed)
-            anyInstalled = true;
-        else
-            anyNotInstalled = true;
+        if (!pkg.installed)
+            ++toInstallCount;
     }
-    m_installButton->setEnabled(anyNotInstalled);
-    m_installButton->setText(anyNotInstalled && checked.size() > 1 ? tr("Install Selected (%1)").arg(checked.size())
-                                                                    : tr("Install Selected"));
-    m_uninstallButton->setEnabled(anyInstalled);
-    m_uninstallButton->setText(anyInstalled && checked.size() > 1
-                                    ? tr("Uninstall Selected (%1)").arg(checked.size())
-                                    : tr("Uninstall Selected"));
-    m_reinstallButton->setEnabled(anyInstalled);
-    m_reinstallButton->setText(anyInstalled && checked.size() > 1
-                                    ? tr("Reinstall Selected (%1)").arg(checked.size())
-                                    : tr("Reinstall Selected"));
+    m_installButton->setEnabled(toInstallCount > 0);
+    m_installButton->setText(toInstallCount > 1 ? tr("Install Selected (%1)").arg(toInstallCount)
+                                                  : tr("Install Selected"));
+
+    const int toUninstallCount = m_model->uncheckedInstalledPackages().size();
+    m_uninstallButton->setEnabled(toUninstallCount > 0);
+    m_uninstallButton->setText(toUninstallCount > 1 ? tr("Uninstall Selected (%1)").arg(toUninstallCount)
+                                                      : tr("Uninstall Selected"));
+}
+
+QVector<PackageInfo> PackageBrowser::selectedInstalledPackages() const
+{
+    QVector<PackageInfo> result;
+    for (const QModelIndex &proxyIndex : m_tableView->selectionModel()->selectedRows()) {
+        const QModelIndex sourceIndex = m_proxyModel->mapToSource(proxyIndex);
+        const PackageInfo &pkg = m_model->packageAt(sourceIndex.row());
+        if (pkg.installed)
+            result.append(pkg);
+    }
+    return result;
+}
+
+void PackageBrowser::onSelectionChanged()
+{
+    if (m_busy || m_mode == Mode::Updates)
+        return;
+
+    const int count = selectedInstalledPackages().size();
+    m_reinstallButton->setEnabled(count > 0);
+    m_reinstallButton->setText(count > 1 ? tr("Reinstall Selected (%1)").arg(count) : tr("Reinstall Selected"));
 }
 
 void PackageBrowser::onCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous)
@@ -236,27 +255,22 @@ void PackageBrowser::updateDescriptionPanel(const PackageInfo *pkg)
 
 void PackageBrowser::installChecked()
 {
-    runInstall(namesOf(m_model->checkedPackages()));
-}
-
-void PackageBrowser::uninstallChecked()
-{
     QStringList names;
     for (const PackageInfo &pkg : m_model->checkedPackages()) {
-        if (pkg.installed)
+        if (!pkg.installed)
             names.append(pkg.name);
     }
-    runRemove(names);
+    runInstall(names);
 }
 
-void PackageBrowser::reinstallChecked()
+void PackageBrowser::uninstallUnchecked()
 {
-    QStringList names;
-    for (const PackageInfo &pkg : m_model->checkedPackages()) {
-        if (pkg.installed)
-            names.append(pkg.name);
-    }
-    runReinstall(names);
+    runRemove(namesOf(m_model->uncheckedInstalledPackages()));
+}
+
+void PackageBrowser::reinstallSelected()
+{
+    runReinstall(namesOf(selectedInstalledPackages()));
 }
 
 void PackageBrowser::updateChecked()
@@ -266,22 +280,28 @@ void PackageBrowser::updateChecked()
 
 void PackageBrowser::showContextMenu(const QPoint &pos)
 {
-    QVector<PackageInfo> checked = m_model->checkedPackages();
-
-    if (checked.isEmpty()) {
+    // The context menu acts on whatever rows are highlighted (right-click
+    // target), not the checkboxes — those represent desired install state,
+    // not a pending-action selection.
+    QVector<PackageInfo> targeted;
+    for (const QModelIndex &proxyIndex : m_tableView->selectionModel()->selectedRows()) {
+        const QModelIndex sourceIndex = m_proxyModel->mapToSource(proxyIndex);
+        targeted.append(m_model->packageAt(sourceIndex.row()));
+    }
+    if (targeted.isEmpty()) {
         const QModelIndex indexUnderCursor = m_tableView->indexAt(pos);
         if (indexUnderCursor.isValid()) {
             const QModelIndex sourceIndex = m_proxyModel->mapToSource(indexUnderCursor);
-            checked = {m_model->packageAt(sourceIndex.row())};
+            targeted = {m_model->packageAt(sourceIndex.row())};
         }
     }
-    if (checked.isEmpty())
+    if (targeted.isEmpty())
         return;
 
     QMenu menu(this);
 
     if (m_mode == Mode::Updates) {
-        const QStringList names = namesOf(checked);
+        const QStringList names = namesOf(targeted);
         QAction *action = menu.addAction(names.size() > 1 ? tr("Update %1 Packages").arg(names.size())
                                                             : tr("Update %1").arg(names.first()));
         connect(action, &QAction::triggered, this, [this, names]() { runUpgrade(names); });
@@ -291,7 +311,7 @@ void PackageBrowser::showContextMenu(const QPoint &pos)
 
     QStringList toInstall;
     QStringList toUninstall;
-    for (const PackageInfo &pkg : checked) {
+    for (const PackageInfo &pkg : targeted) {
         if (pkg.installed)
             toUninstall.append(pkg.name);
         else

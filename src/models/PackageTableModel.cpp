@@ -7,6 +7,10 @@ void PackageTableModel::setPackages(QVector<PackageInfo> packages)
     beginResetModel();
     m_packages = std::move(packages);
     m_checkedNames.clear();
+    for (const PackageInfo &pkg : m_packages) {
+        if (pkg.installed)
+            m_checkedNames.insert(pkg.name);
+    }
     endResetModel();
 }
 
@@ -25,6 +29,16 @@ QVector<PackageInfo> PackageTableModel::checkedPackages() const
     QVector<PackageInfo> result;
     for (const PackageInfo &pkg : m_packages) {
         if (m_checkedNames.contains(pkg.name))
+            result.append(pkg);
+    }
+    return result;
+}
+
+QVector<PackageInfo> PackageTableModel::uncheckedInstalledPackages() const
+{
+    QVector<PackageInfo> result;
+    for (const PackageInfo &pkg : m_packages) {
+        if (pkg.installed && !m_checkedNames.contains(pkg.name))
             result.append(pkg);
     }
     return result;

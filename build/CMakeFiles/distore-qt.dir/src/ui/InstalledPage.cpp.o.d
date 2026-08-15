@@ -369,6 +369,27 @@ CMakeFiles/distore-qt.dir/src/ui/InstalledPage.cpp.o: \
  /usr/include/qt6/QtWidgets/QPushButton \
  /usr/include/qt6/QtWidgets/qpushbutton.h \
  /usr/include/qt6/QtWidgets/qabstractbutton.h \
+ /usr/include/qt6/QtWidgets/QSplitter \
+ /usr/include/qt6/QtWidgets/qsplitter.h \
+ /usr/include/qt6/QtWidgets/QTreeWidget \
+ /usr/include/qt6/QtWidgets/qtreewidget.h \
+ /usr/include/qt6/QtWidgets/qtreeview.h \
+ /usr/include/qt6/QtWidgets/qabstractitemview.h \
+ /usr/include/qt6/QtWidgets/qabstractscrollarea.h \
+ /usr/include/qt6/QtCore/qabstractitemmodel.h \
+ /usr/include/qt6/QtCore/qitemselectionmodel.h \
+ /usr/include/qt6/QtWidgets/qabstractitemdelegate.h \
+ /usr/include/qt6/QtWidgets/qstyleoption.h \
+ /usr/include/qt6/QtCore/qlocale.h \
+ /usr/include/qt6/QtWidgets/qabstractspinbox.h \
+ /usr/include/qt6/QtGui/qvalidator.h \
+ /usr/include/qt6/QtCore/qregularexpression.h \
+ /usr/include/qt6/QtWidgets/qslider.h \
+ /usr/include/qt6/QtWidgets/qabstractslider.h \
+ /usr/include/qt6/QtWidgets/qstyle.h /usr/include/qt6/QtWidgets/qtabbar.h \
+ /usr/include/qt6/QtWidgets/qtabwidget.h \
+ /usr/include/qt6/QtWidgets/qrubberband.h \
+ /usr/include/qt6/QtWidgets/qtreewidgetitemiterator.h \
  /usr/include/qt6/QtWidgets/QVBoxLayout \
  /usr/include/qt6/QtConcurrent/QtConcurrent \
  /usr/include/qt6/QtConcurrent/QtConcurrentDepends \
@@ -382,7 +403,6 @@ CMakeFiles/distore-qt.dir/src/ui/InstalledPage.cpp.o: \
  /usr/include/qt6/QtCore/qabstractanimation.h \
  /usr/include/qt6/QtCore/qabstracteventdispatcher.h \
  /usr/include/qt6/QtCore/qeventloop.h \
- /usr/include/qt6/QtCore/qabstractitemmodel.h \
  /usr/include/qt6/QtCore/qabstractnativeeventfilter.h \
  /usr/include/qt6/QtCore/qabstractproxymodel.h \
  /usr/include/qt6/QtCore/qanimationgroup.h \
@@ -398,13 +418,11 @@ CMakeFiles/distore-qt.dir/src/ui/InstalledPage.cpp.o: \
  /usr/include/qt6/QtCore/qbitarray.h /usr/include/qt6/QtCore/qbuffer.h \
  /usr/include/qt6/QtCore/qbytearraymatcher.h \
  /usr/include/qt6/QtCore/qcache.h /usr/include/qt6/QtCore/qcalendar.h \
- /usr/include/qt6/QtCore/qlocale.h /usr/include/qt6/QtCore/qcborarray.h \
+ /usr/include/qt6/QtCore/qcborarray.h \
  /usr/include/qt6/QtCore/qcborvalue.h \
  /usr/include/qt6/QtCore/qcborcommon.h \
- /usr/include/qt6/QtCore/qdatetime.h \
- /usr/include/qt6/QtCore/qregularexpression.h \
- /usr/include/qt6/QtCore/quuid.h /usr/include/qt6/QtCore/qcbormap.h \
- /usr/include/qt6/QtCore/qcborstream.h \
+ /usr/include/qt6/QtCore/qdatetime.h /usr/include/qt6/QtCore/quuid.h \
+ /usr/include/qt6/QtCore/qcbormap.h /usr/include/qt6/QtCore/qcborstream.h \
  /usr/include/qt6/QtCore/qcborstreamreader.h \
  /usr/include/qt6/QtCore/qcborstreamwriter.h \
  /usr/include/qt6/QtCore/qchronotimer.h \
@@ -452,7 +470,6 @@ CMakeFiles/distore-qt.dir/src/ui/InstalledPage.cpp.o: \
  /usr/include/qt6/QtCore/qfilesystemwatcher.h \
  /usr/include/qt6/QtCore/qfuturesynchronizer.h \
  /usr/include/qt6/QtCore/qidentityproxymodel.h \
- /usr/include/qt6/QtCore/qitemselectionmodel.h \
  /usr/include/qt6/QtCore/qjsonarray.h \
  /usr/include/qt6/QtCore/qjsonvalue.h \
  /usr/include/qt6/QtCore/qjsondocument.h \
@@ -665,6 +682,5 @@ CMakeFiles/distore-qt.dir/src/ui/InstalledPage.cpp.o: \
  /usr/include/qt6/QtGui/qinputmethod.h \
  /usr/include/qt6/QtGui/qguiapplication_platform.h \
  /usr/include/qt6/QtGui/QIcon /usr/include/qt6/QtWidgets/QStyle \
- /usr/include/qt6/QtWidgets/qstyle.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageActions.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.h

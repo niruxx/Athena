@@ -9,6 +9,7 @@
 #include <QVBoxLayout>
 
 #include "../core/AppSettings.h"
+#include "PackageFormatInstallWidget.h"
 
 SettingsPage::SettingsPage(QWidget *parent) : QWidget(parent)
 {
@@ -33,9 +34,10 @@ SettingsPage::SettingsPage(QWidget *parent) : QWidget(parent)
     auto *generalForm = new QFormLayout(generalGroup);
 
     m_startupTabCombo = new QComboBox(this);
-    // Index order matches StartupTab's declaration order (System, Flatpak).
+    // Index order matches StartupTab's declaration order (System, Flatpak, Snap).
     m_startupTabCombo->addItem(tr("System"));
     m_startupTabCombo->addItem(tr("Flatpak"));
+    m_startupTabCombo->addItem(tr("Snap"));
     m_startupTabCombo->setCurrentIndex(static_cast<int>(AppSettings::instance().startupTab()));
     generalForm->addRow(tr("Start on tab:"), m_startupTabCombo);
 
@@ -49,9 +51,14 @@ SettingsPage::SettingsPage(QWidget *parent) : QWidget(parent)
     m_checkForUpdatesCheck->setChecked(AppSettings::instance().checkForAppUpdatesOnStartup());
     generalForm->addRow(m_checkForUpdatesCheck);
 
+    auto *formatsGroup = new QGroupBox(tr("Additional Package Formats"), this);
+    auto *formatsLayout = new QVBoxLayout(formatsGroup);
+    formatsLayout->addWidget(new PackageFormatInstallWidget(formatsGroup));
+
     auto *layout = new QVBoxLayout(this);
     layout->addWidget(appearanceGroup);
     layout->addWidget(generalGroup);
+    layout->addWidget(formatsGroup);
     layout->addStretch(1);
 
     auto *signatureLabel = new QLabel(tr("- niruxxdaboi -"), this);

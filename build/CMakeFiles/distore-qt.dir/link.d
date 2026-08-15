@@ -8,19 +8,23 @@ distore-qt: \
   CMakeFiles/distore-qt.dir/src/core/BackendFactory.cpp.o \
   CMakeFiles/distore-qt.dir/src/core/ProcessRunner.cpp.o \
   CMakeFiles/distore-qt.dir/src/core/AppSettings.cpp.o \
+  CMakeFiles/distore-qt.dir/src/core/DistroSupport.cpp.o \
   CMakeFiles/distore-qt.dir/src/core/GitHubReleaseChecker.cpp.o \
   CMakeFiles/distore-qt.dir/src/core/backends/DnfBackend.cpp.o \
   CMakeFiles/distore-qt.dir/src/core/backends/AptBackend.cpp.o \
   CMakeFiles/distore-qt.dir/src/core/backends/PacmanBackend.cpp.o \
   CMakeFiles/distore-qt.dir/src/core/backends/FlatpakBackend.cpp.o \
+  CMakeFiles/distore-qt.dir/src/core/backends/SnapBackend.cpp.o \
   CMakeFiles/distore-qt.dir/src/models/PackageTableModel.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/AddRepositoryDialog.cpp.o \
+  CMakeFiles/distore-qt.dir/src/ui/FirstRunDialog.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/HistoryPage.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/InstalledPage.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/SearchPage.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/GroupsPage.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/PackageActions.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/PackageBrowser.cpp.o \
+  CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o \
@@ -156,6 +160,8 @@ CMakeFiles/distore-qt.dir/src/core/ProcessRunner.cpp.o:
 
 CMakeFiles/distore-qt.dir/src/core/AppSettings.cpp.o:
 
+CMakeFiles/distore-qt.dir/src/core/DistroSupport.cpp.o:
+
 CMakeFiles/distore-qt.dir/src/core/GitHubReleaseChecker.cpp.o:
 
 CMakeFiles/distore-qt.dir/src/core/backends/DnfBackend.cpp.o:
@@ -166,9 +172,13 @@ CMakeFiles/distore-qt.dir/src/core/backends/PacmanBackend.cpp.o:
 
 CMakeFiles/distore-qt.dir/src/core/backends/FlatpakBackend.cpp.o:
 
+CMakeFiles/distore-qt.dir/src/core/backends/SnapBackend.cpp.o:
+
 CMakeFiles/distore-qt.dir/src/models/PackageTableModel.cpp.o:
 
 CMakeFiles/distore-qt.dir/src/ui/AddRepositoryDialog.cpp.o:
+
+CMakeFiles/distore-qt.dir/src/ui/FirstRunDialog.cpp.o:
 
 CMakeFiles/distore-qt.dir/src/ui/HistoryPage.cpp.o:
 
@@ -181,6 +191,8 @@ CMakeFiles/distore-qt.dir/src/ui/GroupsPage.cpp.o:
 CMakeFiles/distore-qt.dir/src/ui/PackageActions.cpp.o:
 
 CMakeFiles/distore-qt.dir/src/ui/PackageBrowser.cpp.o:
+
+CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o:
 
 CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o:
 

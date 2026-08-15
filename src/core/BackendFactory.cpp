@@ -1,50 +1,28 @@
 #include "BackendFactory.h"
 
-#include <QFile>
-#include <QTextStream>
-
+#include "DistroSupport.h"
 #include "ProcessRunner.h"
 #include "backends/AptBackend.h"
 #include "backends/DnfBackend.h"
 #include "backends/PacmanBackend.h"
 
-namespace {
-
-QString readOsReleaseIds()
-{
-    QFile file("/etc/os-release");
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-        return {};
-
-    QString ids;
-    QTextStream stream(&file);
-    while (!stream.atEnd()) {
-        const QString line = stream.readLine();
-        if (line.startsWith("ID=") || line.startsWith("ID_LIKE="))
-            ids += line.section('=', 1).remove('"').toLower() + ' ';
-    }
-    return ids;
-}
-
-} // namespace
-
 namespace BackendFactory {
 
 std::unique_ptr<PackageBackend> createForHostSystem()
 {
-    const QString ids = readOsReleaseIds();
+    const DistroSupport::DistroFamily family = DistroSupport::detectDistroFamily();
 
-    if (ids.contains("fedora") || ids.contains("rhel") || ids.contains("centos")) {
+    if (family == DistroSupport::DistroFamily::Fedora) {
         auto backend = std::make_unique<DnfBackend>();
         if (backend->isAvailable())
             return backend;
     }
-    if (ids.contains("debian") || ids.contains("ubuntu")) {
+    if (family == DistroSupport::DistroFamily::Debian) {
         auto backend = std::make_unique<AptBackend>();
         if (backend->isAvailable())
             return backend;
     }
-    if (ids.contains("arch")) {
+    if (family == DistroSupport::DistroFamily::Arch) {
         auto backend = std::make_unique<PacmanBackend>();
         if (backend->isAvailable())
             return backend;

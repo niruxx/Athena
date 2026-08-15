@@ -5,12 +5,15 @@
 #include <QScreen>
 #include <QStatusBar>
 #include <QTabWidget>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include "core/AppSettings.h"
 #include "core/BackendFactory.h"
 #include "core/GitHubReleaseChecker.h"
 #include "core/backends/FlatpakBackend.h"
+#include "core/backends/SnapBackend.h"
+#include "ui/FirstRunDialog.h"
 #include "ui/GroupsPage.h"
 #include "ui/HistoryPage.h"
 #include "ui/InstalledPage.h"
@@ -22,7 +25,7 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    setWindowTitle(tr("distore-qt"));
+    setWindowTitle(tr("Distore"));
     resize(1000, 650);
 
     if (const QScreen *screen = QGuiApplication::primaryScreen()) {
@@ -36,6 +39,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     auto *tabs = new QTabWidget(this);
     int systemTabIndex = -1;
     int flatpakTabIndex = -1;
+    int snapTabIndex = -1;
 
     if (m_backend) {
         auto *systemTabs = new QTabWidget(tabs);
@@ -70,6 +74,18 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         flatpakTabIndex = tabs->addTab(flatpakTabs, tr("Flatpak"));
     }
 
+    auto snapBackend = std::make_unique<SnapBackend>();
+    if (snapBackend->isAvailable()) {
+        m_snapBackend = std::move(snapBackend);
+
+        auto *snapTabs = new QTabWidget(tabs);
+        snapTabs->addTab(new InstalledPage(m_snapBackend.get(), snapTabs), tr("Installed"));
+        snapTabs->addTab(new UpdatesPage(m_snapBackend.get(), snapTabs), tr("Updates"));
+        snapTabs->addTab(new SearchPage(m_snapBackend.get(), snapTabs), tr("Search"));
+        snapTabs->addTab(new HistoryPage(m_snapBackend.get(), snapTabs), tr("History"));
+        snapTabIndex = tabs->addTab(snapTabs, tr("Snap"));
+    }
+
     tabs->addTab(new SettingsPage(tabs), tr("Settings"));
 
     m_updateBanner = new UpdateBannerWidget(this);
@@ -82,10 +98,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     centralLayout->addWidget(tabs, 1);
     setCentralWidget(central);
 
-    const int startupIndex =
-        AppSettings::instance().startupTab() == StartupTab::Flatpak && flatpakTabIndex >= 0
-        ? flatpakTabIndex
-        : systemTabIndex;
+    const StartupTab requestedStartupTab = AppSettings::instance().startupTab();
+    int startupIndex = systemTabIndex;
+    if (requestedStartupTab == StartupTab::Flatpak && flatpakTabIndex >= 0)
+        startupIndex = flatpakTabIndex;
+    else if (requestedStartupTab == StartupTab::Snap && snapTabIndex >= 0)
+        startupIndex = snapTabIndex;
     if (startupIndex >= 0)
         tabs->setCurrentIndex(startupIndex);
 
@@ -96,5 +114,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
                     m_updateBanner->showUpdate(version, htmlUrl);
                 });
         checker->checkForUpdate();
+    }
+
+    if (!AppSettings::instance().hasCompletedFirstRun()) {
+        const QString backendName = m_backend ? m_backend->backendName() : QString();
+        // Deferred so the main window is already visible behind it, rather
+        // than the dialog appearing to launch before anything else does.
+        QTimer::singleShot(0, this, [this, backendName]() {
+            FirstRunDialog dialog(backendName, this);
+            dialog.exec();
+        });
     }
 }

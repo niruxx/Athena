@@ -65,6 +65,26 @@ CMAKE_BINARY_DIR = /home/niruxxdaboi/Documents/GitHub/distore-qt/build
 #=============================================================================
 # Targets provided globally by CMake.
 
+# Special rule for the target package
+package: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Run CPack packaging tool..."
+	/usr/bin/cpack --config ./CPackConfig.cmake
+.PHONY : package
+
+# Special rule for the target package
+package/fast: package
+.PHONY : package/fast
+
+# Special rule for the target package_source
+package_source:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Run CPack packaging tool for source..."
+	/usr/bin/cpack --config ./CPackSourceConfig.cmake
+.PHONY : package_source
+
+# Special rule for the target package_source
+package_source/fast: package_source
+.PHONY : package_source/fast
+
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Running CMake cache editor..."
@@ -84,6 +104,51 @@ rebuild_cache:
 # Special rule for the target rebuild_cache
 rebuild_cache/fast: rebuild_cache
 .PHONY : rebuild_cache/fast
+
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+.PHONY : list_install_components/fast
+
+# Special rule for the target install
+install: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install
+
+# Special rule for the target install
+install/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Install the project..."
+	/usr/bin/cmake -P cmake_install.cmake
+.PHONY : install/fast
+
+# Special rule for the target install/local
+install/local: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local
+
+# Special rule for the target install/local
+install/local/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing only the local directory..."
+	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
+.PHONY : install/local/fast
+
+# Special rule for the target install/strip
+install/strip: preinstall
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip
+
+# Special rule for the target install/strip
+install/strip/fast: preinstall/fast
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --cyan "Installing the project stripped..."
+	/usr/bin/cmake -DCMAKE_INSTALL_DO_STRIP=1 -P cmake_install.cmake
+.PHONY : install/strip/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -251,6 +316,30 @@ src/core/BackendFactory.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/core/BackendFactory.cpp.s
 .PHONY : src/core/BackendFactory.cpp.s
 
+src/core/DistroSupport.o: src/core/DistroSupport.cpp.o
+.PHONY : src/core/DistroSupport.o
+
+# target to build an object file
+src/core/DistroSupport.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/core/DistroSupport.cpp.o
+.PHONY : src/core/DistroSupport.cpp.o
+
+src/core/DistroSupport.i: src/core/DistroSupport.cpp.i
+.PHONY : src/core/DistroSupport.i
+
+# target to preprocess a source file
+src/core/DistroSupport.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/core/DistroSupport.cpp.i
+.PHONY : src/core/DistroSupport.cpp.i
+
+src/core/DistroSupport.s: src/core/DistroSupport.cpp.s
+.PHONY : src/core/DistroSupport.s
+
+# target to generate assembly for a file
+src/core/DistroSupport.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/core/DistroSupport.cpp.s
+.PHONY : src/core/DistroSupport.cpp.s
+
 src/core/GitHubReleaseChecker.o: src/core/GitHubReleaseChecker.cpp.o
 .PHONY : src/core/GitHubReleaseChecker.o
 
@@ -395,6 +484,30 @@ src/core/backends/PacmanBackend.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/core/backends/PacmanBackend.cpp.s
 .PHONY : src/core/backends/PacmanBackend.cpp.s
 
+src/core/backends/SnapBackend.o: src/core/backends/SnapBackend.cpp.o
+.PHONY : src/core/backends/SnapBackend.o
+
+# target to build an object file
+src/core/backends/SnapBackend.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/core/backends/SnapBackend.cpp.o
+.PHONY : src/core/backends/SnapBackend.cpp.o
+
+src/core/backends/SnapBackend.i: src/core/backends/SnapBackend.cpp.i
+.PHONY : src/core/backends/SnapBackend.i
+
+# target to preprocess a source file
+src/core/backends/SnapBackend.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/core/backends/SnapBackend.cpp.i
+.PHONY : src/core/backends/SnapBackend.cpp.i
+
+src/core/backends/SnapBackend.s: src/core/backends/SnapBackend.cpp.s
+.PHONY : src/core/backends/SnapBackend.s
+
+# target to generate assembly for a file
+src/core/backends/SnapBackend.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/core/backends/SnapBackend.cpp.s
+.PHONY : src/core/backends/SnapBackend.cpp.s
+
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
 
@@ -466,6 +579,30 @@ src/ui/AddRepositoryDialog.s: src/ui/AddRepositoryDialog.cpp.s
 src/ui/AddRepositoryDialog.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/AddRepositoryDialog.cpp.s
 .PHONY : src/ui/AddRepositoryDialog.cpp.s
+
+src/ui/FirstRunDialog.o: src/ui/FirstRunDialog.cpp.o
+.PHONY : src/ui/FirstRunDialog.o
+
+# target to build an object file
+src/ui/FirstRunDialog.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/FirstRunDialog.cpp.o
+.PHONY : src/ui/FirstRunDialog.cpp.o
+
+src/ui/FirstRunDialog.i: src/ui/FirstRunDialog.cpp.i
+.PHONY : src/ui/FirstRunDialog.i
+
+# target to preprocess a source file
+src/ui/FirstRunDialog.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/FirstRunDialog.cpp.i
+.PHONY : src/ui/FirstRunDialog.cpp.i
+
+src/ui/FirstRunDialog.s: src/ui/FirstRunDialog.cpp.s
+.PHONY : src/ui/FirstRunDialog.s
+
+# target to generate assembly for a file
+src/ui/FirstRunDialog.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/FirstRunDialog.cpp.s
+.PHONY : src/ui/FirstRunDialog.cpp.s
 
 src/ui/GroupsPage.o: src/ui/GroupsPage.cpp.o
 .PHONY : src/ui/GroupsPage.o
@@ -586,6 +723,30 @@ src/ui/PackageBrowser.s: src/ui/PackageBrowser.cpp.s
 src/ui/PackageBrowser.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/PackageBrowser.cpp.s
 .PHONY : src/ui/PackageBrowser.cpp.s
+
+src/ui/PackageFormatInstallWidget.o: src/ui/PackageFormatInstallWidget.cpp.o
+.PHONY : src/ui/PackageFormatInstallWidget.o
+
+# target to build an object file
+src/ui/PackageFormatInstallWidget.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o
+.PHONY : src/ui/PackageFormatInstallWidget.cpp.o
+
+src/ui/PackageFormatInstallWidget.i: src/ui/PackageFormatInstallWidget.cpp.i
+.PHONY : src/ui/PackageFormatInstallWidget.i
+
+# target to preprocess a source file
+src/ui/PackageFormatInstallWidget.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.i
+.PHONY : src/ui/PackageFormatInstallWidget.cpp.i
+
+src/ui/PackageFormatInstallWidget.s: src/ui/PackageFormatInstallWidget.cpp.s
+.PHONY : src/ui/PackageFormatInstallWidget.s
+
+# target to generate assembly for a file
+src/ui/PackageFormatInstallWidget.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.s
+.PHONY : src/ui/PackageFormatInstallWidget.cpp.s
 
 src/ui/RepositoriesPage.o: src/ui/RepositoriesPage.cpp.o
 .PHONY : src/ui/RepositoriesPage.o
@@ -762,6 +923,12 @@ help:
 	@echo "... clean"
 	@echo "... depend"
 	@echo "... edit_cache"
+	@echo "... install"
+	@echo "... install/local"
+	@echo "... install/strip"
+	@echo "... list_install_components"
+	@echo "... package"
+	@echo "... package_source"
 	@echo "... rebuild_cache"
 	@echo "... distore-qt_autogen"
 	@echo "... distore-qt_autogen_timestamp_deps"
@@ -778,6 +945,9 @@ help:
 	@echo "... src/core/BackendFactory.o"
 	@echo "... src/core/BackendFactory.i"
 	@echo "... src/core/BackendFactory.s"
+	@echo "... src/core/DistroSupport.o"
+	@echo "... src/core/DistroSupport.i"
+	@echo "... src/core/DistroSupport.s"
 	@echo "... src/core/GitHubReleaseChecker.o"
 	@echo "... src/core/GitHubReleaseChecker.i"
 	@echo "... src/core/GitHubReleaseChecker.s"
@@ -796,6 +966,9 @@ help:
 	@echo "... src/core/backends/PacmanBackend.o"
 	@echo "... src/core/backends/PacmanBackend.i"
 	@echo "... src/core/backends/PacmanBackend.s"
+	@echo "... src/core/backends/SnapBackend.o"
+	@echo "... src/core/backends/SnapBackend.i"
+	@echo "... src/core/backends/SnapBackend.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
@@ -805,6 +978,9 @@ help:
 	@echo "... src/ui/AddRepositoryDialog.o"
 	@echo "... src/ui/AddRepositoryDialog.i"
 	@echo "... src/ui/AddRepositoryDialog.s"
+	@echo "... src/ui/FirstRunDialog.o"
+	@echo "... src/ui/FirstRunDialog.i"
+	@echo "... src/ui/FirstRunDialog.s"
 	@echo "... src/ui/GroupsPage.o"
 	@echo "... src/ui/GroupsPage.i"
 	@echo "... src/ui/GroupsPage.s"
@@ -820,6 +996,9 @@ help:
 	@echo "... src/ui/PackageBrowser.o"
 	@echo "... src/ui/PackageBrowser.i"
 	@echo "... src/ui/PackageBrowser.s"
+	@echo "... src/ui/PackageFormatInstallWidget.o"
+	@echo "... src/ui/PackageFormatInstallWidget.i"
+	@echo "... src/ui/PackageFormatInstallWidget.s"
 	@echo "... src/ui/RepositoriesPage.o"
 	@echo "... src/ui/RepositoriesPage.i"
 	@echo "... src/ui/RepositoriesPage.s"

@@ -358,4 +358,8 @@ CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o: \
  /usr/include/qt6/QtGui/qtextdocument.h /usr/include/qt6/QtCore/qurl.h \
  /usr/include/qt6/QtWidgets/QVBoxLayout \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/../core/AppSettings.h \
- /usr/include/qt6/QtCore/QObject
+ /usr/include/qt6/QtCore/QObject \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.h \
+ /usr/include/qt6/QtCore/QVector /usr/include/qt6/QtCore/qvector.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/../core/ProcessRunner.h \
+ /usr/include/qt6/QtCore/QString /usr/include/qt6/QtCore/QStringList

@@ -12,6 +12,8 @@
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/AppSettings.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/BackendFactory.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/BackendFactory.h
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/DistroSupport.cpp
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/DistroSupport.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/GitHubReleaseChecker.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/GitHubReleaseChecker.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/PackageBackend.h
@@ -29,12 +31,16 @@
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/FlatpakBackend.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/PacmanBackend.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/PacmanBackend.h
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/SnapBackend.cpp
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/SnapBackend.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/main.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/models/PackageTableModel.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/models/PackageTableModel.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/AddRepositoryDialog.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/AddRepositoryDialog.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/AppIcons.h
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/FirstRunDialog.cpp
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/FirstRunDialog.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/GroupsPage.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/GroupsPage.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/HistoryPage.cpp
@@ -45,6 +51,8 @@
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageActions.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.h
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.cpp
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SearchPage.cpp
@@ -179,6 +187,7 @@
  /usr/include/c++/16/bits/localefwd.h
  /usr/include/c++/16/bits/memory_resource.h
  /usr/include/c++/16/bits/memoryfwd.h
+ /usr/include/c++/16/bits/monostate.h
  /usr/include/c++/16/bits/move.h
  /usr/include/c++/16/bits/nested_exception.h
  /usr/include/c++/16/bits/new_allocator.h
@@ -282,6 +291,8 @@
  /usr/include/c++/16/numeric
  /usr/include/c++/16/optional
  /usr/include/c++/16/pstl/execution_defs.h
+ /usr/include/c++/16/pstl/glue_algorithm_defs.h
+ /usr/include/c++/16/pstl/glue_memory_defs.h
  /usr/include/c++/16/pstl/glue_numeric_defs.h
  /usr/include/c++/16/pstl/pstl_config.h
  /usr/include/c++/16/ratio
@@ -947,6 +958,8 @@
  /usr/share/cmake/Modules/CMakeLanguageInformation.cmake
  /usr/share/cmake/Modules/CMakeSystemSpecificInformation.cmake
  /usr/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake
+ /usr/share/cmake/Modules/CPack.cmake
+ /usr/share/cmake/Modules/CPackComponent.cmake
  /usr/share/cmake/Modules/CheckCXXCompilerFlag.cmake
  /usr/share/cmake/Modules/CheckCXXSourceCompiles.cmake
  /usr/share/cmake/Modules/CheckIncludeFileCXX.cmake
@@ -976,4 +989,5 @@
  /usr/share/cmake/Modules/Platform/Linux-Initialize.cmake
  /usr/share/cmake/Modules/Platform/Linux.cmake
  /usr/share/cmake/Modules/Platform/UnixPaths.cmake
+ /usr/share/cmake/Templates/CPackConfig.cmake.in
 

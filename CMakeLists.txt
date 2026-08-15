@@ -26,6 +26,8 @@ add_executable(distore-qt
     src/core/ProcessRunner.cpp
     src/core/AppSettings.h
     src/core/AppSettings.cpp
+    src/core/DistroSupport.h
+    src/core/DistroSupport.cpp
     src/core/Version.h
     src/core/GitHubReleaseChecker.h
     src/core/GitHubReleaseChecker.cpp
@@ -38,6 +40,8 @@ add_executable(distore-qt
     src/core/backends/PacmanBackend.cpp
     src/core/backends/FlatpakBackend.h
     src/core/backends/FlatpakBackend.cpp
+    src/core/backends/SnapBackend.h
+    src/core/backends/SnapBackend.cpp
 
     src/models/PackageTableModel.h
     src/models/PackageTableModel.cpp
@@ -45,6 +49,8 @@ add_executable(distore-qt
     src/ui/AddRepositoryDialog.h
     src/ui/AddRepositoryDialog.cpp
     src/ui/AppIcons.h
+    src/ui/FirstRunDialog.h
+    src/ui/FirstRunDialog.cpp
     src/ui/HistoryPage.h
     src/ui/HistoryPage.cpp
     src/ui/InstalledPage.h
@@ -57,6 +63,8 @@ add_executable(distore-qt
     src/ui/PackageActions.cpp
     src/ui/PackageBrowser.h
     src/ui/PackageBrowser.cpp
+    src/ui/PackageFormatInstallWidget.h
+    src/ui/PackageFormatInstallWidget.cpp
     src/ui/RepositoriesPage.h
     src/ui/RepositoriesPage.cpp
     src/ui/SettingsPage.h

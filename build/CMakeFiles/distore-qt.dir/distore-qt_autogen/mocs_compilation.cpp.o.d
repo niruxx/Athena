@@ -357,6 +357,8 @@ CMakeFiles/distore-qt.dir/distore-qt_autogen/mocs_compilation.cpp.o: \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_AddRepositoryDialog.cpp \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/AddRepositoryDialog.h \
  /usr/include/qt6/QtWidgets/QDialog /usr/include/qt6/QtWidgets/qdialog.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_FirstRunDialog.cpp \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/FirstRunDialog.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_GroupsPage.cpp \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/GroupsPage.h \
  /usr/include/qt6/QtCore/QFutureWatcher \
@@ -383,6 +385,8 @@ CMakeFiles/distore-qt.dir/distore-qt_autogen/mocs_compilation.cpp.o: \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/InstalledPage.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_PackageBrowser.cpp \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/PackageBrowser.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_PackageFormatInstallWidget.cpp \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/PackageFormatInstallWidget.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_RepositoriesPage.cpp \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/RepositoriesPage.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_SearchPage.cpp \

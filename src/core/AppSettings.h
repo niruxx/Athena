@@ -3,7 +3,7 @@
 #include <QObject>
 
 enum class ThemeMode { System, Light, Dark };
-enum class StartupTab { System, Flatpak };
+enum class StartupTab { System, Flatpak, Snap };
 
 // Thin QSettings wrapper for the app's persisted preferences. Singleton
 // since there's exactly one settings store per process and multiple UI
@@ -21,7 +21,7 @@ public:
     // Call once at startup, before showing any windows.
     void applyCurrentTheme() const;
 
-    // Which top-level tab (System/Flatpak) is active when the app opens.
+    // Which top-level tab (System/Flatpak/Snap) is active when the app opens.
     StartupTab startupTab() const;
     void setStartupTab(StartupTab tab);
 
@@ -40,6 +40,11 @@ public:
     // screen at once.
     bool compactPackageLists() const;
     void setCompactPackageLists(bool compact);
+
+    // Whether the first-run welcome dialog has already been shown (and
+    // should stay hidden from now on).
+    bool hasCompletedFirstRun() const;
+    void setHasCompletedFirstRun(bool completed);
 
 signals:
     void themeModeChanged(ThemeMode mode);

@@ -363,8 +363,8 @@ CMakeFiles/distore-qt.dir/src/MainWindow.cpp.o: \
  /usr/include/qt6/QtGui/qscreen_platform.h \
  /usr/include/qt6/QtWidgets/QStatusBar \
  /usr/include/qt6/QtWidgets/qstatusbar.h \
- /usr/include/qt6/QtWidgets/QTabWidget \
- /usr/include/qt6/QtWidgets/QVBoxLayout \
+ /usr/include/qt6/QtWidgets/QTabWidget /usr/include/qt6/QtCore/QTimer \
+ /usr/include/qt6/QtCore/qtimer.h /usr/include/qt6/QtWidgets/QVBoxLayout \
  /usr/include/qt6/QtWidgets/qboxlayout.h \
  /usr/include/qt6/QtWidgets/qlayout.h \
  /usr/include/qt6/QtWidgets/qlayoutitem.h \
@@ -374,6 +374,9 @@ CMakeFiles/distore-qt.dir/src/MainWindow.cpp.o: \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/BackendFactory.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/GitHubReleaseChecker.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/FlatpakBackend.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/SnapBackend.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/FirstRunDialog.h \
+ /usr/include/qt6/QtWidgets/QDialog /usr/include/qt6/QtWidgets/qdialog.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/GroupsPage.h \
  /usr/include/qt6/QtCore/QFutureWatcher \
  /usr/include/qt6/QtCore/qfuturewatcher.h \

@@ -11,6 +11,8 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/AppSettings.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/BackendFactory.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/BackendFactory.h \
+  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/DistroSupport.cpp \
+  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/DistroSupport.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/GitHubReleaseChecker.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/GitHubReleaseChecker.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/PackageBackend.h \
@@ -28,12 +30,16 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/FlatpakBackend.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/PacmanBackend.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/PacmanBackend.h \
+  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/SnapBackend.cpp \
+  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/SnapBackend.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/main.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/models/PackageTableModel.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/models/PackageTableModel.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/AddRepositoryDialog.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/AddRepositoryDialog.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/AppIcons.h \
+  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/FirstRunDialog.cpp \
+  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/FirstRunDialog.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/GroupsPage.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/GroupsPage.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/HistoryPage.cpp \
@@ -44,6 +50,8 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageActions.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.h \
+  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.cpp \
+  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SearchPage.cpp \
@@ -178,6 +186,7 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
   /usr/include/c++/16/bits/localefwd.h \
   /usr/include/c++/16/bits/memory_resource.h \
   /usr/include/c++/16/bits/memoryfwd.h \
+  /usr/include/c++/16/bits/monostate.h \
   /usr/include/c++/16/bits/move.h \
   /usr/include/c++/16/bits/nested_exception.h \
   /usr/include/c++/16/bits/new_allocator.h \
@@ -281,6 +290,8 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
   /usr/include/c++/16/numeric \
   /usr/include/c++/16/optional \
   /usr/include/c++/16/pstl/execution_defs.h \
+  /usr/include/c++/16/pstl/glue_algorithm_defs.h \
+  /usr/include/c++/16/pstl/glue_memory_defs.h \
   /usr/include/c++/16/pstl/glue_numeric_defs.h \
   /usr/include/c++/16/pstl/pstl_config.h \
   /usr/include/c++/16/ratio \
@@ -946,6 +957,8 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
   /usr/share/cmake/Modules/CMakeLanguageInformation.cmake \
   /usr/share/cmake/Modules/CMakeSystemSpecificInformation.cmake \
   /usr/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake \
+  /usr/share/cmake/Modules/CPack.cmake \
+  /usr/share/cmake/Modules/CPackComponent.cmake \
   /usr/share/cmake/Modules/CheckCXXCompilerFlag.cmake \
   /usr/share/cmake/Modules/CheckCXXSourceCompiles.cmake \
   /usr/share/cmake/Modules/CheckIncludeFileCXX.cmake \
@@ -974,7 +987,8 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
   /usr/share/cmake/Modules/Platform/Linux-GNU.cmake \
   /usr/share/cmake/Modules/Platform/Linux-Initialize.cmake \
   /usr/share/cmake/Modules/Platform/Linux.cmake \
-  /usr/share/cmake/Modules/Platform/UnixPaths.cmake
+  /usr/share/cmake/Modules/Platform/UnixPaths.cmake \
+  /usr/share/cmake/Templates/CPackConfig.cmake.in
 
 
 /usr/share/cmake/Modules/Platform/Linux-Initialize.cmake:
@@ -1006,6 +1020,10 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 /usr/share/cmake/Modules/CheckCXXSourceCompiles.cmake:
 
 /usr/share/cmake/Modules/CheckCXXCompilerFlag.cmake:
+
+/usr/share/cmake/Modules/CPackComponent.cmake:
+
+/usr/share/cmake/Modules/CPack.cmake:
 
 /usr/share/cmake/Modules/CMakeSystemSpecificInformation.cmake:
 
@@ -1233,6 +1251,8 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/lib64/cmake/Qt6Gui/Qt6QJp2PluginTargetsPrecheck.cmake:
 
+/usr/share/cmake/Templates/CPackConfig.cmake.in:
+
 /usr/lib64/cmake/Qt6Widgets/Qt6WidgetsVersionlessAliasTargets.cmake:
 
 /usr/lib64/cmake/Qt6Network/Qt6NetworkVersionlessAliasTargets.cmake:
@@ -1399,10 +1419,6 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/lib64/cmake/Qt6Core/Qt6CoreTargets-relwithdebinfo.cmake:
 
-/usr/lib64/cmake/Qt6Network/Qt6NetworkTargets-relwithdebinfo.cmake:
-
-/usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:
-
 /usr/lib64/cmake/Qt6Core/Qt6CoreConfigVersion.cmake:
 
 /usr/lib64/cmake/Qt6Core/Qt6CoreConfigExtras.cmake:
@@ -1491,29 +1507,19 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/lib64/cmake/Qt6/Qt6Config.cmake:
 
-/usr/share/cmake/Modules/MacroAddFileDependencies.cmake:
+/usr/lib/gcc/x86_64-redhat-linux/16/include/stdarg.h:
 
-/usr/lib64/cmake/Qt6Core/Qt6CoreConfig.cmake:
+/usr/lib64/cmake/Qt6/FindWrapAtomic.cmake:
 
-/usr/include/qt6/QtCore/qmargins.h:
+/usr/include/wchar.h:
 
-/usr/include/linux/sched/types.h:
+/usr/include/time.h:
 
-/usr/include/c++/16/ctime:
+/usr/include/sys/types.h:
 
-/usr/include/c++/16/bits/std_thread.h:
+/usr/include/sys/select.h:
 
-/usr/lib64/cmake/Qt6Gui/Qt6QVkKhrDisplayIntegrationPluginTargets-relwithdebinfo.cmake:
-
-/usr/include/c++/16/cstdio:
-
-/usr/include/c++/16/cstdint:
-
-/usr/lib64/cmake/Qt6Gui/Qt6QIbusPlatformInputContextPluginTargets-relwithdebinfo.cmake:
-
-/usr/include/c++/16/tr1/modified_bessel_func.tcc:
-
-/usr/include/qt6/QtCore/qsystemdetection.h:
+/usr/include/sys/cdefs.h:
 
 /usr/lib64/cmake/Qt6Gui/Qt6QLibInputPluginConfig.cmake:
 
@@ -1544,6 +1550,10 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 /usr/lib64/cmake/Qt6Gui/Qt6QOffscreenIntegrationPluginTargetsPrecheck.cmake:
 
 /usr/include/c++/16/bits/stl_vector.h:
+
+/usr/include/sys/single_threaded.h:
+
+/usr/include/asm-generic/errno.h:
 
 /usr/include/c++/16/bits/stl_pair.h:
 
@@ -1595,17 +1605,11 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/bits/stdint-least.h:
 
-/usr/include/c++/16/cwchar:
-
-/usr/include/qt6/QtCore/qcompare_impl.h:
-
 /usr/include/c++/16/bits/range_access.h:
 
 /usr/include/c++/16/bits/predefined_ops.h:
 
 /usr/include/c++/16/bits/postypes.h:
-
-/usr/lib/gcc/x86_64-redhat-linux/16/include/stdarg.h:
 
 /usr/include/c++/16/bits/node_handle.h:
 
@@ -1633,6 +1637,12 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/qt6/QtCore/qyieldcpu.h:
 
+/usr/lib64/cmake/Qt6Gui/Qt6GuiVersionlessAliasTargets.cmake:
+
+/usr/lib64/cmake/Qt6/FindWrapOpenGL.cmake:
+
+/usr/include/c++/16/bits/ios_base.h:
+
 /usr/include/qt6/QtWidgets/qmainwindow.h:
 
 /usr/include/c++/16/bits/stdexcept_throwfwd.h:
@@ -1650,6 +1660,8 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 /usr/include/qt6/QtGui/qpixelformat.h:
 
 /usr/include/c++/16/bits/hashtable_policy.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/DistroSupport.h:
 
 /usr/include/c++/16/bits/functexcept.h:
 
@@ -1675,8 +1687,6 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/c++/16/bits/basic_string.tcc:
 
-/usr/include/c++/16/bits/list.tcc:
-
 /usr/lib64/cmake/Qt6Gui/Qt6QMinimalIntegrationPluginTargets.cmake:
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/BackendFactory.h:
@@ -1691,9 +1701,11 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/qt6/QtGui/qtgui-config.h:
 
-/usr/include/c++/16/bits/allocated_ptr.h:
+/usr/include/c++/16/bits/std_thread.h:
 
-/usr/include/c++/16/bits/align.h:
+/usr/include/c++/16/ctime:
+
+/usr/include/c++/16/bits/allocated_ptr.h:
 
 /usr/lib64/cmake/Qt6WidgetsTools/Qt6WidgetsToolsConfig.cmake:
 
@@ -1710,10 +1722,6 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 /usr/lib64/cmake/Qt6DBusTools/Qt6DBusToolsTargets-relwithdebinfo.cmake:
 
 /usr/include/c++/16/bits/stl_list.h:
-
-/usr/include/asm-generic/errno.h:
-
-/usr/include/sys/single_threaded.h:
 
 /usr/lib64/cmake/Qt6Network/Qt6QTlsBackendOpenSSLPluginConfig.cmake:
 
@@ -1763,29 +1771,41 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/c++/16/new:
 
-/usr/lib64/cmake/Qt6Gui/Qt6QWbmpPluginTargetsPrecheck.cmake:
+/usr/lib64/cmake/Qt6Gui/Qt6ShmServerBufferPluginTargets.cmake:
 
-/usr/include/qt6/QtCore/qtnoop.h:
+/usr/include/c++/16/bits/shared_ptr_atomic.h:
 
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/UpdatesPage.cpp:
+/usr/include/pthread.h:
 
-/usr/lib64/cmake/Qt6Gui/Qt6QMngPluginTargetsPrecheck.cmake:
+/usr/include/c++/16/bits/localefwd.h:
 
-/usr/lib64/cmake/Qt6Core/Qt6CoreDependencies.cmake:
+/usr/include/c++/16/unordered_map:
 
-/usr/include/bits/atomic_wide_counter.h:
+/usr/include/bits/types/time_t.h:
 
-/usr/include/c++/16/bits/charconv.h:
+/usr/lib64/cmake/Qt6Gui/Qt6QWaylandFullScreenShellV1IntegrationPluginAdditionalTargetInfo.cmake:
 
-/usr/lib64/cmake/Qt6Gui/Qt6QComposePlatformInputContextPluginAdditionalTargetInfo.cmake:
+/usr/include/bits/types/struct_tm.h:
 
-/usr/include/c++/16/ext/string_conversions.h:
+/usr/lib64/cmake/Qt6Gui/Qt6QICOPluginTargets-relwithdebinfo.cmake:
 
-/usr/include/c++/16/bits/unordered_map.h:
+/usr/include/c++/16/bits/locale_classes.tcc:
 
-/usr/include/c++/16/ext/alloc_traits.h:
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/FlatpakBackend.h:
 
-/usr/include/bits/stdint-intn.h:
+/usr/include/bits/types/struct_timeval.h:
+
+/usr/include/c++/16/pstl/pstl_config.h:
+
+/usr/share/cmake/Modules/FindOpenGL.cmake:
+
+/usr/include/bits/types/struct___jmp_buf_tag.h:
+
+/usr/include/bits/waitstatus.h:
+
+/usr/lib64/cmake/Qt6GuiTools/Qt6GuiToolsConfig.cmake:
+
+/usr/include/bits/wchar.h:
 
 /usr/include/c++/16/bits/basic_string.h:
 
@@ -1796,6 +1816,10 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 /usr/include/c++/16/bits/std_function.h:
 
 /usr/include/c++/16/bits/exception.h:
+
+/usr/include/c++/16/iterator:
+
+/usr/include/endian.h:
 
 /usr/lib64/cmake/Qt6Network/Qt6QConnManNetworkInformationPluginTargets-relwithdebinfo.cmake:
 
@@ -1809,7 +1833,23 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/c++/16/bits/concept_check.h:
 
-/usr/include/c++/16/cstddef:
+/usr/include/bits/types/struct_timespec.h:
+
+/usr/include/qt6/QtCore/qiterable.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.cpp:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/models/PackageTableModel.cpp:
+
+/usr/include/qt6/QtGui/qfontmetrics.h:
+
+/usr/include/c++/16/bits/align.h:
+
+/usr/include/c++/16/bits/monostate.h:
+
+/usr/include/c++/16/bits/parse_numbers.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/TransactionConfirmDialog.cpp:
 
 /usr/lib64/cmake/Qt6Gui/Qt6QXcbEglIntegrationPluginTargets-relwithdebinfo.cmake:
 
@@ -1825,6 +1865,10 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageActions.h:
 
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.h:
+
+/usr/include/asm/errno.h:
+
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.cpp:
 
 /usr/include/c++/16/bits/unique_lock.h:
@@ -1833,45 +1877,45 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/bits/pthreadtypes-arch.h:
 
-/usr/lib64/cmake/Qt6Gui/Qt6QWaylandFullScreenShellV1IntegrationPluginAdditionalTargetInfo.cmake:
-
-/usr/include/bits/types/struct_tm.h:
-
-/usr/include/endian.h:
-
-/usr/include/c++/16/iterator:
-
 /usr/include/c++/16/limits:
 
 /usr/share/cmake/Modules/CMakeCXXInformation.cmake:
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/AppSettings.cpp:
 
-/usr/include/bits/floatn.h:
-
 /usr/include/c++/16/bits/vector.tcc:
+
+/usr/include/bits/floatn.h:
 
 /usr/include/c++/16/x86_64-redhat-linux/bits/atomic_word.h:
 
-/usr/include/c++/16/bits/stl_uninitialized.h:
-
-/usr/include/c++/16/cstring:
-
-/usr/lib64/cmake/Qt6Widgets/Qt6WidgetsConfig.cmake:
-
-/usr/include/c++/16/tr1/bessel_function.tcc:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/AptBackend.h:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/ProcessRunner.cpp:
-
-/usr/lib64/cmake/Qt6/QtPublicDependencyHelpers.cmake:
-
-/usr/include/qt6/QtCore/qfutureinterface.h:
-
-/usr/include/qt6/QtGui/qicon.h:
-
 /usr/include/c++/16/bits/specfun.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/SnapBackend.cpp:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/InstalledPage.h:
+
+/usr/include/c++/16/bits/utility.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6DmaBufServerBufferPluginTargetsPrecheck.cmake:
+
+/usr/include/c++/16/bits/erase_if.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QWaylandBradientDecorationPluginAdditionalTargetInfo.cmake:
+
+/usr/include/c++/16/tr1/gamma.tcc:
+
+/usr/include/c++/16/bits/cxxabi_forced.h:
+
+/usr/include/qt6/QtCore/qfuturewatcher.h:
+
+/usr/include/bits/types/struct_sched_param.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QEglFSKmsEglDeviceIntegrationPluginTargetsPrecheck.cmake:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/main.cpp:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.cpp:
 
 /usr/include/c++/16/bits/std_mutex.h:
 
@@ -1893,11 +1937,33 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/c++/16/bits/std_abs.h:
 
+/usr/include/c++/16/bits/charconv.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QMngPluginTargetsPrecheck.cmake:
+
+/usr/lib64/cmake/Qt6Core/Qt6CoreDependencies.cmake:
+
+/usr/include/bits/atomic_wide_counter.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QComposePlatformInputContextPluginAdditionalTargetInfo.cmake:
+
+/usr/include/c++/16/ext/string_conversions.h:
+
 /usr/lib64/cmake/Qt6Network/Qt6NetworkTargetsPrecheck.cmake:
 
 /usr/lib64/cmake/Qt6Gui/Qt6QEglFSEmulatorIntegrationPluginAdditionalTargetInfo.cmake:
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/CMakeLists.txt:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/DistroSupport.cpp:
+
+/usr/include/qt6/QtCore/QMap:
+
+/usr/include/qt6/QtCore/qanystringview.h:
+
+/usr/include/c++/16/bits/ostream_insert.h:
+
+/usr/include/qt6/QtCore/qvariant.h:
 
 /usr/include/c++/16/bits/alloc_traits.h:
 
@@ -1919,23 +1985,71 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/InstalledPage.cpp:
 
-/usr/lib64/cmake/Qt6Gui/Qt6QICOPluginTargets-relwithdebinfo.cmake:
-
-/usr/include/c++/16/bits/locale_classes.tcc:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/FlatpakBackend.h:
-
-/usr/include/bits/types/struct_timeval.h:
-
-/usr/include/c++/16/pstl/pstl_config.h:
-
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/AptBackend.cpp:
 
-/usr/include/c++/16/condition_variable:
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/PacmanBackend.h:
 
-/usr/include/c++/16/bits/stl_bvector.h:
+/usr/include/c++/16/bits/unordered_set.h:
 
-/usr/include/c++/16/bits/functional_hash.h:
+/usr/include/bits/types/struct_itimerspec.h:
+
+/usr/lib64/cmake/Qt6DBusTools/Qt6DBusToolsTargets.cmake:
+
+/usr/include/qt6/QtCore/q20type_traits.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QJp2PluginTargets.cmake:
+
+/usr/include/bits/posix2_lim.h:
+
+/usr/include/c++/16/bits/stl_raw_storage_iter.h:
+
+CMakeFiles/4.3.0/CMakeCXXCompiler.cmake:
+
+/usr/lib64/cmake/Qt6Network/Qt6QNetworkManagerNetworkInformationPluginTargets.cmake:
+
+/usr/include/qt6/QtCore/qvector.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QTgaPluginTargets-relwithdebinfo.cmake:
+
+/usr/include/bits/endian.h:
+
+/usr/include/bits/timesize.h:
+
+/usr/include/c++/16/bits/hash_bytes.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SearchPage.h:
+
+/usr/include/c++/16/bits/list.tcc:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/FirstRunDialog.cpp:
+
+/usr/include/qt6/QtCore/qarraydataops.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QTsLibPluginTargetsPrecheck.cmake:
+
+/usr/include/qt6/QtCore/qflags.h:
+
+/usr/include/c++/16/x86_64-redhat-linux/bits/c++locale.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/HistoryPage.cpp:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QJp2PluginTargets-relwithdebinfo.cmake:
+
+/usr/include/c++/16/string:
+
+/usr/include/bits/setjmp.h:
+
+/usr/include/c++/16/bits/stl_tempbuf.h:
+
+/usr/share/cmake/Modules/CMakeGenericSystem.cmake:
+
+/usr/include/ctype.h:
+
+/usr/include/bits/types/locale_t.h:
+
+/usr/include/c++/16/bits/exception_ptr.h:
+
+/usr/include/qt6/QtCore/qsharedpointer.h:
 
 /usr/include/qt6/QtGui/qaction.h:
 
@@ -1951,89 +2065,13 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/UpdateBannerWidget.h:
 
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/PacmanBackend.h:
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/FirstRunDialog.h:
 
-/usr/include/c++/16/bits/unordered_set.h:
-
-/usr/lib64/cmake/Qt6Gui/Qt6QTgaPluginConfig.cmake:
-
-/usr/include/features-time64.h:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/MainWindow.h:
-
-/usr/include/c++/16/cctype:
-
-/usr/include/bits/posix1_lim.h:
-
-/usr/include/qt6/QtGui/qcursor.h:
-
-/usr/include/c++/16/bits/parse_numbers.h:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/TransactionConfirmDialog.cpp:
-
-/usr/include/c++/16/backward/auto_ptr.h:
-
-/usr/lib64/cmake/Qt6Gui/Qt6QJp2PluginTargets.cmake:
-
-/usr/include/bits/posix2_lim.h:
-
-/usr/include/asm/errno.h:
-
-/usr/include/c++/16/bits/stl_raw_storage_iter.h:
-
-CMakeFiles/4.3.0/CMakeCXXCompiler.cmake:
-
-/usr/lib64/cmake/Qt6Network/Qt6QNetworkManagerNetworkInformationPluginTargets.cmake:
-
-/usr/include/qt6/QtCore/qvector.h:
-
-/usr/lib64/cmake/Qt6Gui/Qt6QTgaPluginTargets-relwithdebinfo.cmake:
-
-/usr/include/bits/endian.h:
-
-/usr/include/bits/waitstatus.h:
-
-/usr/share/cmake/Modules/FindOpenGL.cmake:
-
-/usr/include/bits/types/struct___jmp_buf_tag.h:
-
-/usr/lib64/cmake/Qt6GuiTools/Qt6GuiToolsConfig.cmake:
-
-/usr/include/bits/wchar.h:
-
-/usr/include/bits/timesize.h:
-
-/usr/include/c++/16/x86_64-redhat-linux/bits/c++locale.h:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/HistoryPage.cpp:
-
-/usr/lib64/cmake/Qt6Gui/Qt6QJp2PluginTargets-relwithdebinfo.cmake:
-
-/usr/include/c++/16/string:
-
-/usr/include/bits/setjmp.h:
-
-/usr/include/c++/16/x86_64-redhat-linux/bits/cpu_defines.h:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/PackageBackend.h:
-
-/usr/lib64/cmake/Qt6Gui/Qt6QICNSPluginTargetsPrecheck.cmake:
-
-/usr/include/alloca.h:
-
-/usr/include/c++/16/bits/stl_tempbuf.h:
-
-/usr/share/cmake/Modules/CMakeGenericSystem.cmake:
-
-/usr/include/ctype.h:
-
-/usr/include/c++/16/bits/exception_ptr.h:
-
-/usr/include/qt6/QtCore/qsharedpointer.h:
-
-/usr/include/bits/types/locale_t.h:
+/usr/include/bits/time64.h:
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/GroupsPage.h:
+
+/usr/include/bits/stdint-intn.h:
 
 /usr/include/bits/types/error_t.h:
 
@@ -2046,6 +2084,20 @@ CMakeFiles/4.3.0/CMakeCXXCompiler.cmake:
 /usr/lib64/cmake/Qt6Gui/Qt6QEvdevTabletPluginTargets-relwithdebinfo.cmake:
 
 /usr/include/qt6/QtGui/qfontinfo.h:
+
+/usr/include/c++/16/backward/auto_ptr.h:
+
+/usr/include/qt6/QtGui/qcursor.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QTgaPluginConfig.cmake:
+
+/usr/include/features-time64.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/MainWindow.h:
+
+/usr/include/c++/16/cctype:
+
+/usr/include/bits/posix1_lim.h:
 
 /usr/include/asm-generic/types.h:
 
@@ -2077,27 +2129,23 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/include/qt6/QtCore/qresultstore.h:
 
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/InstalledPage.h:
+/usr/lib64/cmake/Qt6Gui/Qt6QWbmpPluginTargetsPrecheck.cmake:
 
-/usr/include/c++/16/bits/utility.h:
+/usr/include/qt6/QtCore/qtnoop.h:
 
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SearchPage.h:
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/UpdatesPage.cpp:
 
-/usr/include/c++/16/bits/hash_bytes.h:
+/usr/include/c++/16/bits/unordered_map.h:
 
-/usr/lib64/cmake/Qt6Gui/Qt6DmaBufServerBufferPluginTargetsPrecheck.cmake:
+/usr/include/c++/16/ext/alloc_traits.h:
 
-/usr/include/c++/16/bits/erase_if.h:
+/usr/include/c++/16/x86_64-redhat-linux/bits/cpu_defines.h:
 
-/usr/lib64/cmake/Qt6Gui/Qt6QWaylandBradientDecorationPluginAdditionalTargetInfo.cmake:
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/PackageBackend.h:
 
-/usr/include/c++/16/tr1/gamma.tcc:
+/usr/lib64/cmake/Qt6Gui/Qt6QICNSPluginTargetsPrecheck.cmake:
 
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/models/PackageTableModel.cpp:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.cpp:
-
-/usr/include/qt6/QtGui/qfontmetrics.h:
+/usr/include/alloca.h:
 
 /usr/include/c++/16/bits/stl_multiset.h:
 
@@ -2179,6 +2227,24 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/include/bits/cpu-set.h:
 
+/usr/lib64/cmake/Qt6Widgets/Qt6WidgetsConfig.cmake:
+
+/usr/include/c++/16/tr1/bessel_function.tcc:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/AptBackend.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/ProcessRunner.cpp:
+
+/usr/include/c++/16/bits/stl_uninitialized.h:
+
+/usr/include/c++/16/cstring:
+
+/usr/lib64/cmake/Qt6/QtPublicDependencyHelpers.cmake:
+
+/usr/include/qt6/QtCore/qfutureinterface.h:
+
+/usr/include/qt6/QtGui/qicon.h:
+
 /usr/lib64/cmake/Qt6Gui/Qt6QWbmpPluginConfig.cmake:
 
 /usr/include/bits/endianness.h:
@@ -2243,6 +2309,14 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/include/bits/types/cookie_io_functions_t.h:
 
+/usr/include/qt6/QtCore/qshareddata_impl.h:
+
+/usr/include/bits/struct_rwlock.h:
+
+/usr/include/qt6/QtCore/qconfig.h:
+
+/usr/include/bits/sched.h:
+
 /usr/include/bits/types/__FILE.h:
 
 /usr/include/qt6/QtCore/q20iterator.h:
@@ -2257,21 +2331,15 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/include/qt6/QtCore/QSet:
 
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/SnapBackend.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QEvdevTabletPluginAdditionalTargetInfo.cmake:
+
+/usr/include/qt6/QtCore/qabstractitemmodel.h:
+
 /usr/lib64/cmake/Qt6Gui/Qt6QEglFSKmsGbmIntegrationPluginAdditionalTargetInfo.cmake:
 
 /usr/include/bits/struct_mutex.h:
-
-/usr/lib64/cmake/Qt6Gui/Qt6ShmServerBufferPluginTargets.cmake:
-
-/usr/include/c++/16/bits/shared_ptr_atomic.h:
-
-/usr/include/pthread.h:
-
-/usr/include/c++/16/bits/localefwd.h:
-
-/usr/include/c++/16/unordered_map:
-
-/usr/include/bits/types/time_t.h:
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/AddRepositoryDialog.h:
 
@@ -2285,10 +2353,6 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/include/c++/16/bits/allocator.h:
 
-/usr/include/c++/16/debug/assertions.h:
-
-/usr/include/c++/16/pstl/execution_defs.h:
-
 /usr/include/qt6/QtCore/qspan.h:
 
 /usr/include/bits/stdlib-float.h:
@@ -2296,8 +2360,6 @@ distore-qt_autogen/moc_predefs.h:
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageActions.cpp:
 
 /usr/include/qt6/QtGui/qtransform.h:
-
-/usr/include/bits/time64.h:
 
 /usr/lib64/cmake/Qt6Gui/Qt6QTsLibPluginAdditionalTargetInfo.cmake:
 
@@ -2359,41 +2421,45 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/include/bits/types/sigset_t.h:
 
-/usr/include/qt6/QtCore/qshareddata_impl.h:
+/usr/include/c++/16/bits/stl_bvector.h:
 
-/usr/include/qt6/QtCore/qconfig.h:
+/usr/include/c++/16/bits/functional_hash.h:
 
-/usr/include/bits/sched.h:
+/usr/include/c++/16/condition_variable:
 
-/usr/include/bits/struct_rwlock.h:
+/usr/lib64/cmake/Qt6Gui/Qt6QIbusPlatformInputContextPluginTargets-relwithdebinfo.cmake:
 
-/usr/include/bits/types/struct_itimerspec.h:
+/usr/include/c++/16/tr1/modified_bessel_func.tcc:
 
-/usr/lib64/cmake/Qt6DBusTools/Qt6DBusToolsTargets.cmake:
+/usr/include/qt6/QtCore/qsystemdetection.h:
 
-/usr/include/qt6/QtCore/q20type_traits.h:
+/usr/include/c++/16/cstddef:
 
-/usr/include/c++/16/bits/cxxabi_forced.h:
+/usr/include/c++/16/cstdint:
 
-/usr/include/qt6/QtCore/qfuturewatcher.h:
+/usr/lib64/cmake/Qt6Gui/Qt6QVkKhrDisplayIntegrationPluginTargets-relwithdebinfo.cmake:
 
-/usr/lib64/cmake/Qt6Gui/Qt6QEglFSKmsEglDeviceIntegrationPluginTargetsPrecheck.cmake:
+/usr/include/c++/16/cstdio:
 
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/main.cpp:
+/usr/include/qt6/QtCore/qcompare_impl.h:
 
-/usr/include/bits/types/struct_sched_param.h:
+/usr/include/c++/16/cwchar:
 
-/usr/include/bits/types/struct_timespec.h:
+/usr/include/linux/sched/types.h:
 
-/usr/include/qt6/QtCore/qiterable.h:
+/usr/include/c++/16/pstl/execution_defs.h:
 
-/usr/include/c++/16/bits/ostream_insert.h:
+/usr/include/c++/16/debug/assertions.h:
 
-/usr/include/qt6/QtCore/qvariant.h:
+/usr/include/c++/16/pstl/glue_algorithm_defs.h:
+
+/usr/share/cmake/Modules/MacroAddFileDependencies.cmake:
+
+/usr/lib64/cmake/Qt6Core/Qt6CoreConfig.cmake:
+
+/usr/include/qt6/QtCore/qmargins.h:
 
 /usr/include/c++/16/ext/aligned_buffer.h:
-
-/usr/include/sys/select.h:
 
 /usr/include/c++/16/functional:
 
@@ -2422,6 +2488,12 @@ distore-qt_autogen/moc_predefs.h:
 /usr/include/qt6/QtCore/qmath.h:
 
 /usr/include/qt6/QtWidgets/qsizepolicy.h:
+
+/usr/lib64/cmake/Qt6Network/Qt6NetworkTargets-relwithdebinfo.cmake:
+
+/usr/lib64/cmake/Qt6Core/Qt6CoreMacros.cmake:
+
+/usr/include/c++/16/pstl/glue_memory_defs.h:
 
 /usr/include/c++/16/pstl/glue_numeric_defs.h:
 
@@ -2517,9 +2589,9 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/lib64/cmake/Qt6Gui/Qt6QGifPluginAdditionalTargetInfo.cmake:
 
-/usr/include/qt6/QtCore/qglobalstatic.h:
-
 /usr/include/qt6/QtCore/qobjectdefs.h:
+
+/usr/include/qt6/QtCore/qglobalstatic.h:
 
 /usr/include/limits.h:
 
@@ -2548,10 +2620,6 @@ distore-qt_autogen/moc_predefs.h:
 /usr/include/qt6/QtCore/QAbstractTableModel:
 
 /usr/include/qt6/QtCore/qcontainerinfo.h:
-
-/usr/include/qt6/QtCore/QMap:
-
-/usr/include/qt6/QtCore/qanystringview.h:
 
 /usr/lib64/cmake/Qt6Gui/Qt6QLibInputPluginTargets.cmake:
 
@@ -2583,10 +2651,6 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/include/qt6/QtCore/q23type_traits.h:
 
-/usr/lib64/cmake/Qt6Gui/Qt6QEvdevTabletPluginAdditionalTargetInfo.cmake:
-
-/usr/include/qt6/QtCore/qabstractitemmodel.h:
-
 /usr/lib64/cmake/Qt6DBus/Qt6DBusMacros.cmake:
 
 /usr/include/qt6/QtGui/qwindowdefs.h:
@@ -2600,12 +2664,6 @@ distore-qt_autogen/moc_predefs.h:
 /usr/lib64/cmake/Qt6Network/Qt6NetworkAdditionalTargetInfo.cmake:
 
 /usr/include/qt6/QtCore/qarraydata.h:
-
-/usr/include/qt6/QtCore/qarraydataops.h:
-
-/usr/lib64/cmake/Qt6Gui/Qt6QTsLibPluginTargetsPrecheck.cmake:
-
-/usr/include/qt6/QtCore/qflags.h:
 
 /usr/include/qt6/QtCore/qassert.h:
 
@@ -2787,10 +2845,6 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/include/qt6/QtCore/qtextstream.h:
 
-/usr/include/wchar.h:
-
-/usr/lib64/cmake/Qt6/FindWrapAtomic.cmake:
-
 /usr/lib64/cmake/Qt6Gui/Qt6QICOPluginConfig.cmake:
 
 /usr/lib64/cmake/Qt6/QtPublicSbomGenerationCycloneDXHelpers.cmake:
@@ -2912,15 +2966,3 @@ CMakeFiles/4.3.0/CMakeSystem.cmake:
 /usr/lib64/cmake/Qt6Network/Qt6QTlsBackendCertOnlyPluginAdditionalTargetInfo.cmake:
 
 /usr/include/string.h:
-
-/usr/include/sys/cdefs.h:
-
-/usr/include/sys/types.h:
-
-/usr/include/time.h:
-
-/usr/lib64/cmake/Qt6Gui/Qt6GuiVersionlessAliasTargets.cmake:
-
-/usr/include/c++/16/bits/ios_base.h:
-
-/usr/lib64/cmake/Qt6/FindWrapOpenGL.cmake:

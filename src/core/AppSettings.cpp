@@ -10,10 +10,19 @@
 
 namespace {
 const QString kThemeModeKey = QStringLiteral("appearance/themeMode");
-const QString kStartupTabKey = QStringLiteral("general/startupTab");
-const QString kAutoCloseTerminalKey = QStringLiteral("general/autoCloseTerminalOnSuccess");
-const QString kCheckForAppUpdatesKey = QStringLiteral("general/checkForAppUpdatesOnStartup");
+// Deliberately "app", not "general": QSettings' INI backend specially
+// reserves a section named "General" (case-insensitively) for legacy
+// Windows-.ini compatibility, silently mangling any group with that name
+// on disk — keys would read back fine within the process that wrote them
+// (in-memory cache) but fail to load on the next launch, since a fresh
+// QSettings reading the file back gets a differently-cased group it
+// doesn't recognize. Discovered via an actual cross-process round-trip
+// test while wiring up the first-run flag below.
+const QString kStartupTabKey = QStringLiteral("app/startupTab");
+const QString kAutoCloseTerminalKey = QStringLiteral("app/autoCloseTerminalOnSuccess");
+const QString kCheckForAppUpdatesKey = QStringLiteral("app/checkForAppUpdatesOnStartup");
 const QString kCompactListsKey = QStringLiteral("appearance/compactPackageLists");
+const QString kFirstRunCompletedKey = QStringLiteral("app/firstRunCompleted");
 
 // The classic "Fusion dark" palette. Native widget styles (KDE's Breeze,
 // GNOME's Adwaita-Qt, etc.) mostly ignore QStyleHints::setColorScheme and
@@ -80,7 +89,11 @@ StartupTab AppSettings::startupTab() const
 {
     QSettings settings;
     const int value = settings.value(kStartupTabKey, static_cast<int>(StartupTab::System)).toInt();
-    return value == static_cast<int>(StartupTab::Flatpak) ? StartupTab::Flatpak : StartupTab::System;
+    if (value == static_cast<int>(StartupTab::Flatpak))
+        return StartupTab::Flatpak;
+    if (value == static_cast<int>(StartupTab::Snap))
+        return StartupTab::Snap;
+    return StartupTab::System;
 }
 
 void AppSettings::setStartupTab(StartupTab tab)
@@ -124,6 +137,18 @@ void AppSettings::setCompactPackageLists(bool compact)
     QSettings settings;
     settings.setValue(kCompactListsKey, compact);
     emit compactPackageListsChanged(compact);
+}
+
+bool AppSettings::hasCompletedFirstRun() const
+{
+    QSettings settings;
+    return settings.value(kFirstRunCompletedKey, false).toBool();
+}
+
+void AppSettings::setHasCompletedFirstRun(bool completed)
+{
+    QSettings settings;
+    settings.setValue(kFirstRunCompletedKey, completed);
 }
 
 void AppSettings::applyTheme(ThemeMode mode)

@@ -2,6 +2,7 @@
 
 #include <QFont>
 #include <QHBoxLayout>
+#include <QHeaderView>
 #include <QLabel>
 #include <QPushButton>
 #include <QSplitter>
@@ -21,7 +22,11 @@ GroupsPage::GroupsPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
 {
     m_tree = new QTreeWidget(this);
     m_tree->setHeaderLabels({tr("Category"), tr("Installed")});
-    m_tree->setColumnWidth(0, 220);
+    // A fixed pixel width truncated longer category/environment names
+    // regardless of how wide the splitter panel actually was; resize to
+    // fit whatever's currently in the tree instead.
+    m_tree->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    m_tree->header()->setSectionResizeMode(1, QHeaderView::Stretch);
 
     m_categoryTitle = new QLabel(this);
     QFont titleFont = m_categoryTitle->font();
@@ -46,6 +51,7 @@ GroupsPage::GroupsPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
     splitter->addWidget(rightPanel);
     splitter->setStretchFactor(0, 1);
     splitter->setStretchFactor(1, 3);
+    splitter->setSizes({320, 680});
 
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
     m_statusLabel = new QLabel(tr("Loading categories..."), this);

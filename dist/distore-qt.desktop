@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=distore-qt
+Name=Distore
 GenericName=Package Manager
 Comment=Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak
 Exec=distore-qt

@@ -46,9 +46,10 @@ template <> constexpr inline auto PackageBrowser::qt_create_metaobjectdata<qt_me
         "QModelIndex",
         "current",
         "previous",
+        "onSelectionChanged",
         "installChecked",
-        "uninstallChecked",
-        "reinstallChecked",
+        "uninstallUnchecked",
+        "reinstallSelected",
         "updateChecked",
         "showContextMenu",
         "QPoint",
@@ -64,17 +65,19 @@ template <> constexpr inline auto PackageBrowser::qt_create_metaobjectdata<qt_me
         QtMocHelpers::SlotData<void(const QModelIndex &, const QModelIndex &)>(4, 2, QMC::AccessPrivate, QMetaType::Void, {{
             { 0x80000000 | 5, 6 }, { 0x80000000 | 5, 7 },
         }}),
-        // Slot 'installChecked'
+        // Slot 'onSelectionChanged'
         QtMocHelpers::SlotData<void()>(8, 2, QMC::AccessPrivate, QMetaType::Void),
-        // Slot 'uninstallChecked'
+        // Slot 'installChecked'
         QtMocHelpers::SlotData<void()>(9, 2, QMC::AccessPrivate, QMetaType::Void),
-        // Slot 'reinstallChecked'
+        // Slot 'uninstallUnchecked'
         QtMocHelpers::SlotData<void()>(10, 2, QMC::AccessPrivate, QMetaType::Void),
-        // Slot 'updateChecked'
+        // Slot 'reinstallSelected'
         QtMocHelpers::SlotData<void()>(11, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'updateChecked'
+        QtMocHelpers::SlotData<void()>(12, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'showContextMenu'
-        QtMocHelpers::SlotData<void(const QPoint &)>(12, 2, QMC::AccessPrivate, QMetaType::Void, {{
-            { 0x80000000 | 13, 14 },
+        QtMocHelpers::SlotData<void(const QPoint &)>(13, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { 0x80000000 | 14, 15 },
         }}),
     };
     QtMocHelpers::UintData qt_properties {
@@ -102,11 +105,12 @@ void PackageBrowser::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _
         case 0: _t->refreshRequested(); break;
         case 1: _t->onCheckedChanged(); break;
         case 2: _t->onCurrentRowChanged((*reinterpret_cast<std::add_pointer_t<QModelIndex>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QModelIndex>>(_a[2]))); break;
-        case 3: _t->installChecked(); break;
-        case 4: _t->uninstallChecked(); break;
-        case 5: _t->reinstallChecked(); break;
-        case 6: _t->updateChecked(); break;
-        case 7: _t->showContextMenu((*reinterpret_cast<std::add_pointer_t<QPoint>>(_a[1]))); break;
+        case 3: _t->onSelectionChanged(); break;
+        case 4: _t->installChecked(); break;
+        case 5: _t->uninstallUnchecked(); break;
+        case 6: _t->reinstallSelected(); break;
+        case 7: _t->updateChecked(); break;
+        case 8: _t->showContextMenu((*reinterpret_cast<std::add_pointer_t<QPoint>>(_a[1]))); break;
         default: ;
         }
     }
@@ -135,14 +139,14 @@ int PackageBrowser::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 8)
+        if (_id < 9)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 8;
+        _id -= 9;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 8)
+        if (_id < 9)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 8;
+        _id -= 9;
     }
     return _id;
 }

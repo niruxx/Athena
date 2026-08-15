@@ -6,10 +6,12 @@
 
 #include "../core/PackageInfo.h"
 
-// Package list model with a checkbox column (column 0) for marking
-// packages for a bulk install/uninstall action, independent of row
-// selection (which the view uses to drive a details panel instead).
-// Checked state is tracked by name so it survives sorting.
+// Package list model with a checkbox column (column 0) representing the
+// desired installed state of each package, independent of row selection
+// (which the view uses to drive a details panel instead). Already-installed
+// packages start checked; unchecking one marks it for removal, checking a
+// not-yet-installed one marks it for installation. Checked state is tracked
+// by name so it survives sorting.
 class PackageTableModel : public QAbstractTableModel {
     Q_OBJECT
 
@@ -20,11 +22,17 @@ public:
 
     void setPackages(QVector<PackageInfo> packages);
     const PackageInfo &packageAt(int row) const;
+    const QVector<PackageInfo> &packages() const { return m_packages; }
     int packageCount() const { return m_packages.size(); }
     bool isEmpty() const { return m_packages.isEmpty(); }
 
     QStringList checkedNames() const;
     QVector<PackageInfo> checkedPackages() const;
+    bool isChecked(const QString &name) const { return m_checkedNames.contains(name); }
+    // Installed packages the user has unchecked — i.e. marked for removal,
+    // since the checkbox represents "should be installed" and starts
+    // pre-checked for whatever is already on the system.
+    QVector<PackageInfo> uncheckedInstalledPackages() const;
     void setChecked(const QString &name, bool checked);
     void clearChecked();
     // Checks or unchecks every currently-loaded row in one shot (e.g. for

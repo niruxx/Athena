@@ -47,14 +47,19 @@ signals:
 private slots:
     void onCheckedChanged();
     void onCurrentRowChanged(const QModelIndex &current, const QModelIndex &previous);
+    void onSelectionChanged();
     void installChecked();
-    void uninstallChecked();
-    void reinstallChecked();
+    void uninstallUnchecked();
+    void reinstallSelected();
     void updateChecked();
     void showContextMenu(const QPoint &pos);
 
 private:
     void updateDescriptionPanel(const PackageInfo *pkg);
+    // Installed packages among the currently highlighted table rows —
+    // reinstall targets row selection, not the checkbox (which represents
+    // desired install state, not "selected for an action").
+    QVector<PackageInfo> selectedInstalledPackages() const;
     void runInstall(const QStringList &names);
     void runRemove(const QStringList &names);
     void runReinstall(const QStringList &names);

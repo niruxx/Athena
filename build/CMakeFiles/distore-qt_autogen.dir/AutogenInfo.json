@@ -549,7 +549,11 @@
 		"/usr/lib64/cmake/Qt6Network/Qt6QTlsBackendOpenSSLPluginTargets-relwithdebinfo.cmake",
 		"/usr/lib64/cmake/Qt6Network/Qt6QTlsBackendOpenSSLPluginAdditionalTargetInfo.cmake",
 		"/usr/lib64/cmake/Qt6Network/Qt6NetworkVersionlessAliasTargets.cmake",
-		"/usr/share/cmake/Modules/GNUInstallDirs.cmake"
+		"/usr/share/cmake/Modules/GNUInstallDirs.cmake",
+		"/usr/share/cmake/Modules/CPack.cmake",
+		"/usr/share/cmake/Modules/CPackComponent.cmake",
+		"/usr/share/cmake/Templates/CPackConfig.cmake.in",
+		"/usr/share/cmake/Templates/CPackConfig.cmake.in"
 	],
 	"CMAKE_SOURCE_DIR" : "/home/niruxxdaboi/Documents/GitHub/distore-qt",
 	"CROSS_CONFIG" : false,
@@ -573,6 +577,12 @@
 			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/BackendFactory.h",
 			"MU",
 			"PRMOGMWJPH/moc_BackendFactory.cpp",
+			null
+		],
+		[
+			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/DistroSupport.h",
+			"MU",
+			"PRMOGMWJPH/moc_DistroSupport.cpp",
 			null
 		],
 		[
@@ -642,6 +652,12 @@
 			null
 		],
 		[
+			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/SnapBackend.h",
+			"MU",
+			"N4D2LN57GB/moc_SnapBackend.cpp",
+			null
+		],
+		[
 			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/models/PackageTableModel.h",
 			"MU",
 			"M4YTXQ7V2H/moc_PackageTableModel.cpp",
@@ -657,6 +673,12 @@
 			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/AppIcons.h",
 			"MU",
 			"YPKJ5OE7LN/moc_AppIcons.cpp",
+			null
+		],
+		[
+			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/FirstRunDialog.h",
+			"MU",
+			"YPKJ5OE7LN/moc_FirstRunDialog.cpp",
 			null
 		],
 		[
@@ -687,6 +709,12 @@
 			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.h",
 			"MU",
 			"YPKJ5OE7LN/moc_PackageBrowser.cpp",
+			null
+		],
+		[
+			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.h",
+			"MU",
+			"YPKJ5OE7LN/moc_PackageFormatInstallWidget.cpp",
 			null
 		],
 		[
@@ -815,6 +843,11 @@
 			null
 		],
 		[
+			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/DistroSupport.cpp",
+			"MU",
+			null
+		],
+		[
 			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/GitHubReleaseChecker.cpp",
 			"MU",
 			null
@@ -845,6 +878,11 @@
 			null
 		],
 		[
+			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/SnapBackend.cpp",
+			"MU",
+			null
+		],
+		[
 			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/main.cpp",
 			"MU",
 			null
@@ -856,6 +894,11 @@
 		],
 		[
 			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/AddRepositoryDialog.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/FirstRunDialog.cpp",
 			"MU",
 			null
 		],
@@ -881,6 +924,11 @@
 		],
 		[
 			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.cpp",
 			"MU",
 			null
 		],
