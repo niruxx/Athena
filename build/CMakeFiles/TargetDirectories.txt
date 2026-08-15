@@ -1,0 +1,5 @@
+/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles/distore-qt.dir
+/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles/edit_cache.dir
+/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles/rebuild_cache.dir
+/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles/distore-qt_autogen_timestamp_deps.dir
+/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles/distore-qt_autogen.dir
