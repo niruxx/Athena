@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=distore-qt
+GenericName=Package Manager
+Comment=Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak
+Exec=distore-qt
+Icon=distore-qt
+Terminal=false
+Categories=System;Settings;PackageManager;Qt;
+StartupWMClass=distore-qt

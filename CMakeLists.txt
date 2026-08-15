@@ -72,3 +72,46 @@ add_executable(distore-qt
 )
 
 target_link_libraries(distore-qt PRIVATE Qt6::Widgets Qt6::Concurrent Qt6::Network)
+
+install(TARGETS distore-qt RUNTIME DESTINATION bin)
+install(FILES dist/distore-qt.desktop DESTINATION share/applications)
+install(FILES assets/icon.svg DESTINATION share/icons/hicolor/scalable/apps RENAME distore-qt.svg)
+install(FILES assets/icon-256.png DESTINATION share/icons/hicolor/256x256/apps RENAME distore-qt.png)
+install(FILES assets/icon-128.png DESTINATION share/icons/hicolor/128x128/apps RENAME distore-qt.png)
+install(FILES assets/icon-64.png DESTINATION share/icons/hicolor/64x64/apps RENAME distore-qt.png)
+
+# --- Packaging (CPack: RPM for Fedora, DEB for Debian) ---
+
+file(STRINGS "${CMAKE_SOURCE_DIR}/src/core/Version.h" DISTORE_QT_VERSION_LINE REGEX "DISTORE_QT_VERSION")
+string(REGEX REPLACE ".*\"([0-9]+\\.[0-9]+\\.[0-9]+)\".*" "\\1" DISTORE_QT_VERSION "${DISTORE_QT_VERSION_LINE}")
+
+set(CPACK_PACKAGE_NAME "distore-qt")
+set(CPACK_PACKAGE_VERSION "${DISTORE_QT_VERSION}")
+set(CPACK_PACKAGE_VENDOR "niruxxdaboi")
+set(CPACK_PACKAGE_CONTACT "niruxxdaboi <perezkyle98@protonmail.com>")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/niruxx/distore-qt")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
+set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
+set(CPACK_PACKAGE_CHECKSUM SHA256)
+
+# RPM (Fedora / RHEL)
+set(CPACK_RPM_PACKAGE_LICENSE "GPLv3+")
+set(CPACK_RPM_PACKAGE_GROUP "Applications/System")
+set(CPACK_RPM_PACKAGE_AUTOREQPROV YES)
+set(CPACK_RPM_PACKAGE_REQUIRES "polkit")
+set(CPACK_RPM_PACKAGE_RELEASE "1")
+set(CPACK_RPM_PACKAGE_RELEASE_DIST ON)
+set(CPACK_RPM_FILE_NAME "RPM-DEFAULT")
+
+# DEB (Debian / Ubuntu) — built here on Fedora, so dpkg-shlibdeps has no
+# Debian shlibs database to query; dependencies are listed explicitly
+# instead of relying on auto-detection.
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "niruxxdaboi <perezkyle98@protonmail.com>")
+set(CPACK_DEBIAN_PACKAGE_SECTION "admin")
+set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS
+    "libqt6core6, libqt6gui6, libqt6widgets6, libqt6network6, libqt6concurrent6, libc6, policykit-1 | polkitd")
+set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
+
+include(CPack)
