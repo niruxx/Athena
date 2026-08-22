@@ -401,10 +401,24 @@ CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.s: cmake_force
 	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.s"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.cpp -o CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.s
 
+CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o: CMakeFiles/distore-qt.dir/flags.make
+CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o: /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.cpp
+CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o: CMakeFiles/distore-qt.dir/compiler_depend.ts
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o -MF CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o.d -o CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o -c /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.cpp
+
+CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Preprocessing CXX source to CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.i"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.cpp > CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.i
+
+CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green "Compiling CXX source to assembly CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.s"
+	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.cpp -o CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.s
+
 CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o: CMakeFiles/distore-qt.dir/flags.make
 CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o: /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.cpp
 CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o: CMakeFiles/distore-qt.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_25) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o -MF CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o.d -o CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o -c /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.cpp
 
 CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.i: cmake_force
@@ -418,7 +432,7 @@ CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.s: cmake_force
 CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o: CMakeFiles/distore-qt.dir/flags.make
 CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o: /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SettingsPage.cpp
 CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o: CMakeFiles/distore-qt.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_26) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o -MF CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o.d -o CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o -c /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SettingsPage.cpp
 
 CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.i: cmake_force
@@ -432,7 +446,7 @@ CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.s: cmake_force
 CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o: CMakeFiles/distore-qt.dir/flags.make
 CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o: /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/TerminalOutputDialog.cpp
 CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o: CMakeFiles/distore-qt.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_27) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o -MF CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o.d -o CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o -c /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/TerminalOutputDialog.cpp
 
 CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.i: cmake_force
@@ -446,7 +460,7 @@ CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.s: cmake_force
 CMakeFiles/distore-qt.dir/src/ui/TransactionConfirmDialog.cpp.o: CMakeFiles/distore-qt.dir/flags.make
 CMakeFiles/distore-qt.dir/src/ui/TransactionConfirmDialog.cpp.o: /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/TransactionConfirmDialog.cpp
 CMakeFiles/distore-qt.dir/src/ui/TransactionConfirmDialog.cpp.o: CMakeFiles/distore-qt.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_28) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/TransactionConfirmDialog.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/TransactionConfirmDialog.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/distore-qt.dir/src/ui/TransactionConfirmDialog.cpp.o -MF CMakeFiles/distore-qt.dir/src/ui/TransactionConfirmDialog.cpp.o.d -o CMakeFiles/distore-qt.dir/src/ui/TransactionConfirmDialog.cpp.o -c /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/TransactionConfirmDialog.cpp
 
 CMakeFiles/distore-qt.dir/src/ui/TransactionConfirmDialog.cpp.i: cmake_force
@@ -460,7 +474,7 @@ CMakeFiles/distore-qt.dir/src/ui/TransactionConfirmDialog.cpp.s: cmake_force
 CMakeFiles/distore-qt.dir/src/ui/UpdateBannerWidget.cpp.o: CMakeFiles/distore-qt.dir/flags.make
 CMakeFiles/distore-qt.dir/src/ui/UpdateBannerWidget.cpp.o: /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/UpdateBannerWidget.cpp
 CMakeFiles/distore-qt.dir/src/ui/UpdateBannerWidget.cpp.o: CMakeFiles/distore-qt.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_29) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/UpdateBannerWidget.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_30) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/UpdateBannerWidget.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/distore-qt.dir/src/ui/UpdateBannerWidget.cpp.o -MF CMakeFiles/distore-qt.dir/src/ui/UpdateBannerWidget.cpp.o.d -o CMakeFiles/distore-qt.dir/src/ui/UpdateBannerWidget.cpp.o -c /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/UpdateBannerWidget.cpp
 
 CMakeFiles/distore-qt.dir/src/ui/UpdateBannerWidget.cpp.i: cmake_force
@@ -474,7 +488,7 @@ CMakeFiles/distore-qt.dir/src/ui/UpdateBannerWidget.cpp.s: cmake_force
 CMakeFiles/distore-qt.dir/src/ui/UpdatesPage.cpp.o: CMakeFiles/distore-qt.dir/flags.make
 CMakeFiles/distore-qt.dir/src/ui/UpdatesPage.cpp.o: /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/UpdatesPage.cpp
 CMakeFiles/distore-qt.dir/src/ui/UpdatesPage.cpp.o: CMakeFiles/distore-qt.dir/compiler_depend.ts
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_30) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/UpdatesPage.cpp.o"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_31) "Building CXX object CMakeFiles/distore-qt.dir/src/ui/UpdatesPage.cpp.o"
 	/usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -MD -MT CMakeFiles/distore-qt.dir/src/ui/UpdatesPage.cpp.o -MF CMakeFiles/distore-qt.dir/src/ui/UpdatesPage.cpp.o.d -o CMakeFiles/distore-qt.dir/src/ui/UpdatesPage.cpp.o -c /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/UpdatesPage.cpp
 
 CMakeFiles/distore-qt.dir/src/ui/UpdatesPage.cpp.i: cmake_force
@@ -510,6 +524,7 @@ distore__qt_OBJECTS = \
 "CMakeFiles/distore-qt.dir/src/ui/PackageActions.cpp.o" \
 "CMakeFiles/distore-qt.dir/src/ui/PackageBrowser.cpp.o" \
 "CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o" \
+"CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o" \
 "CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o" \
 "CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o" \
 "CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o" \
@@ -543,6 +558,7 @@ distore-qt: CMakeFiles/distore-qt.dir/src/ui/GroupsPage.cpp.o
 distore-qt: CMakeFiles/distore-qt.dir/src/ui/PackageActions.cpp.o
 distore-qt: CMakeFiles/distore-qt.dir/src/ui/PackageBrowser.cpp.o
 distore-qt: CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o
+distore-qt: CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o
 distore-qt: CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o
 distore-qt: CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o
 distore-qt: CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o
@@ -559,7 +575,7 @@ distore-qt: /usr/lib64/libGLX.so
 distore-qt: /usr/lib64/libOpenGL.so
 distore-qt: /usr/lib64/libQt6Core.so.6.11.1
 distore-qt: CMakeFiles/distore-qt.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_31) "Linking CXX executable distore-qt"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --green --bold --progress-dir=/home/niruxxdaboi/Documents/GitHub/distore-qt/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_32) "Linking CXX executable distore-qt"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/distore-qt.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.

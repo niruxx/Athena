@@ -331,16 +331,32 @@ CMakeFiles/distore-qt.dir/src/MainWindow.cpp.o: \
  /usr/include/qt6/QtGui/qfontvariableaxis.h \
  /usr/include/qt6/QtWidgets/qsizepolicy.h \
  /usr/include/qt6/QtGui/qcursor.h /usr/include/qt6/QtGui/qbitmap.h \
- /usr/include/qt6/QtWidgets/qtabwidget.h \
+ /usr/include/qt6/QtWidgets/qtabwidget.h /usr/include/qt6/QtCore/QString \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/PackageBackend.h \
- /usr/include/qt6/QtCore/QString /usr/include/qt6/QtCore/QVector \
- /usr/include/qt6/QtCore/qvector.h \
+ /usr/include/qt6/QtCore/QVector /usr/include/qt6/QtCore/qvector.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/PackageGroupInfo.h \
  /usr/include/qt6/QtCore/QStringList \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/PackageInfo.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/ProcessRunner.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/RepositoryInfo.h \
- /usr/include/qt6/QtCore/QMap /usr/include/qt6/QtGui/QGuiApplication \
+ /usr/include/qt6/QtCore/QMap /usr/include/qt6/QtGui/QAction \
+ /usr/include/qt6/QtWidgets/QComboBox \
+ /usr/include/qt6/QtWidgets/qcombobox.h \
+ /usr/include/qt6/QtWidgets/qabstractitemdelegate.h \
+ /usr/include/qt6/QtWidgets/qstyleoption.h \
+ /usr/include/qt6/QtCore/qlocale.h \
+ /usr/include/qt6/QtWidgets/qabstractspinbox.h \
+ /usr/include/qt6/QtGui/qvalidator.h \
+ /usr/include/qt6/QtCore/qregularexpression.h \
+ /usr/include/qt6/QtWidgets/qslider.h \
+ /usr/include/qt6/QtWidgets/qabstractslider.h \
+ /usr/include/qt6/QtWidgets/qstyle.h /usr/include/qt6/QtWidgets/qtabbar.h \
+ /usr/include/qt6/QtWidgets/qrubberband.h \
+ /usr/include/qt6/QtWidgets/qframe.h \
+ /usr/include/qt6/QtCore/qabstractitemmodel.h \
+ /usr/include/qt6/QtGui/QDesktopServices \
+ /usr/include/qt6/QtGui/qdesktopservices.h \
+ /usr/include/qt6/QtGui/QGuiApplication \
  /usr/include/qt6/QtGui/qguiapplication.h \
  /usr/include/qt6/QtCore/qcoreapplication.h \
  /usr/include/qt6/QtCore/qcoreevent.h \
@@ -350,21 +366,31 @@ CMakeFiles/distore-qt.dir/src/MainWindow.cpp.o: \
  /usr/include/qt6/QtCore/qdeadlinetimer.h \
  /usr/include/qt6/QtCore/qnativeinterface.h \
  /usr/include/qt6/QtCore/qcoreapplication_platform.h \
- /usr/include/qt6/QtGui/qinputmethod.h /usr/include/qt6/QtCore/qlocale.h \
+ /usr/include/qt6/QtGui/qinputmethod.h \
  /usr/include/qt6/QtGui/qguiapplication_platform.h \
- /usr/include/qt6/QtWidgets/QLabel /usr/include/qt6/QtWidgets/qlabel.h \
- /usr/include/qt6/QtWidgets/qframe.h /usr/include/qt6/QtGui/qpicture.h \
+ /usr/include/qt6/QtGui/QKeySequence /usr/include/qt6/QtWidgets/QLabel \
+ /usr/include/qt6/QtWidgets/qlabel.h /usr/include/qt6/QtGui/qpicture.h \
  /usr/include/qt6/QtCore/qiodevice.h \
  /usr/include/qt6/QtGui/qtextdocument.h /usr/include/qt6/QtCore/qurl.h \
+ /usr/include/qt6/QtWidgets/QMenu /usr/include/qt6/QtWidgets/qmenu.h \
+ /usr/include/qt6/QtWidgets/QMenuBar \
+ /usr/include/qt6/QtWidgets/qmenubar.h \
+ /usr/include/qt6/QtWidgets/QMessageBox \
+ /usr/include/qt6/QtWidgets/qmessagebox.h \
+ /usr/include/qt6/QtWidgets/qdialog.h \
+ /usr/include/qt6/QtWidgets/qdialogbuttonbox.h \
  /usr/include/qt6/QtGui/QScreen /usr/include/qt6/QtGui/qscreen.h \
  /usr/include/qt6/QtCore/QList /usr/include/qt6/QtCore/QObject \
  /usr/include/qt6/QtCore/QRect /usr/include/qt6/QtCore/QSize \
  /usr/include/qt6/QtCore/QSizeF /usr/include/qt6/QtGui/QTransform \
  /usr/include/qt6/QtGui/qscreen_platform.h \
+ /usr/include/qt6/QtWidgets/QStackedWidget \
+ /usr/include/qt6/QtWidgets/qstackedwidget.h \
  /usr/include/qt6/QtWidgets/QStatusBar \
  /usr/include/qt6/QtWidgets/qstatusbar.h \
  /usr/include/qt6/QtWidgets/QTabWidget /usr/include/qt6/QtCore/QTimer \
- /usr/include/qt6/QtCore/qtimer.h /usr/include/qt6/QtWidgets/QVBoxLayout \
+ /usr/include/qt6/QtCore/qtimer.h /usr/include/qt6/QtCore/QUrl \
+ /usr/include/qt6/QtWidgets/QVBoxLayout \
  /usr/include/qt6/QtWidgets/qboxlayout.h \
  /usr/include/qt6/QtWidgets/qlayout.h \
  /usr/include/qt6/QtWidgets/qlayoutitem.h \
@@ -373,10 +399,17 @@ CMakeFiles/distore-qt.dir/src/MainWindow.cpp.o: \
  /usr/include/qt6/QtCore/QObject \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/BackendFactory.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/GitHubReleaseChecker.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/Version.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/FlatpakBackend.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/SnapBackend.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/models/PackageTableModel.h \
+ /usr/include/qt6/QtCore/QAbstractTableModel /usr/include/qt6/QtCore/QSet \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/AppIcons.h \
+ /usr/include/qt6/QtWidgets/QApplication \
+ /usr/include/qt6/QtWidgets/qapplication.h /usr/include/qt6/QtGui/QIcon \
+ /usr/include/qt6/QtWidgets/QStyle \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/FirstRunDialog.h \
- /usr/include/qt6/QtWidgets/QDialog /usr/include/qt6/QtWidgets/qdialog.h \
+ /usr/include/qt6/QtWidgets/QDialog \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/GroupsPage.h \
  /usr/include/qt6/QtCore/QFutureWatcher \
  /usr/include/qt6/QtCore/qfuturewatcher.h \
@@ -396,8 +429,10 @@ CMakeFiles/distore-qt.dir/src/MainWindow.cpp.o: \
  /usr/include/qt6/QtCore/qpromise.h /usr/include/qt6/QtWidgets/QWidget \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/HistoryPage.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/InstalledPage.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageActions.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SearchPage.h \
- /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SettingsPage.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/UpdateBannerWidget.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/UpdatesPage.h

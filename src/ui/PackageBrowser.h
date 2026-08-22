@@ -39,6 +39,19 @@ public:
 
     PackageTableModel *model() const { return m_model; }
 
+    // Snapshot of counts for a status-bar summary line: total rows shown,
+    // how many of those are already installed, how many are currently
+    // checked to be installed/upgraded, and how many installed rows are
+    // unchecked for removal (Mode::InstallRemove only — unchecking a row
+    // in Mode::Updates just means "skip this upgrade", not "remove it").
+    struct Stats {
+        int listed = 0;
+        int installed = 0;
+        int toInstallOrUpgrade = 0;
+        int toRemove = 0;
+    };
+    Stats stats() const;
+
 signals:
     // Emitted after a successful install/uninstall/update so the owning
     // page can reload its data and call setPackages() again.

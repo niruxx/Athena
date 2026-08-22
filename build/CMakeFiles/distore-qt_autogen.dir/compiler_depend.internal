@@ -53,6 +53,8 @@
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.h
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.cpp
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.cpp
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.h
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SearchPage.cpp

@@ -148,6 +148,29 @@ void PackageBrowser::setFilterText(const QString &text)
     m_proxyModel->setFilterFixedString(text);
 }
 
+PackageBrowser::Stats PackageBrowser::stats() const
+{
+    Stats result;
+    result.listed = m_model->packageCount();
+    for (const PackageInfo &pkg : m_model->packages()) {
+        if (pkg.installed)
+            ++result.installed;
+    }
+
+    if (m_mode == Mode::Updates) {
+        // Every row here is already installed; checked means "marked to
+        // upgrade" rather than "marked to install".
+        result.toInstallOrUpgrade = m_model->checkedNames().size();
+    } else {
+        for (const PackageInfo &pkg : m_model->checkedPackages()) {
+            if (!pkg.installed)
+                ++result.toInstallOrUpgrade;
+        }
+        result.toRemove = m_model->uncheckedInstalledPackages().size();
+    }
+    return result;
+}
+
 void PackageBrowser::setBusy(bool busy)
 {
     m_busy = busy;

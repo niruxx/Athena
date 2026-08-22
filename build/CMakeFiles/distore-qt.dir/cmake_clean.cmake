@@ -47,6 +47,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/distore-qt.dir/src/ui/PackageBrowser.cpp.o.d"
   "CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o"
   "CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o.d"
+  "CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o"
+  "CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o.d"
   "CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o"
   "CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o.d"
   "CMakeFiles/distore-qt.dir/src/ui/SearchPage.cpp.o"

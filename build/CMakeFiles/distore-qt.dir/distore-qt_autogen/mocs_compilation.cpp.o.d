@@ -332,10 +332,9 @@ CMakeFiles/distore-qt.dir/distore-qt_autogen/mocs_compilation.cpp.o: \
  /usr/include/qt6/QtGui/qfontvariableaxis.h \
  /usr/include/qt6/QtWidgets/qsizepolicy.h \
  /usr/include/qt6/QtGui/qcursor.h /usr/include/qt6/QtGui/qbitmap.h \
- /usr/include/qt6/QtWidgets/qtabwidget.h \
+ /usr/include/qt6/QtWidgets/qtabwidget.h /usr/include/qt6/QtCore/QString \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/UVLADIE3JM/../../../src/core/PackageBackend.h \
- /usr/include/qt6/QtCore/QString /usr/include/qt6/QtCore/QVector \
- /usr/include/qt6/QtCore/qvector.h \
+ /usr/include/qt6/QtCore/QVector /usr/include/qt6/QtCore/qvector.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/UVLADIE3JM/../../../src/core/PackageGroupInfo.h \
  /usr/include/qt6/QtCore/QStringList \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/UVLADIE3JM/../../../src/core/PackageInfo.h \
@@ -387,6 +386,8 @@ CMakeFiles/distore-qt.dir/distore-qt_autogen/mocs_compilation.cpp.o: \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/PackageBrowser.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_PackageFormatInstallWidget.cpp \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/PackageFormatInstallWidget.h \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_PreferencesDialog.cpp \
+ /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/PreferencesDialog.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_RepositoriesPage.cpp \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/../../../src/ui/RepositoriesPage.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/build/distore-qt_autogen/YPKJ5OE7LN/moc_SearchPage.cpp \

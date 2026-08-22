@@ -65,6 +65,8 @@ add_executable(distore-qt
     src/ui/PackageBrowser.cpp
     src/ui/PackageFormatInstallWidget.h
     src/ui/PackageFormatInstallWidget.cpp
+    src/ui/PreferencesDialog.h
+    src/ui/PreferencesDialog.cpp
     src/ui/RepositoriesPage.h
     src/ui/RepositoriesPage.cpp
     src/ui/SettingsPage.h

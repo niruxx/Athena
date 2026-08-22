@@ -748,6 +748,30 @@ src/ui/PackageFormatInstallWidget.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.s
 .PHONY : src/ui/PackageFormatInstallWidget.cpp.s
 
+src/ui/PreferencesDialog.o: src/ui/PreferencesDialog.cpp.o
+.PHONY : src/ui/PreferencesDialog.o
+
+# target to build an object file
+src/ui/PreferencesDialog.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o
+.PHONY : src/ui/PreferencesDialog.cpp.o
+
+src/ui/PreferencesDialog.i: src/ui/PreferencesDialog.cpp.i
+.PHONY : src/ui/PreferencesDialog.i
+
+# target to preprocess a source file
+src/ui/PreferencesDialog.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.i
+.PHONY : src/ui/PreferencesDialog.cpp.i
+
+src/ui/PreferencesDialog.s: src/ui/PreferencesDialog.cpp.s
+.PHONY : src/ui/PreferencesDialog.s
+
+# target to generate assembly for a file
+src/ui/PreferencesDialog.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/distore-qt.dir/build.make CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.s
+.PHONY : src/ui/PreferencesDialog.cpp.s
+
 src/ui/RepositoriesPage.o: src/ui/RepositoriesPage.cpp.o
 .PHONY : src/ui/RepositoriesPage.o
 
@@ -999,6 +1023,9 @@ help:
 	@echo "... src/ui/PackageFormatInstallWidget.o"
 	@echo "... src/ui/PackageFormatInstallWidget.i"
 	@echo "... src/ui/PackageFormatInstallWidget.s"
+	@echo "... src/ui/PreferencesDialog.o"
+	@echo "... src/ui/PreferencesDialog.i"
+	@echo "... src/ui/PreferencesDialog.s"
 	@echo "... src/ui/RepositoriesPage.o"
 	@echo "... src/ui/RepositoriesPage.i"
 	@echo "... src/ui/RepositoriesPage.s"

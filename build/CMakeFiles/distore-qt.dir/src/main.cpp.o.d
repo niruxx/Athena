@@ -342,10 +342,9 @@ CMakeFiles/distore-qt.dir/src/main.cpp.o: \
  /usr/include/qt6/QtGui/qfontmetrics.h /usr/include/qt6/QtGui/qfontinfo.h \
  /usr/include/qt6/QtGui/qfontvariableaxis.h \
  /usr/include/qt6/QtWidgets/qsizepolicy.h \
- /usr/include/qt6/QtWidgets/qtabwidget.h \
+ /usr/include/qt6/QtWidgets/qtabwidget.h /usr/include/qt6/QtCore/QString \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/PackageBackend.h \
- /usr/include/qt6/QtCore/QString /usr/include/qt6/QtCore/QVector \
- /usr/include/qt6/QtCore/qvector.h \
+ /usr/include/qt6/QtCore/QVector /usr/include/qt6/QtCore/qvector.h \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/PackageGroupInfo.h \
  /usr/include/qt6/QtCore/QStringList \
  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/PackageInfo.h \

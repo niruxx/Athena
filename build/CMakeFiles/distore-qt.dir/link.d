@@ -25,6 +25,7 @@ distore-qt: \
   CMakeFiles/distore-qt.dir/src/ui/PackageActions.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/PackageBrowser.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o \
+  CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o \
   CMakeFiles/distore-qt.dir/src/ui/TerminalOutputDialog.cpp.o \
@@ -193,6 +194,8 @@ CMakeFiles/distore-qt.dir/src/ui/PackageActions.cpp.o:
 CMakeFiles/distore-qt.dir/src/ui/PackageBrowser.cpp.o:
 
 CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o:
+
+CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o:
 
 CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o:
 

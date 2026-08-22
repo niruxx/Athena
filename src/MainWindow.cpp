@@ -1,32 +1,60 @@
 #include "MainWindow.h"
 
+#include <QAction>
+#include <QComboBox>
+#include <QDesktopServices>
 #include <QGuiApplication>
+#include <QKeySequence>
 #include <QLabel>
+#include <QMenu>
+#include <QMenuBar>
+#include <QMessageBox>
 #include <QScreen>
+#include <QStackedWidget>
 #include <QStatusBar>
 #include <QTabWidget>
 #include <QTimer>
+#include <QUrl>
 #include <QVBoxLayout>
 
 #include "core/AppSettings.h"
 #include "core/BackendFactory.h"
 #include "core/GitHubReleaseChecker.h"
+#include "core/Version.h"
 #include "core/backends/FlatpakBackend.h"
 #include "core/backends/SnapBackend.h"
+#include "models/PackageTableModel.h"
+#include "ui/AppIcons.h"
 #include "ui/FirstRunDialog.h"
 #include "ui/GroupsPage.h"
 #include "ui/HistoryPage.h"
 #include "ui/InstalledPage.h"
+#include "ui/PackageActions.h"
+#include "ui/PackageBrowser.h"
+#include "ui/PreferencesDialog.h"
 #include "ui/RepositoriesPage.h"
 #include "ui/SearchPage.h"
-#include "ui/SettingsPage.h"
 #include "ui/UpdateBannerWidget.h"
 #include "ui/UpdatesPage.h"
+
+namespace {
+const char *kProjectUrl = "https://github.com/niruxx/distore-qt";
+const char *kIssuesUrl = "https://github.com/niruxx/distore-qt/issues";
+
+// backendName() returns a descriptive label like "DNF (Fedora / RHEL)";
+// the group dropdown just wants the bare tool name ("dnf") to fit
+// "Repository (dnf)".
+QString shortBackendName(const QString &backendName)
+{
+    const int parenIndex = backendName.indexOf(" (");
+    return (parenIndex >= 0 ? backendName.left(parenIndex) : backendName).toLower();
+}
+} // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setWindowTitle(tr("Distore"));
-    resize(1000, 650);
+    resize(1150, 750);
 
     if (const QScreen *screen = QGuiApplication::primaryScreen()) {
         const QRect available = screen->availableGeometry();
@@ -36,57 +64,118 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     m_backend = BackendFactory::createForHostSystem();
 
-    auto *tabs = new QTabWidget(this);
-    int systemTabIndex = -1;
-    int flatpakTabIndex = -1;
-    int snapTabIndex = -1;
+    m_groupStack = new QStackedWidget(this);
+    m_groupCombo = new QComboBox(this);
+    int systemGroupIndex = -1;
+    int flatpakGroupIndex = -1;
+    int snapGroupIndex = -1;
 
+    // Every PackageBrowser's counts feed the bottom-bar stats summary, so
+    // whichever page/group is currently visible keeps it live as data
+    // loads or checkboxes are toggled.
+    auto watchBrowserStats = [this](PackageBrowser *browser) {
+        connect(browser->model(), &QAbstractItemModel::modelReset, this, &MainWindow::updateStatusBarStats);
+        connect(browser->model(), &PackageTableModel::checkedChanged, this, &MainWindow::updateStatusBarStats);
+    };
+
+    // m_groupCombo's entries are added in the same order as m_groupStack's
+    // pages, so a combo index always matches the stack page it should show.
     if (m_backend) {
-        auto *systemTabs = new QTabWidget(tabs);
-        systemTabs->addTab(new InstalledPage(m_backend.get(), systemTabs), tr("Installed"));
-        systemTabs->addTab(new UpdatesPage(m_backend.get(), systemTabs), tr("Updates"));
-        systemTabs->addTab(new SearchPage(m_backend.get(), systemTabs), tr("Search"));
-        systemTabs->addTab(new GroupsPage(m_backend.get(), systemTabs), tr("Groups"));
-        systemTabs->addTab(
-            new RepositoriesPage({{m_backend.get(), tr("System")}}, systemTabs), tr("Repositories"));
-        systemTabs->addTab(new HistoryPage(m_backend.get(), systemTabs), tr("History"));
-        systemTabIndex = tabs->addTab(systemTabs, tr("System"));
+        m_systemTabs = new QTabWidget(m_groupStack);
+        auto *installedPage = new InstalledPage(m_backend.get(), m_systemTabs);
+        auto *updatesPage = new UpdatesPage(m_backend.get(), m_systemTabs);
+        auto *searchPage = new SearchPage(m_backend.get(), m_systemTabs);
+        auto *groupsPage = new GroupsPage(m_backend.get(), m_systemTabs);
+        m_systemTabs->addTab(installedPage, tr("Installed"));
+        m_systemTabs->addTab(updatesPage, tr("Updates"));
+        m_systemTabs->addTab(searchPage, tr("Search"));
+        m_systemTabs->addTab(groupsPage, tr("Groups"));
+        m_systemTabs->addTab(
+            new RepositoriesPage({{m_backend.get(), tr("System")}}, m_systemTabs), tr("Repositories"));
+        m_systemTabs->addTab(new HistoryPage(m_backend.get(), m_systemTabs), tr("History"));
+        systemGroupIndex = m_groupStack->addWidget(m_systemTabs);
+        m_groupCombo->addItem(tr("Repository (%1)").arg(shortBackendName(m_backend->backendName())));
         statusBar()->showMessage(tr("Backend: %1").arg(m_backend->backendName()));
+
+        watchBrowserStats(installedPage->browser());
+        watchBrowserStats(updatesPage->browser());
+        watchBrowserStats(searchPage->browser());
+        watchBrowserStats(groupsPage->browser());
+        connect(m_systemTabs, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
     } else {
+        // Wrapped in a QTabWidget (with a single tab) rather than added to
+        // the stack directly, so this page has a tab bar to host
+        // m_groupCombo's corner widget too, same as every other group.
+        m_systemTabs = new QTabWidget(m_groupStack);
         auto *label = new QLabel(
-            tr("No supported package manager (dnf, apt, or pacman) was found on this system."), tabs);
+            tr("No supported package manager (dnf, apt, or pacman) was found on this system."), m_systemTabs);
         label->setAlignment(Qt::AlignCenter);
         label->setWordWrap(true);
-        systemTabIndex = tabs->addTab(label, tr("System"));
+        m_systemTabs->addTab(label, tr("System"));
+        systemGroupIndex = m_groupStack->addWidget(m_systemTabs);
+        m_groupCombo->addItem(tr("Repository"));
     }
 
     auto flatpakBackend = std::make_unique<FlatpakBackend>();
     if (flatpakBackend->isAvailable()) {
         m_flatpakBackend = std::move(flatpakBackend);
 
-        auto *flatpakTabs = new QTabWidget(tabs);
-        flatpakTabs->addTab(new InstalledPage(m_flatpakBackend.get(), flatpakTabs), tr("Installed"));
-        flatpakTabs->addTab(new UpdatesPage(m_flatpakBackend.get(), flatpakTabs), tr("Updates"));
-        flatpakTabs->addTab(new SearchPage(m_flatpakBackend.get(), flatpakTabs), tr("Search"));
-        flatpakTabs->addTab(
-            new RepositoriesPage({{m_flatpakBackend.get(), tr("Flatpak")}}, flatpakTabs), tr("Repositories"));
-        flatpakTabs->addTab(new HistoryPage(m_flatpakBackend.get(), flatpakTabs), tr("History"));
-        flatpakTabIndex = tabs->addTab(flatpakTabs, tr("Flatpak"));
+        m_flatpakTabs = new QTabWidget(m_groupStack);
+        auto *installedPage = new InstalledPage(m_flatpakBackend.get(), m_flatpakTabs);
+        auto *updatesPage = new UpdatesPage(m_flatpakBackend.get(), m_flatpakTabs);
+        auto *searchPage = new SearchPage(m_flatpakBackend.get(), m_flatpakTabs);
+        m_flatpakTabs->addTab(installedPage, tr("Installed"));
+        m_flatpakTabs->addTab(updatesPage, tr("Updates"));
+        m_flatpakTabs->addTab(searchPage, tr("Search"));
+        m_flatpakTabs->addTab(
+            new RepositoriesPage({{m_flatpakBackend.get(), tr("Flatpak")}}, m_flatpakTabs), tr("Repositories"));
+        m_flatpakTabs->addTab(new HistoryPage(m_flatpakBackend.get(), m_flatpakTabs), tr("History"));
+        flatpakGroupIndex = m_groupStack->addWidget(m_flatpakTabs);
+        m_groupCombo->addItem(tr("Flatpak"));
+
+        watchBrowserStats(installedPage->browser());
+        watchBrowserStats(updatesPage->browser());
+        watchBrowserStats(searchPage->browser());
+        connect(m_flatpakTabs, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
     }
 
     auto snapBackend = std::make_unique<SnapBackend>();
     if (snapBackend->isAvailable()) {
         m_snapBackend = std::move(snapBackend);
 
-        auto *snapTabs = new QTabWidget(tabs);
-        snapTabs->addTab(new InstalledPage(m_snapBackend.get(), snapTabs), tr("Installed"));
-        snapTabs->addTab(new UpdatesPage(m_snapBackend.get(), snapTabs), tr("Updates"));
-        snapTabs->addTab(new SearchPage(m_snapBackend.get(), snapTabs), tr("Search"));
-        snapTabs->addTab(new HistoryPage(m_snapBackend.get(), snapTabs), tr("History"));
-        snapTabIndex = tabs->addTab(snapTabs, tr("Snap"));
+        m_snapTabs = new QTabWidget(m_groupStack);
+        auto *installedPage = new InstalledPage(m_snapBackend.get(), m_snapTabs);
+        auto *updatesPage = new UpdatesPage(m_snapBackend.get(), m_snapTabs);
+        auto *searchPage = new SearchPage(m_snapBackend.get(), m_snapTabs);
+        m_snapTabs->addTab(installedPage, tr("Installed"));
+        m_snapTabs->addTab(updatesPage, tr("Updates"));
+        m_snapTabs->addTab(searchPage, tr("Search"));
+        m_snapTabs->addTab(new HistoryPage(m_snapBackend.get(), m_snapTabs), tr("History"));
+        snapGroupIndex = m_groupStack->addWidget(m_snapTabs);
+        m_groupCombo->addItem(tr("Snap"));
+
+        watchBrowserStats(installedPage->browser());
+        watchBrowserStats(updatesPage->browser());
+        watchBrowserStats(searchPage->browser());
+        connect(m_snapTabs, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
     }
 
-    tabs->addTab(new SettingsPage(tabs), tr("Settings"));
+    connect(m_groupCombo, &QComboBox::currentIndexChanged, m_groupStack, &QStackedWidget::setCurrentIndex);
+
+    setupMenuBar();
+
+    m_statsLabel = new QLabel(this);
+    statusBar()->addPermanentWidget(m_statsLabel);
+    connect(m_groupStack, &QStackedWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
+    updateStatusBarStats();
+
+    // Every group page is a QTabWidget, so rather than giving m_groupCombo
+    // its own row above them, it rides in the tab bar's corner — sharing
+    // that row instead of adding a second one. Since it's one shared combo
+    // (not one per group), it has to move to whichever group's tab bar is
+    // currently visible.
+    connect(m_groupStack, &QStackedWidget::currentChanged, this, &MainWindow::placeGroupComboInCornerWidget);
+    placeGroupComboInCornerWidget();
 
     m_updateBanner = new UpdateBannerWidget(this);
 
@@ -95,17 +184,17 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     centralLayout->setContentsMargins(0, 0, 0, 0);
     centralLayout->setSpacing(0);
     centralLayout->addWidget(m_updateBanner);
-    centralLayout->addWidget(tabs, 1);
+    centralLayout->addWidget(m_groupStack, 1);
     setCentralWidget(central);
 
     const StartupTab requestedStartupTab = AppSettings::instance().startupTab();
-    int startupIndex = systemTabIndex;
-    if (requestedStartupTab == StartupTab::Flatpak && flatpakTabIndex >= 0)
-        startupIndex = flatpakTabIndex;
-    else if (requestedStartupTab == StartupTab::Snap && snapTabIndex >= 0)
-        startupIndex = snapTabIndex;
+    int startupIndex = systemGroupIndex;
+    if (requestedStartupTab == StartupTab::Flatpak && flatpakGroupIndex >= 0)
+        startupIndex = flatpakGroupIndex;
+    else if (requestedStartupTab == StartupTab::Snap && snapGroupIndex >= 0)
+        startupIndex = snapGroupIndex;
     if (startupIndex >= 0)
-        tabs->setCurrentIndex(startupIndex);
+        m_groupCombo->setCurrentIndex(startupIndex);
 
     if (AppSettings::instance().checkForAppUpdatesOnStartup()) {
         auto *checker = new GitHubReleaseChecker(this);
@@ -125,4 +214,236 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
             dialog.exec();
         });
     }
+}
+
+void MainWindow::placeGroupComboInCornerWidget()
+{
+    if (auto *tabs = qobject_cast<QTabWidget *>(m_groupStack->currentWidget()))
+        tabs->setCornerWidget(m_groupCombo, Qt::TopRightCorner);
+}
+
+QTabWidget *MainWindow::currentGroupTabs() const
+{
+    if (!m_groupStack)
+        return nullptr;
+
+    QWidget *current = m_groupStack->currentWidget();
+    if (current == m_systemTabs)
+        return m_systemTabs;
+    if (current == m_flatpakTabs)
+        return m_flatpakTabs;
+    if (current == m_snapTabs)
+        return m_snapTabs;
+    return nullptr;
+}
+
+PackageBackend *MainWindow::currentGroupBackend() const
+{
+    if (!m_groupStack)
+        return nullptr;
+
+    QWidget *current = m_groupStack->currentWidget();
+    if (current == m_systemTabs)
+        return m_backend.get();
+    if (current == m_flatpakTabs)
+        return m_flatpakBackend.get();
+    if (current == m_snapTabs)
+        return m_snapBackend.get();
+    return nullptr;
+}
+
+void MainWindow::focusGroupTab(const QString &tabText)
+{
+    QTabWidget *group = currentGroupTabs();
+    if (!group)
+        return;
+
+    for (int i = 0; i < group->count(); ++i) {
+        if (group->tabText(i) == tabText) {
+            group->setCurrentIndex(i);
+            return;
+        }
+    }
+}
+
+PackageBrowser *MainWindow::currentPackageBrowser() const
+{
+    QTabWidget *group = currentGroupTabs();
+    if (!group)
+        return nullptr;
+
+    QWidget *current = group->currentWidget();
+    if (auto *page = qobject_cast<InstalledPage *>(current))
+        return page->browser();
+    if (auto *page = qobject_cast<UpdatesPage *>(current))
+        return page->browser();
+    if (auto *page = qobject_cast<SearchPage *>(current))
+        return page->browser();
+    if (auto *page = qobject_cast<GroupsPage *>(current))
+        return page->browser();
+    return nullptr;
+}
+
+void MainWindow::updateStatusBarStats()
+{
+    if (!m_statsLabel)
+        return;
+
+    PackageBrowser *browser = currentPackageBrowser();
+    if (!browser) {
+        m_statsLabel->clear();
+        return;
+    }
+
+    const PackageBrowser::Stats stats = browser->stats();
+    m_statsLabel->setText(tr("%1 listed, %2 installed, %3 to install/upgrade, %4 to remove")
+                               .arg(stats.listed)
+                               .arg(stats.installed)
+                               .arg(stats.toInstallOrUpgrade)
+                               .arg(stats.toRemove));
+}
+
+void MainWindow::reloadAllPackageInformation()
+{
+    QVector<PackageBackend *> backends;
+    if (m_backend)
+        backends.append(m_backend.get());
+    if (m_flatpakBackend)
+        backends.append(m_flatpakBackend.get());
+    if (m_snapBackend)
+        backends.append(m_snapBackend.get());
+    if (backends.isEmpty())
+        return;
+
+    PackageActions::confirmAndRun(
+        this, tr("Reload Package Information"),
+        tr("Refresh package metadata for all available package managers now?\n\nThis may "
+           "require administrator privileges and can take a moment."),
+        [backends]() -> OperationResult {
+            OperationResult combined;
+            combined.success = true;
+            for (PackageBackend *backend : backends) {
+                const OperationResult result = backend->refreshMetadata();
+                combined.success = combined.success && result.success;
+                if (!result.output.isEmpty())
+                    combined.output += result.output + '\n';
+            }
+            return combined;
+        },
+        [this](bool success) {
+            statusBar()->showMessage(success ? tr("Package information reloaded.")
+                                              : tr("Failed to reload package information."),
+                                      5000);
+        });
+}
+
+void MainWindow::checkForApplicationUpdates()
+{
+    auto *checker = new GitHubReleaseChecker(this);
+    connect(checker, &GitHubReleaseChecker::updateAvailable, this,
+            [this, checker](const QString &version, const QString &htmlUrl) {
+                m_updateBanner->showUpdate(version, htmlUrl);
+                checker->deleteLater();
+            });
+    connect(checker, &GitHubReleaseChecker::upToDate, this, [this, checker]() {
+        QMessageBox::information(this, tr("Check for Updates"), tr("Distore is up to date."));
+        checker->deleteLater();
+    });
+    connect(checker, &GitHubReleaseChecker::checkFailed, this, [this, checker](const QString &reason) {
+        QMessageBox::warning(this, tr("Check for Updates"),
+                              tr("Couldn't check for updates.\n\n%1").arg(reason));
+        checker->deleteLater();
+    });
+    checker->checkForUpdate();
+}
+
+void MainWindow::showAboutDialog()
+{
+    QMessageBox::about(
+        this, tr("About Distore"),
+        tr("<h3>Distore %1</h3>"
+           "<p>A cross-distro package manager for DNF, APT, Pacman, Flatpak, and Snap.</p>"
+           "<p><a href=\"%2\">%2</a></p>")
+            .arg(QStringLiteral(DISTORE_QT_VERSION), QString::fromLatin1(kProjectUrl)));
+}
+
+void MainWindow::setupMenuBar()
+{
+    auto *fileMenu = menuBar()->addMenu(tr("&File"));
+
+    QAction *reloadAction = fileMenu->addAction(AppIcons::refresh(), tr("&Reload Package Information"));
+    reloadAction->setShortcut(QKeySequence(tr("Ctrl+R")));
+    connect(reloadAction, &QAction::triggered, this, &MainWindow::reloadAllPackageInformation);
+
+    fileMenu->addSeparator();
+
+    QAction *quitAction = fileMenu->addAction(tr("&Quit"));
+    quitAction->setShortcut(QKeySequence::Quit);
+    connect(quitAction, &QAction::triggered, this, &QWidget::close);
+
+    auto *editMenu = menuBar()->addMenu(tr("&Edit"));
+
+    QAction *findAction = editMenu->addAction(AppIcons::search(), tr("&Find Package..."));
+    findAction->setShortcut(QKeySequence::Find);
+    connect(findAction, &QAction::triggered, this, [this]() { focusGroupTab(tr("Search")); });
+
+    auto *packageMenu = menuBar()->addMenu(tr("&Package"));
+
+    QAction *showUpdatesAction = packageMenu->addAction(AppIcons::update(), tr("View &Available Updates"));
+    connect(showUpdatesAction, &QAction::triggered, this, [this]() { focusGroupTab(tr("Updates")); });
+
+    QAction *cleanAction = packageMenu->addAction(AppIcons::clean(), tr("&Clean Unused Dependencies"));
+    connect(cleanAction, &QAction::triggered, this, [this]() {
+        if (PackageBackend *backend = currentGroupBackend())
+            PackageActions::cleanUnusedDependencies(this, backend, [](bool) {});
+    });
+
+    auto *settingsMenu = menuBar()->addMenu(tr("&Settings"));
+
+    QAction *preferencesAction = settingsMenu->addAction(tr("&Preferences"));
+    connect(preferencesAction, &QAction::triggered, this, [this]() {
+        PreferencesDialog dialog(this);
+        dialog.exec();
+    });
+
+    QAction *repositoriesAction = settingsMenu->addAction(tr("&Repositories"));
+    connect(repositoriesAction, &QAction::triggered, this, [this]() { focusGroupTab(tr("Repositories")); });
+
+    auto *helpMenu = menuBar()->addMenu(tr("&Help"));
+
+    QAction *checkUpdatesAction = helpMenu->addAction(tr("Check for &Application Updates"));
+    connect(checkUpdatesAction, &QAction::triggered, this, &MainWindow::checkForApplicationUpdates);
+
+    helpMenu->addSeparator();
+
+    QAction *reportBugAction = helpMenu->addAction(tr("&Report a Bug..."));
+    connect(reportBugAction, &QAction::triggered, this,
+            []() { QDesktopServices::openUrl(QUrl(QString::fromLatin1(kIssuesUrl))); });
+
+    QAction *aboutAction = helpMenu->addAction(tr("&About Distore"));
+    connect(aboutAction, &QAction::triggered, this, &MainWindow::showAboutDialog);
+
+    // Group-scoped actions (Find, View Updates, Clean, Repositories) only
+    // make sense while a System/Flatpak/Snap tab is active, and
+    // Repositories only exists as a sub-tab for some groups — keep them
+    // enabled/disabled to match whatever the user is currently looking at.
+    auto updateActionStates = [this, findAction, showUpdatesAction, cleanAction, repositoriesAction]() {
+        QTabWidget *group = currentGroupTabs();
+        findAction->setEnabled(group != nullptr);
+        showUpdatesAction->setEnabled(group != nullptr);
+        cleanAction->setEnabled(currentGroupBackend() != nullptr);
+
+        bool hasRepositories = false;
+        if (group) {
+            for (int i = 0; i < group->count(); ++i) {
+                if (group->tabText(i) == tr("Repositories")) {
+                    hasRepositories = true;
+                    break;
+                }
+            }
+        }
+        repositoriesAction->setEnabled(hasRepositories);
+    };
+    connect(m_groupStack, &QStackedWidget::currentChanged, this, updateActionStates);
+    updateActionStates();
 }

@@ -31,6 +31,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageActions.cpp" "CMakeFiles/distore-qt.dir/src/ui/PackageActions.cpp.o" "gcc" "CMakeFiles/distore-qt.dir/src/ui/PackageActions.cpp.o.d"
   "/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.cpp" "CMakeFiles/distore-qt.dir/src/ui/PackageBrowser.cpp.o" "gcc" "CMakeFiles/distore-qt.dir/src/ui/PackageBrowser.cpp.o.d"
   "/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.cpp" "CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o" "gcc" "CMakeFiles/distore-qt.dir/src/ui/PackageFormatInstallWidget.cpp.o.d"
+  "/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.cpp" "CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o" "gcc" "CMakeFiles/distore-qt.dir/src/ui/PreferencesDialog.cpp.o.d"
   "/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.cpp" "CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o" "gcc" "CMakeFiles/distore-qt.dir/src/ui/RepositoriesPage.cpp.o.d"
   "/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SearchPage.cpp" "CMakeFiles/distore-qt.dir/src/ui/SearchPage.cpp.o" "gcc" "CMakeFiles/distore-qt.dir/src/ui/SearchPage.cpp.o.d"
   "/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SettingsPage.cpp" "CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o" "gcc" "CMakeFiles/distore-qt.dir/src/ui/SettingsPage.cpp.o.d"

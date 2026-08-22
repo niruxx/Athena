@@ -84,4 +84,37 @@ QVector<ProcessRunner::Command> snapInstallCommands()
     return {};
 }
 
+QVector<ProcessRunner::Command> flatpakRemoveCommands()
+{
+    switch (detectDistroFamily()) {
+    case DistroFamily::Fedora:
+        return {{"pkexec", {"dnf", "remove", "-y", "flatpak"}}};
+    case DistroFamily::Debian:
+        return {{"pkexec", {"apt-get", "remove", "-y", "flatpak"}}};
+    case DistroFamily::Arch:
+        return {{"pkexec", {"pacman", "-R", "--noconfirm", "flatpak"}}};
+    case DistroFamily::Unknown:
+        return {};
+    }
+    return {};
+}
+
+QVector<ProcessRunner::Command> snapRemoveCommands()
+{
+    switch (detectDistroFamily()) {
+    case DistroFamily::Fedora:
+        // Undo the symlink snapInstallCommands() set up, alongside the package.
+        return {{"pkexec", {"dnf", "remove", "-y", "snapd"}}, {"pkexec", {"rm", "-f", "/snap"}}};
+    case DistroFamily::Debian:
+        return {{"pkexec", {"apt-get", "remove", "-y", "snapd"}}};
+    case DistroFamily::Arch:
+        // Works regardless of how snapd got installed (official repo or an
+        // AUR helper) since pacman's database tracks it either way.
+        return {{"pkexec", {"pacman", "-R", "--noconfirm", "snapd"}}};
+    case DistroFamily::Unknown:
+        return {};
+    }
+    return {};
+}
+
 } // namespace DistroSupport

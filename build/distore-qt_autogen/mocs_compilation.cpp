@@ -10,6 +10,7 @@
 #include "YPKJ5OE7LN/moc_InstalledPage.cpp"
 #include "YPKJ5OE7LN/moc_PackageBrowser.cpp"
 #include "YPKJ5OE7LN/moc_PackageFormatInstallWidget.cpp"
+#include "YPKJ5OE7LN/moc_PreferencesDialog.cpp"
 #include "YPKJ5OE7LN/moc_RepositoriesPage.cpp"
 #include "YPKJ5OE7LN/moc_SearchPage.cpp"
 #include "YPKJ5OE7LN/moc_SettingsPage.cpp"

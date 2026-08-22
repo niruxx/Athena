@@ -718,6 +718,12 @@
 			null
 		],
 		[
+			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.h",
+			"MU",
+			"YPKJ5OE7LN/moc_PreferencesDialog.cpp",
+			null
+		],
+		[
 			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.h",
 			"MU",
 			"YPKJ5OE7LN/moc_RepositoriesPage.cpp",
@@ -929,6 +935,11 @@
 		],
 		[
 			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.cpp",
 			"MU",
 			null
 		],

@@ -19,6 +19,8 @@ class InstalledPage : public QWidget {
 public:
     explicit InstalledPage(PackageBackend *backend, QWidget *parent = nullptr);
 
+    PackageBrowser *browser() const { return m_browser; }
+
 public slots:
     void refresh();
 

@@ -16,6 +16,8 @@ class SearchPage : public QWidget {
 public:
     explicit SearchPage(PackageBackend *backend, QWidget *parent = nullptr);
 
+    PackageBrowser *browser() const { return m_browser; }
+
 private slots:
     void runSearch();
     void onSearchFinished();

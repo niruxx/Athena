@@ -27,6 +27,8 @@ class GroupsPage : public QWidget {
 public:
     explicit GroupsPage(PackageBackend *backend, QWidget *parent = nullptr);
 
+    PackageBrowser *browser() const { return m_browser; }
+
 public slots:
     void refresh();
 

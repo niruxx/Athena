@@ -52,6 +52,8 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.h \
+  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.cpp \
+  /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.cpp \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.h \
   /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SearchPage.cpp \
@@ -1521,17 +1523,11 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/sys/cdefs.h:
 
-/usr/lib64/cmake/Qt6Gui/Qt6QLibInputPluginConfig.cmake:
+/usr/include/strings.h:
 
-/usr/lib64/cmake/Qt6/QtPublicExternalProjectHelpers.cmake:
+/usr/lib64/cmake/Qt6Network/Qt6QTlsBackendCertOnlyPluginAdditionalTargetInfo.cmake:
 
-/usr/include/c++/16/concepts:
-
-/usr/include/c++/16/bits/locale_classes.h:
-
-/usr/include/c++/16/compare:
-
-/usr/include/qt6/QtWidgets/qwidget.h:
+/usr/include/string.h:
 
 /usr/lib64/cmake/Qt6Gui/Qt6QEvdevTabletPluginTargetsPrecheck.cmake:
 
@@ -1636,6 +1632,14 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 /usr/include/qt6/QtCore/qbasicatomic.h:
 
 /usr/include/qt6/QtCore/qyieldcpu.h:
+
+/usr/include/c++/16/bits/locale_classes.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QLibInputPluginConfig.cmake:
+
+/usr/lib64/cmake/Qt6/QtPublicExternalProjectHelpers.cmake:
+
+/usr/include/c++/16/concepts:
 
 /usr/lib64/cmake/Qt6Gui/Qt6GuiVersionlessAliasTargets.cmake:
 
@@ -1775,10 +1779,6 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/c++/16/bits/shared_ptr_atomic.h:
 
-/usr/include/pthread.h:
-
-/usr/include/c++/16/bits/localefwd.h:
-
 /usr/include/c++/16/unordered_map:
 
 /usr/include/bits/types/time_t.h:
@@ -1807,9 +1807,13 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/bits/wchar.h:
 
-/usr/include/c++/16/bits/basic_string.h:
+/usr/lib64/cmake/Qt6Gui/Qt6QEglFSKmsGbmIntegrationPluginConfig.cmake:
 
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/TerminalOutputDialog.cpp:
+/usr/lib/gcc/x86_64-redhat-linux/16/include/stddef.h:
+
+/usr/include/c++/16/bits/stdexcept_except.h:
+
+/usr/include/bits/types/struct_FILE.h:
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/SettingsPage.h:
 
@@ -1865,9 +1869,23 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageActions.h:
 
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.h:
+
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.h:
 
 /usr/include/asm/errno.h:
+
+/usr/include/c++/16/bits/memory_resource.h:
+
+/usr/include/asm-generic/types.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/ProcessRunner.h:
+
+/usr/include/bits/types/sigset_t.h:
+
+/usr/include/bits/typesizes.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/GroupsPage.cpp:
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/RepositoriesPage.cpp:
 
@@ -1876,6 +1894,24 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageBrowser.h:
 
 /usr/include/bits/pthreadtypes-arch.h:
+
+/usr/include/c++/16/bits/std_mutex.h:
+
+/usr/lib64/cmake/Qt6Gui/Qt6QTiffPluginAdditionalTargetInfo.cmake:
+
+/usr/include/c++/16/bits/atomic_base.h:
+
+/usr/include/c++/16/bits/new_throw.h:
+
+/usr/include/qt6/QtCore/qcontainertools_impl.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/HistoryPage.h:
+
+/usr/lib64/cmake/Qt6/QtPublicCMakeHelpers.cmake:
+
+/usr/include/qt6/QtCore/qmetacontainer.h:
+
+/usr/include/qt6/QtCore/qstringconverter.h:
 
 /usr/include/c++/16/limits:
 
@@ -1917,24 +1953,6 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PackageFormatInstallWidget.cpp:
 
-/usr/include/c++/16/bits/std_mutex.h:
-
-/usr/lib64/cmake/Qt6Gui/Qt6QTiffPluginAdditionalTargetInfo.cmake:
-
-/usr/include/c++/16/bits/atomic_base.h:
-
-/usr/include/c++/16/bits/new_throw.h:
-
-/usr/include/qt6/QtCore/qcontainertools_impl.h:
-
-/usr/include/qt6/QtCore/qstringconverter.h:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/HistoryPage.h:
-
-/usr/lib64/cmake/Qt6/QtPublicCMakeHelpers.cmake:
-
-/usr/include/qt6/QtCore/qmetacontainer.h:
-
 /usr/include/c++/16/bits/std_abs.h:
 
 /usr/include/c++/16/bits/charconv.h:
@@ -1965,31 +1983,13 @@ distore-qt_autogen/timestamp: /home/niruxxdaboi/Documents/GitHub/distore-qt/CMak
 
 /usr/include/qt6/QtCore/qvariant.h:
 
-/usr/include/c++/16/bits/alloc_traits.h:
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/PacmanBackend.h:
 
-/usr/include/c++/16/bits/invoke.h:
-
-/usr/include/bits/floatn-common.h:
-
-/usr/include/qt6/QtWidgets/qtabwidget.h:
-
-/usr/lib64/cmake/Qt6/QtPublicFinalizerHelpers.cmake:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/TerminalOutputDialog.h:
-
-/usr/lib64/cmake/Qt6CoreTools/Qt6CoreToolsConfigVersionImpl.cmake:
-
-/usr/include/bits/errno.h:
-
-/usr/include/qt6/QtCore/qstdlibdetection.h:
+/usr/include/c++/16/bits/unordered_set.h:
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/InstalledPage.cpp:
 
 /home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/AptBackend.cpp:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/backends/PacmanBackend.h:
-
-/usr/include/c++/16/bits/unordered_set.h:
 
 /usr/include/bits/types/struct_itimerspec.h:
 
@@ -2099,12 +2099,6 @@ CMakeFiles/4.3.0/CMakeCXXCompiler.cmake:
 
 /usr/include/bits/posix1_lim.h:
 
-/usr/include/asm-generic/types.h:
-
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/core/ProcessRunner.h:
-
-/usr/include/c++/16/bits/memory_resource.h:
-
 /usr/include/c++/16/bits/stl_iterator_base_types.h:
 
 /usr/include/c++/16/bits/stl_relops.h:
@@ -2128,6 +2122,28 @@ distore-qt_autogen/moc_predefs.h:
 /usr/include/c++/16/bits/stl_algo.h:
 
 /usr/include/qt6/QtCore/qresultstore.h:
+
+/usr/include/c++/16/bits/basic_string.h:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/TerminalOutputDialog.cpp:
+
+/usr/include/c++/16/bits/alloc_traits.h:
+
+/usr/include/c++/16/bits/invoke.h:
+
+/usr/include/bits/floatn-common.h:
+
+/usr/include/qt6/QtWidgets/qtabwidget.h:
+
+/usr/lib64/cmake/Qt6/QtPublicFinalizerHelpers.cmake:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/TerminalOutputDialog.h:
+
+/usr/lib64/cmake/Qt6CoreTools/Qt6CoreToolsConfigVersionImpl.cmake:
+
+/usr/include/bits/errno.h:
+
+/usr/include/qt6/QtCore/qstdlibdetection.h:
 
 /usr/lib64/cmake/Qt6Gui/Qt6QWbmpPluginTargetsPrecheck.cmake:
 
@@ -2184,14 +2200,6 @@ distore-qt_autogen/moc_predefs.h:
 /usr/include/asm/posix_types_64.h:
 
 /usr/include/asm/types.h:
-
-/usr/lib64/cmake/Qt6Gui/Qt6QEglFSKmsGbmIntegrationPluginConfig.cmake:
-
-/usr/lib/gcc/x86_64-redhat-linux/16/include/stddef.h:
-
-/usr/include/c++/16/bits/stdexcept_except.h:
-
-/usr/include/bits/types/struct_FILE.h:
 
 /usr/include/bits/types/clockid_t.h:
 
@@ -2415,11 +2423,13 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/include/bits/types/mbstate_t.h:
 
-/usr/include/bits/typesizes.h:
+/usr/include/c++/16/compare:
 
-/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/GroupsPage.cpp:
+/usr/include/c++/16/bits/localefwd.h:
 
-/usr/include/bits/types/sigset_t.h:
+/usr/include/pthread.h:
+
+/usr/include/qt6/QtWidgets/qwidget.h:
 
 /usr/include/c++/16/bits/stl_bvector.h:
 
@@ -2509,8 +2519,6 @@ distore-qt_autogen/moc_predefs.h:
 
 /usr/include/qt6/QtCore/qtdeprecationdefinitions.h:
 
-/usr/include/strings.h:
-
 /usr/include/qt6/QtCore/q23utility.h:
 
 /usr/include/c++/16/tr1/beta_function.tcc:
@@ -2538,6 +2546,8 @@ distore-qt_autogen/moc_predefs.h:
 /usr/include/qt6/QtCore/qcheckedint_impl.h:
 
 /usr/lib64/cmake/Qt6Gui/Qt6QTgaPluginAdditionalTargetInfo.cmake:
+
+/home/niruxxdaboi/Documents/GitHub/distore-qt/src/ui/PreferencesDialog.cpp:
 
 /usr/include/c++/16/tuple:
 
@@ -2962,7 +2972,3 @@ CMakeFiles/4.3.0/CMakeSystem.cmake:
 /usr/include/qt6/QtCore/qrect.h:
 
 /usr/include/stdlib.h:
-
-/usr/lib64/cmake/Qt6Network/Qt6QTlsBackendCertOnlyPluginAdditionalTargetInfo.cmake:
-
-/usr/include/string.h:

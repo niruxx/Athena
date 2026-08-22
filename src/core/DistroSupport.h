@@ -26,4 +26,12 @@ bool isSnapInstalled();
 QVector<ProcessRunner::Command> flatpakInstallCommands();
 QVector<ProcessRunner::Command> snapInstallCommands();
 
+// The reverse: uninstalls Flatpak/Snap support via the same package
+// manager. Unlike the install side, removal works even on distros with no
+// official install path for that package (e.g. Snap on Arch), since an
+// already-installed package is already known to the system's package
+// database (pacman, in that case) regardless of how it got there.
+QVector<ProcessRunner::Command> flatpakRemoveCommands();
+QVector<ProcessRunner::Command> snapRemoveCommands();
+
 } // namespace DistroSupport
