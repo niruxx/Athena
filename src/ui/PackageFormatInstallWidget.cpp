@@ -94,7 +94,7 @@ void PackageFormatInstallWidget::runInstall(const QString &formatName,
         return;
 
     runCommandsAndOfferRestart(title, commands,
-                                tr("%1 support has been installed. Restart Distore now to start using it?")
+                                tr("%1 support has been installed. Restart Athena now to start using it?")
                                     .arg(formatName));
 }
 
@@ -122,7 +122,7 @@ void PackageFormatInstallWidget::runRemove(const QString &formatName,
         return;
 
     runCommandsAndOfferRestart(title, commands,
-                                tr("%1 support has been removed. Restart Distore now so its tab disappears?")
+                                tr("%1 support has been removed. Restart Athena now so its tab disappears?")
                                     .arg(formatName));
 }
 

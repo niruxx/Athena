@@ -1,8 +1,8 @@
-# distore-qt
+# Athena
 
 A cross-distro GUI package manager built with Qt6 — manage your system's native packages (DNF, APT, or Pacman) and Flatpak apps from one place.
 
-![distore-qt — Installed packages view](docs/screenshots/installed-tab.png)
+![Athena — Installed packages view](docs/screenshots/installed-tab.png)
 
 ## Features
 
@@ -16,7 +16,7 @@ A cross-distro GUI package manager built with Qt6 — manage your system's nativ
 - **Update checking** — a dedicated Updates tab per backend, with one-click "Select All" to batch-upgrade everything at once.
 - **History** — see recent install/remove/update activity for each backend.
 - **Customizable** — theme (light/dark/system), startup tab, compact list rows, and more under Settings.
-- **Notifies you about new distore-qt releases** — checks GitHub on startup (optional) and shows a dismissible banner when a newer version is out.
+- **Notifies you about new Athena releases** — checks GitHub on startup (optional) and shows a dismissible banner when a newer version is out.
 
 ## Supported systems
 
@@ -56,22 +56,22 @@ sudo pacman -S cmake gcc qt6-base
 ### Build
 
 ```bash
-git clone https://github.com/niruxx/distore-qt.git
-cd distore-qt
+git clone https://github.com/niruxx/Athena.git
+cd Athena
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j$(nproc)
 ```
 
-The resulting binary is at `build/distore-qt`:
+The resulting binary is at `build/athena`:
 
 ```bash
-./build/distore-qt
+./build/athena
 ```
 
 ## Getting the latest release
 
-Prebuilt releases are published on the [GitHub Releases page](https://github.com/niruxx/distore-qt/releases). distore-qt will also let you know inside the app when a new version is available — see **Settings → Check for distore-qt updates on startup**.
+Prebuilt releases are published on the [GitHub Releases page](https://github.com/niruxx/Athena/releases). Athena will also let you know inside the app when a new version is available — see **Settings → Check for Athena updates on startup**.
 
 ## A note on privileges
 
-Installing, removing, and reinstalling packages is done through [`pkexec`](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html) (Polkit), which prompts you for your password through your desktop's native authentication dialog — distore-qt never asks for or stores a password itself. Flatpak operations use Flatpak's own built-in Polkit integration the same way.
+Installing, removing, and reinstalling packages is done through [`pkexec`](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html) (Polkit), which prompts you for your password through your desktop's native authentication dialog — Athena never asks for or stores a password itself. Flatpak operations use Flatpak's own built-in Polkit integration the same way.

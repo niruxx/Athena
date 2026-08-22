@@ -31,7 +31,7 @@ public:
     bool autoCloseTerminalOnSuccess() const;
     void setAutoCloseTerminalOnSuccess(bool autoClose);
 
-    // Whether to check GitHub for a newer distore-qt release at startup
+    // Whether to check GitHub for a newer Athena release at startup
     // and show the update banner if one is found.
     bool checkForAppUpdatesOnStartup() const;
     void setCheckForAppUpdatesOnStartup(bool check);

@@ -6,9 +6,9 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    QApplication::setApplicationName("distore-qt");
-    QApplication::setOrganizationName("distore-qt");
-    QApplication::setApplicationDisplayName("Distore");
+    QApplication::setApplicationName("athena");
+    QApplication::setOrganizationName("athena");
+    QApplication::setApplicationDisplayName("Athena");
 
     AppSettings::instance().applyCurrentTheme();
 

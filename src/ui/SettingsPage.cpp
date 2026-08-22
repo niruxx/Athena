@@ -47,7 +47,7 @@ SettingsPage::SettingsPage(QWidget *parent) : QWidget(parent)
     m_autoCloseCheck->setChecked(AppSettings::instance().autoCloseTerminalOnSuccess());
     generalForm->addRow(m_autoCloseCheck);
 
-    m_checkForUpdatesCheck = new QCheckBox(tr("Check for distore-qt updates on startup"), this);
+    m_checkForUpdatesCheck = new QCheckBox(tr("Check for Athena updates on startup"), this);
     m_checkForUpdatesCheck->setChecked(AppSettings::instance().checkForAppUpdatesOnStartup());
     generalForm->addRow(m_checkForUpdatesCheck);
 

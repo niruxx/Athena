@@ -12,17 +12,17 @@
 
 FirstRunDialog::FirstRunDialog(const QString &detectedBackendName, QWidget *parent) : QDialog(parent)
 {
-    setWindowTitle(tr("Welcome to Distore"));
+    setWindowTitle(tr("Welcome to Athena"));
     setMinimumWidth(480);
 
-    auto *titleLabel = new QLabel(tr("Welcome to Distore"), this);
+    auto *titleLabel = new QLabel(tr("Welcome to Athena"), this);
     QFont titleFont = titleLabel->font();
     titleFont.setBold(true);
     titleFont.setPointSize(titleFont.pointSize() + 4);
     titleLabel->setFont(titleFont);
 
     auto *introLabel = new QLabel(
-        tr("Distore is a cross-distro GUI package manager: it drives your system's native package "
+        tr("Athena is a cross-distro GUI package manager: it drives your system's native package "
            "manager (DNF, APT, or Pacman), plus Flatpak and Snap side by side in the same window."),
         this);
     introLabel->setWordWrap(true);

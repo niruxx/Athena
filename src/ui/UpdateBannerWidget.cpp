@@ -42,7 +42,7 @@ UpdateBannerWidget::UpdateBannerWidget(QWidget *parent) : QWidget(parent)
 void UpdateBannerWidget::showUpdate(const QString &version, const QString &htmlUrl)
 {
     if (auto *messageLabel = findChild<QLabel *>(QStringLiteral("messageLabel")))
-        messageLabel->setText(tr("A new version of distore-qt is available: %1").arg(version));
+        messageLabel->setText(tr("A new version of Athena is available: %1").arg(version));
     setProperty("releaseUrl", htmlUrl);
     show();
 }

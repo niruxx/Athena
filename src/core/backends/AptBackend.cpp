@@ -499,7 +499,7 @@ OperationResult AptBackend::addRepository(const RepositoryAddValues &values)
     slug.replace(QRegularExpression(QStringLiteral("[^A-Za-z0-9.-]+")), QStringLiteral("-"));
     if (slug.isEmpty())
         slug = QStringLiteral("custom");
-    const QString path = QStringLiteral("/etc/apt/sources.list.d/distore-%1.list").arg(slug);
+    const QString path = QStringLiteral("/etc/apt/sources.list.d/athena-%1.list").arg(slug);
 
     const QString line = QStringLiteral("deb %1 %2 %3").arg(uri, suite, components);
     op.success = writeFileAsRoot(path, {line});

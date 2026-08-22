@@ -11,7 +11,7 @@
 
 namespace {
 
-const char *kReleasesUrl = "https://api.github.com/repos/niruxx/distore-qt/releases/latest";
+const char *kReleasesUrl = "https://api.github.com/repos/niruxx/Athena/releases/latest";
 
 QVector<int> parseVersionParts(QString version)
 {
@@ -50,7 +50,7 @@ void GitHubReleaseChecker::checkForUpdate()
 {
     QNetworkRequest request((QUrl(QString::fromLatin1(kReleasesUrl))));
     // GitHub's API rejects requests with no User-Agent header.
-    request.setRawHeader("User-Agent", "distore-qt-update-checker");
+    request.setRawHeader("User-Agent", "athena-update-checker");
     request.setRawHeader("Accept", "application/vnd.github+json");
 
     QNetworkReply *reply = m_networkManager->get(request);
@@ -79,7 +79,7 @@ void GitHubReleaseChecker::checkForUpdate()
             return;
         }
 
-        if (isNewerVersion(tagName, QStringLiteral(DISTORE_QT_VERSION)))
+        if (isNewerVersion(tagName, QStringLiteral(ATHENA_VERSION)))
             emit updateAvailable(tagName, htmlUrl);
         else
             emit upToDate();

@@ -1,10 +1,10 @@
 [Desktop Entry]
 Type=Application
-Name=Distore
+Name=Athena
 GenericName=Package Manager
 Comment=Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak
-Exec=distore-qt
-Icon=distore-qt
+Exec=athena
+Icon=athena
 Terminal=false
 Categories=System;Settings;PackageManager;Qt;
-StartupWMClass=distore-qt
+StartupWMClass=athena

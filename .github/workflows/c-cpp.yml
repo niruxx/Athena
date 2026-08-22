@@ -1,23 +1,107 @@
-name: C/C++ CI
+name: Build packages
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
-  build:
-
+  debian:
+    name: Debian/Ubuntu (.deb)
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v4
-    - name: configure
-      run: ./configure
-    - name: make
-      run: make
-    - name: make check
-      run: make check
-    - name: make distcheck
-      run: make distcheck
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ qt6-base-dev
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build -j$(nproc)
+      - name: Package
+        working-directory: build
+        run: cpack -G DEB
+      - uses: actions/upload-artifact@v4
+        with:
+          name: athena-debian
+          path: build/*.deb
+
+  fedora:
+    name: Fedora (.rpm)
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    steps:
+      - name: Install dependencies
+        run: dnf install -y git cmake gcc-c++ qt6-qtbase-devel rpm-build
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build -j$(nproc)
+      - name: Package
+        working-directory: build
+        run: cpack -G RPM
+      - uses: actions/upload-artifact@v4
+        with:
+          name: athena-fedora
+          path: build/*.rpm
+
+  archlinux:
+    name: Arch Linux (.pkg.tar.zst)
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed git cmake base-devel qt6-base polkit
+      - uses: actions/checkout@v4
+      - name: Create unprivileged build user
+        run: |
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+      - name: Build package
+        run: |
+          su builder -c "cd $GITHUB_WORKSPACE/packaging/arch && BUILDDIR=/tmp/build PKGDEST=/tmp/output makepkg -f --noconfirm"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: athena-archlinux
+          path: /tmp/output/*.pkg.tar.zst
+
+  appimage:
+    name: AppImage (.AppImage)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake g++ qt6-base-dev fuse libfuse2t64 || sudo apt-get install -y libfuse2
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build -j$(nproc)
+      - name: Download linuxdeploy tools
+        run: |
+          curl -L -o linuxdeploy-x86_64.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          curl -L -o linuxdeploy-plugin-qt-x86_64.AppImage https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
+      - name: Build AppImage
+        env:
+          VERSION: 2.0.1
+        run: |
+          export PATH="$PWD:$PATH"
+          export QMAKE="$(which qmake6)"
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir AppDir \
+            --executable build/athena \
+            --desktop-file dist/athena.desktop \
+            --icon-file assets/icon-256.png \
+            --icon-filename athena \
+            --plugin qt \
+            --output appimage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: athena-appimage
+          path: Athena-*-x86_64.AppImage

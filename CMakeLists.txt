@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-project(distore-qt LANGUAGES CXX)
+project(Athena LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -11,7 +11,7 @@ find_package(Qt6 REQUIRED COMPONENTS Widgets Concurrent Network)
 
 qt_standard_project_setup()
 
-add_executable(distore-qt
+add_executable(athena
     src/main.cpp
     src/MainWindow.h
     src/MainWindow.cpp
@@ -81,26 +81,26 @@ add_executable(distore-qt
     src/ui/UpdatesPage.cpp
 )
 
-target_link_libraries(distore-qt PRIVATE Qt6::Widgets Qt6::Concurrent Qt6::Network)
+target_link_libraries(athena PRIVATE Qt6::Widgets Qt6::Concurrent Qt6::Network)
 
-install(TARGETS distore-qt RUNTIME DESTINATION bin)
-install(FILES dist/distore-qt.desktop DESTINATION share/applications)
-install(FILES assets/icon.svg DESTINATION share/icons/hicolor/scalable/apps RENAME distore-qt.svg)
-install(FILES assets/icon-256.png DESTINATION share/icons/hicolor/256x256/apps RENAME distore-qt.png)
-install(FILES assets/icon-128.png DESTINATION share/icons/hicolor/128x128/apps RENAME distore-qt.png)
-install(FILES assets/icon-64.png DESTINATION share/icons/hicolor/64x64/apps RENAME distore-qt.png)
+install(TARGETS athena RUNTIME DESTINATION bin)
+install(FILES dist/athena.desktop DESTINATION share/applications)
+install(FILES assets/icon.svg DESTINATION share/icons/hicolor/scalable/apps RENAME athena.svg)
+install(FILES assets/icon-256.png DESTINATION share/icons/hicolor/256x256/apps RENAME athena.png)
+install(FILES assets/icon-128.png DESTINATION share/icons/hicolor/128x128/apps RENAME athena.png)
+install(FILES assets/icon-64.png DESTINATION share/icons/hicolor/64x64/apps RENAME athena.png)
 
 # --- Packaging (CPack: RPM for Fedora, DEB for Debian) ---
 
-file(STRINGS "${CMAKE_SOURCE_DIR}/src/core/Version.h" DISTORE_QT_VERSION_LINE REGEX "DISTORE_QT_VERSION")
-string(REGEX REPLACE ".*\"([0-9]+\\.[0-9]+\\.[0-9]+)\".*" "\\1" DISTORE_QT_VERSION "${DISTORE_QT_VERSION_LINE}")
+file(STRINGS "${CMAKE_SOURCE_DIR}/src/core/Version.h" ATHENA_VERSION_LINE REGEX "ATHENA_VERSION")
+string(REGEX REPLACE ".*\"([0-9]+\\.[0-9]+\\.[0-9]+)\".*" "\\1" ATHENA_VERSION "${ATHENA_VERSION_LINE}")
 
-set(CPACK_PACKAGE_NAME "distore-qt")
-set(CPACK_PACKAGE_VERSION "${DISTORE_QT_VERSION}")
+set(CPACK_PACKAGE_NAME "athena")
+set(CPACK_PACKAGE_VERSION "${ATHENA_VERSION}")
 set(CPACK_PACKAGE_VENDOR "niruxxdaboi")
 set(CPACK_PACKAGE_CONTACT "niruxxdaboi <perezkyle98@protonmail.com>")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak")
-set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/niruxx/distore-qt")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/niruxx/Athena")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE")
 set(CPACK_PACKAGING_INSTALL_PREFIX "/usr")
 set(CPACK_PACKAGE_CHECKSUM SHA256)

@@ -38,8 +38,8 @@
 #include "ui/UpdatesPage.h"
 
 namespace {
-const char *kProjectUrl = "https://github.com/niruxx/distore-qt";
-const char *kIssuesUrl = "https://github.com/niruxx/distore-qt/issues";
+const char *kProjectUrl = "https://github.com/niruxx/Athena";
+const char *kIssuesUrl = "https://github.com/niruxx/Athena/issues";
 
 // backendName() returns a descriptive label like "DNF (Fedora / RHEL)";
 // the group dropdown just wants the bare tool name ("dnf") to fit
@@ -53,7 +53,7 @@ QString shortBackendName(const QString &backendName)
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    setWindowTitle(tr("Distore"));
+    setWindowTitle(tr("Athena"));
     resize(1150, 750);
 
     if (const QScreen *screen = QGuiApplication::primaryScreen()) {
@@ -346,7 +346,7 @@ void MainWindow::checkForApplicationUpdates()
                 checker->deleteLater();
             });
     connect(checker, &GitHubReleaseChecker::upToDate, this, [this, checker]() {
-        QMessageBox::information(this, tr("Check for Updates"), tr("Distore is up to date."));
+        QMessageBox::information(this, tr("Check for Updates"), tr("Athena is up to date."));
         checker->deleteLater();
     });
     connect(checker, &GitHubReleaseChecker::checkFailed, this, [this, checker](const QString &reason) {
@@ -360,11 +360,11 @@ void MainWindow::checkForApplicationUpdates()
 void MainWindow::showAboutDialog()
 {
     QMessageBox::about(
-        this, tr("About Distore"),
-        tr("<h3>Distore %1</h3>"
+        this, tr("About Athena"),
+        tr("<h3>Athena %1</h3>"
            "<p>A cross-distro package manager for DNF, APT, Pacman, Flatpak, and Snap.</p>"
            "<p><a href=\"%2\">%2</a></p>")
-            .arg(QStringLiteral(DISTORE_QT_VERSION), QString::fromLatin1(kProjectUrl)));
+            .arg(QStringLiteral(ATHENA_VERSION), QString::fromLatin1(kProjectUrl)));
 }
 
 void MainWindow::setupMenuBar()
@@ -420,7 +420,7 @@ void MainWindow::setupMenuBar()
     connect(reportBugAction, &QAction::triggered, this,
             []() { QDesktopServices::openUrl(QUrl(QString::fromLatin1(kIssuesUrl))); });
 
-    QAction *aboutAction = helpMenu->addAction(tr("&About Distore"));
+    QAction *aboutAction = helpMenu->addAction(tr("&About Athena"));
     connect(aboutAction, &QAction::triggered, this, &MainWindow::showAboutDialog);
 
     // Group-scoped actions (Find, View Updates, Clean, Repositories) only

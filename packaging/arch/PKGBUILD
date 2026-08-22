@@ -1,0 +1,31 @@
+# Maintainer: niruxxdaboi <perezkyle98@protonmail.com>
+#
+# This PKGBUILD builds from the checked-out repository itself rather than a
+# downloaded source tarball, so it must stay exactly two directories below
+# the repository root (packaging/arch/PKGBUILD) — build()/package() locate
+# the source tree via $startdir/../..
+
+pkgname=athena
+pkgver=2.0.1
+pkgrel=1
+pkgdesc="Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak"
+arch=('x86_64')
+url="https://github.com/niruxx/Athena"
+license=('GPL-3.0-or-later')
+depends=('qt6-base' 'polkit')
+makedepends=('cmake')
+source=()
+sha256sums=()
+
+_reporoot="$startdir/../.."
+
+build() {
+    cmake -S "$_reporoot" -B "$srcdir/build" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr
+    cmake --build "$srcdir/build" -j"$(nproc)"
+}
+
+package() {
+    DESTDIR="$pkgdir" cmake --install "$srcdir/build"
+}

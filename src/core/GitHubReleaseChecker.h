@@ -17,7 +17,7 @@ public:
     void checkForUpdate();
 
 signals:
-    // A release newer than DISTORE_QT_VERSION was found.
+    // A release newer than ATHENA_VERSION was found.
     void updateAvailable(const QString &version, const QString &htmlUrl);
     // Checked successfully; nothing newer than the running build.
     void upToDate();
