@@ -4,6 +4,7 @@
 #include <QGuiApplication>
 #include <QPalette>
 #include <QSettings>
+#include <QStandardPaths>
 #include <QStyle>
 #include <QStyleFactory>
 #include <QStyleHints>
@@ -23,6 +24,16 @@ const QString kAutoCloseTerminalKey = QStringLiteral("app/autoCloseTerminalOnSuc
 const QString kCheckForAppUpdatesKey = QStringLiteral("app/checkForAppUpdatesOnStartup");
 const QString kCompactListsKey = QStringLiteral("appearance/compactPackageLists");
 const QString kFirstRunCompletedKey = QStringLiteral("app/firstRunCompleted");
+const QString kShowArchitectureColumnKey = QStringLiteral("appearance/showArchitectureColumn");
+const QString kShowSizeColumnKey = QStringLiteral("appearance/showSizeColumn");
+const QString kAutoConfirmTransactionsKey = QStringLiteral("system/autoConfirmTransactions");
+const QString kHideTrayWhenNoUpdatesKey = QStringLiteral("system/hideTrayWhenNoUpdates");
+const QString kUpdateCheckIntervalKey = QStringLiteral("system/updateCheckIntervalMinutes");
+const QString kMetadataExpireHoursKey = QStringLiteral("system/metadataExpireHours");
+const QString kDisableGroupViewKey = QStringLiteral("layout/disableGroupView");
+const QString kLoggingEnabledKey = QStringLiteral("logging/enabled");
+const QString kLogDirectoryKey = QStringLiteral("logging/directory");
+const QString kLogLevelKey = QStringLiteral("logging/level");
 
 // The classic "Fusion dark" palette. Native widget styles (KDE's Breeze,
 // GNOME's Adwaita-Qt, etc.) mostly ignore QStyleHints::setColorScheme and
@@ -149,6 +160,140 @@ void AppSettings::setHasCompletedFirstRun(bool completed)
 {
     QSettings settings;
     settings.setValue(kFirstRunCompletedKey, completed);
+}
+
+bool AppSettings::showArchitectureColumn() const
+{
+    QSettings settings;
+    return settings.value(kShowArchitectureColumnKey, false).toBool();
+}
+
+void AppSettings::setShowArchitectureColumn(bool show)
+{
+    QSettings settings;
+    settings.setValue(kShowArchitectureColumnKey, show);
+}
+
+bool AppSettings::showSizeColumn() const
+{
+    QSettings settings;
+    return settings.value(kShowSizeColumnKey, false).toBool();
+}
+
+void AppSettings::setShowSizeColumn(bool show)
+{
+    QSettings settings;
+    settings.setValue(kShowSizeColumnKey, show);
+}
+
+bool AppSettings::autoConfirmTransactions() const
+{
+    QSettings settings;
+    return settings.value(kAutoConfirmTransactionsKey, false).toBool();
+}
+
+void AppSettings::setAutoConfirmTransactions(bool autoConfirm)
+{
+    QSettings settings;
+    settings.setValue(kAutoConfirmTransactionsKey, autoConfirm);
+}
+
+bool AppSettings::hideTrayWhenNoUpdates() const
+{
+    QSettings settings;
+    return settings.value(kHideTrayWhenNoUpdatesKey, true).toBool();
+}
+
+void AppSettings::setHideTrayWhenNoUpdates(bool hide)
+{
+    QSettings settings;
+    settings.setValue(kHideTrayWhenNoUpdatesKey, hide);
+}
+
+int AppSettings::updateCheckIntervalMinutes() const
+{
+    QSettings settings;
+    const int value = settings.value(kUpdateCheckIntervalKey, 60).toInt();
+    return value > 0 ? value : 60;
+}
+
+void AppSettings::setUpdateCheckIntervalMinutes(int minutes)
+{
+    QSettings settings;
+    settings.setValue(kUpdateCheckIntervalKey, minutes);
+    emit updateCheckIntervalMinutesChanged(minutes);
+}
+
+int AppSettings::metadataExpireHours() const
+{
+    QSettings settings;
+    const int value = settings.value(kMetadataExpireHoursKey, 24).toInt();
+    return value > 0 ? value : 24;
+}
+
+void AppSettings::setMetadataExpireHours(int hours)
+{
+    QSettings settings;
+    settings.setValue(kMetadataExpireHoursKey, hours);
+}
+
+bool AppSettings::disableGroupView() const
+{
+    QSettings settings;
+    return settings.value(kDisableGroupViewKey, false).toBool();
+}
+
+void AppSettings::setDisableGroupView(bool disabled)
+{
+    QSettings settings;
+    settings.setValue(kDisableGroupViewKey, disabled);
+    emit disableGroupViewChanged(disabled);
+}
+
+bool AppSettings::loggingEnabled() const
+{
+    QSettings settings;
+    return settings.value(kLoggingEnabledKey, false).toBool();
+}
+
+void AppSettings::setLoggingEnabled(bool enabled)
+{
+    QSettings settings;
+    settings.setValue(kLoggingEnabledKey, enabled);
+}
+
+QString AppSettings::logDirectory() const
+{
+    QSettings settings;
+    const QString value = settings.value(kLogDirectoryKey).toString();
+    if (!value.isEmpty())
+        return value;
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/logs");
+}
+
+void AppSettings::setLogDirectory(const QString &dir)
+{
+    QSettings settings;
+    settings.setValue(kLogDirectoryKey, dir);
+}
+
+LogLevel AppSettings::logLevel() const
+{
+    QSettings settings;
+    const int value = settings.value(kLogLevelKey, static_cast<int>(LogLevel::Info)).toInt();
+    if (value == static_cast<int>(LogLevel::Error))
+        return LogLevel::Error;
+    if (value == static_cast<int>(LogLevel::Warning))
+        return LogLevel::Warning;
+    if (value == static_cast<int>(LogLevel::Debug))
+        return LogLevel::Debug;
+    return LogLevel::Info;
+}
+
+void AppSettings::setLogLevel(LogLevel level)
+{
+    QSettings settings;
+    settings.setValue(kLogLevelKey, static_cast<int>(level));
 }
 
 void AppSettings::applyTheme(ThemeMode mode)

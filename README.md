@@ -23,6 +23,7 @@ Manage your system's native packages (DNF, APT, or Pacman), plus Flatpak and Sna
 - [Installing](#installing)
 - [Building from source](#building-from-source)
 - [A note on privileges](#a-note-on-privileges)
+- [Changelog](#changelog)
 - [License](#license)
 
 ## Features
@@ -37,8 +38,13 @@ Manage your system's native packages (DNF, APT, or Pacman), plus Flatpak and Sna
 - ⬆️ **Update checking** — a dedicated Updates tab per backend, with one-click "Select All" to batch-upgrade everything at once.
 - 🕘 **History** — see recent install/remove/update activity for each backend.
 - 👋 **First-run onboarding** — detects your distro and offers to install Flatpak/Snap support on the spot if it's missing.
-- ⚙️ **Customizable** — theme (light/dark/system), startup tab, compact list rows, and more in a dedicated Preferences dialog.
+- ⚙️ **Customizable** — theme (light/dark/system), startup tab, compact list rows, and a full Preferences dialog organized into General, System, Layout, and Logging Options tabs.
 - 🔔 **Notifies you about new Athena releases** — checks GitHub on startup (optional) and shows a dismissible banner when a newer version is out.
+- 🖲️ **System tray integration** — a tray icon appears when updates are available, with a right-click menu for Settings, Update (installs everything pending in one go), and Quit. Polls on a configurable interval.
+- 🔍 **Advanced search** — beyond a plain keyword search: a **Dependency Query** mode finds packages that provide or require a given capability (e.g. a library soname), plus **Repository** and **Architecture** filters to narrow results.
+- ⬇️ **Download without installing** — grab a copy of a package (optionally plus its not-yet-installed dependencies) to a folder of your choice, instead of installing it.
+- 📏 **Architecture and size columns** — optional columns in every package list (toggle from the table header), and a package's homepage link — when the backend reports one — shown right in its details panel.
+- 📝 **Optional file logging** — enable logging to a folder of your choice with a configurable verbosity level, for troubleshooting.
 
 ## Supported systems
 
@@ -109,7 +115,11 @@ Packaging (`.rpm`/`.deb` via CPack, `.AppImage` via `linuxdeploy`, Arch via `pac
 
 ## A note on privileges
 
-Installing, removing, and reinstalling packages is done through [`pkexec`](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html) (Polkit), which prompts you for your password through your desktop's native authentication dialog — Athena never asks for or stores a password itself. Flatpak operations use Flatpak's own built-in Polkit integration the same way; Snap has no such integration of its own, so its operations go through `pkexec` too.
+Installing, removing, and reinstalling packages is done through [`pkexec`](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html) (Polkit), which prompts you for your password through your desktop's native authentication dialog — Athena never asks for or stores a password itself. Flatpak operations use Flatpak's own built-in Polkit integration the same way; Snap has no such integration of its own, so its operations go through `pkexec` too. Downloading packages (without installing them) is unprivileged on DNF, APT, and Snap; Pacman and Flatpak downloads still go through the same privilege model as a normal install.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a version-by-version history of what's changed.
 
 ## License
 

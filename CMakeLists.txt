@@ -31,6 +31,8 @@ add_executable(athena
     src/core/Version.h
     src/core/GitHubReleaseChecker.h
     src/core/GitHubReleaseChecker.cpp
+    src/core/Logger.h
+    src/core/Logger.cpp
 
     src/core/backends/DnfBackend.h
     src/core/backends/DnfBackend.cpp

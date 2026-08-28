@@ -13,6 +13,22 @@
 
 using ProcessRunner::Result;
 
+namespace {
+
+QString humanReadableSize(qint64 bytes)
+{
+    static const char *units[] = {"B", "KB", "MB", "GB", "TB"};
+    double size = bytes;
+    int unitIndex = 0;
+    while (size >= 1024.0 && unitIndex < 4) {
+        size /= 1024.0;
+        ++unitIndex;
+    }
+    return QString::number(size, 'f', unitIndex == 0 ? 0 : 1) + ' ' + QString::fromLatin1(units[unitIndex]);
+}
+
+} // namespace
+
 QString AptBackend::backendName() const
 {
     return "APT (Debian / Ubuntu)";
@@ -28,23 +44,31 @@ QVector<PackageInfo> AptBackend::listInstalled()
     QVector<PackageInfo> packages;
 
     const Result result = ProcessRunner::run(
-        "dpkg-query",
-        {"-W", "-f", "${Package}\t${Version}\t${Architecture}\t${Status}\t${binary:Summary}\n"});
+        "dpkg-query", {"-W", "-f",
+                        "${Package}\t${Version}\t${Architecture}\t${Installed-Size}\t${Homepage}\t${Status}\t"
+                        "${binary:Summary}\n"});
 
     const QStringList lines = result.stdOut.split('\n', Qt::SkipEmptyParts);
     packages.reserve(lines.size());
     for (const QString &line : lines) {
         const QStringList fields = line.split('\t');
-        if (fields.size() < 4)
+        if (fields.size() < 6)
             continue;
-        if (!fields[3].contains("installed") || fields[3].contains("not-installed"))
+        if (!fields[5].contains("installed") || fields[5].contains("not-installed"))
             continue;
 
         PackageInfo pkg;
         pkg.name = fields[0];
         pkg.installedVersion = fields[1];
         pkg.architecture = fields[2];
-        pkg.description = fields.size() > 4 ? fields[4] : QString();
+        // dpkg-query reports Installed-Size in KiB.
+        bool sizeOk = false;
+        const qint64 sizeKb = fields[3].toLongLong(&sizeOk);
+        if (sizeOk && sizeKb > 0)
+            pkg.size = humanReadableSize(sizeKb * 1024);
+        if (!fields[4].isEmpty())
+            pkg.homepageUrl = fields[4];
+        pkg.description = fields.size() > 6 ? fields[6] : QString();
         pkg.repository = "installed";
         pkg.installed = true;
         packages.append(pkg);
@@ -81,6 +105,8 @@ QVector<PackageInfo> AptBackend::search(const QString &query)
             pkg.installedVersion = installedIt->installedVersion;
             pkg.architecture = installedIt->architecture;
             pkg.repository = "installed";
+            pkg.size = installedIt->size;
+            pkg.homepageUrl = installedIt->homepageUrl;
         } else {
             pkg.repository = "available";
         }
@@ -89,6 +115,73 @@ QVector<PackageInfo> AptBackend::search(const QString &query)
     }
 
     return results;
+}
+
+QVector<PackageInfo> AptBackend::dependencyQuery(const QString &capability, bool findRequires)
+{
+    const QString trimmed = capability.trimmed();
+    if (trimmed.isEmpty())
+        return {};
+
+    QStringList names;
+
+    if (findRequires) {
+        // apt-cache rdepends <pkg>: first line echoes the queried name,
+        // second is a "Reverse Depends:" header, the rest are indented
+        // package names (sometimes with a version constraint in parens,
+        // or a leading "|" for an OR-alternative).
+        const Result result = ProcessRunner::run("apt-cache", {"rdepends", trimmed}, 30000);
+        bool inSection = false;
+        for (const QString &rawLine : result.stdOut.split('\n')) {
+            const QString line = rawLine.trimmed();
+            if (line.isEmpty())
+                continue;
+            if (line.compare(QLatin1String("Reverse Depends:"), Qt::CaseInsensitive) == 0) {
+                inSection = true;
+                continue;
+            }
+            if (!inSection)
+                continue;
+
+            QString name = line.startsWith('|') ? line.mid(1) : line;
+            const int parenIndex = name.indexOf('(');
+            if (parenIndex >= 0)
+                name.truncate(parenIndex);
+            name = name.trimmed();
+            if (!name.isEmpty() && !names.contains(name))
+                names << name;
+        }
+    } else {
+        // apt-cache showpkg <capability>: providers of a virtual
+        // package/capability are listed under "Reverse Provides:", one
+        // "pkgname version" pair per line, until the next blank line or
+        // section header.
+        const Result result = ProcessRunner::run("apt-cache", {"showpkg", trimmed}, 30000);
+        bool inSection = false;
+        for (const QString &rawLine : result.stdOut.split('\n')) {
+            const QString line = rawLine.trimmed();
+            if (line.isEmpty()) {
+                inSection = false;
+                continue;
+            }
+            if (line.compare(QLatin1String("Reverse Provides:"), Qt::CaseInsensitive) == 0) {
+                inSection = true;
+                continue;
+            }
+            if (line.endsWith(':')) {
+                inSection = false;
+                continue;
+            }
+            if (!inSection)
+                continue;
+
+            const QString name = line.section(' ', 0, 0).trimmed();
+            if (!name.isEmpty() && !names.contains(name))
+                names << name;
+        }
+    }
+
+    return packageDetails(names);
 }
 
 namespace {
@@ -132,6 +225,8 @@ QMap<QString, AptVersions> parseAptCachePolicy(const QString &text)
 struct AptDescription {
     QString summary;
     QString longDescription;
+    QString homepageUrl;
+    QString size; // human-readable, from the stanza's Installed-Size (KiB)
 };
 
 // Parses `apt-cache show <names...>`: Debian control-file stanzas
@@ -143,6 +238,8 @@ QMap<QString, AptDescription> parseAptCacheShow(const QString &text)
     QMap<QString, AptDescription> result;
     QString currentName;
     QStringList descriptionLines;
+    QString currentHomepage;
+    QString currentSize;
     bool inDescription = false;
 
     auto flushStanza = [&]() {
@@ -155,10 +252,14 @@ QMap<QString, AptDescription> parseAptCacheShow(const QString &text)
                     line.clear(); // "." is Debian control-file notation for a blank paragraph line
             }
             desc.longDescription = body.join(' ').simplified();
+            desc.homepageUrl = currentHomepage;
+            desc.size = currentSize;
             result[currentName] = desc;
         }
         currentName.clear();
         descriptionLines.clear();
+        currentHomepage.clear();
+        currentSize.clear();
         inDescription = false;
     };
 
@@ -169,6 +270,19 @@ QMap<QString, AptDescription> parseAptCacheShow(const QString &text)
         }
         if (rawLine.startsWith("Package:")) {
             currentName = rawLine.mid(QString("Package:").length()).trimmed();
+            inDescription = false;
+            continue;
+        }
+        if (rawLine.startsWith("Homepage:")) {
+            currentHomepage = rawLine.mid(QString("Homepage:").length()).trimmed();
+            inDescription = false;
+            continue;
+        }
+        if (rawLine.startsWith("Installed-Size:")) {
+            bool sizeOk = false;
+            const qint64 sizeKb = rawLine.mid(QString("Installed-Size:").length()).trimmed().toLongLong(&sizeOk);
+            if (sizeOk && sizeKb > 0)
+                currentSize = humanReadableSize(sizeKb * 1024);
             inDescription = false;
             continue;
         }
@@ -223,6 +337,8 @@ QVector<PackageInfo> AptBackend::packageDetails(const QStringList &packageNames)
         const AptDescription d = descriptions.value(name);
         pkg.description = d.summary;
         pkg.longDescription = d.longDescription;
+        pkg.homepageUrl = d.homepageUrl;
+        pkg.size = d.size;
 
         results.append(pkg);
     }
@@ -573,6 +689,10 @@ QVector<PackageInfo> AptBackend::listUpdates()
     static const QRegularExpression pattern(
         QStringLiteral(R"(^(\S+?)/\S+\s+(\S+)\s+(\S+)\s+\[upgradable from:\s*([^\]]+)\])"));
 
+    QMap<QString, PackageInfo> installedByName;
+    for (const PackageInfo &pkg : listInstalled())
+        installedByName.insert(pkg.name, pkg);
+
     for (const QString &line : result.stdOut.split('\n', Qt::SkipEmptyParts)) {
         const QRegularExpressionMatch match = pattern.match(line);
         if (!match.hasMatch())
@@ -585,6 +705,13 @@ QVector<PackageInfo> AptBackend::listUpdates()
         pkg.installedVersion = match.captured(4).trimmed();
         pkg.installed = true;
         pkg.repository = QStringLiteral("installed");
+
+        // Not size: the installed package's size describes the old
+        // version, which would misleadingly label this update.
+        const auto installedIt = installedByName.constFind(pkg.name);
+        if (installedIt != installedByName.constEnd())
+            pkg.homepageUrl = installedIt->homepageUrl;
+
         updates.append(pkg);
     }
     return updates;
@@ -714,6 +841,57 @@ QVector<ProcessRunner::Command> AptBackend::cleanUnusedDependenciesCommands() co
 OperationResult AptBackend::cleanUnusedDependencies()
 {
     const Result result = ProcessRunner::runSequence(cleanUnusedDependenciesCommands(), 300000);
+    OperationResult op;
+    op.success = result.started && result.exitCode == 0;
+    op.output = result.stdOut + result.stdErr;
+    return op;
+}
+
+QVector<ProcessRunner::Command> AptBackend::downloadCommands(const QStringList &packageNames,
+                                                              const QString &destinationDir,
+                                                              bool includeDependencies) const
+{
+    QStringList allNames = packageNames;
+
+    if (includeDependencies) {
+        // One level of direct dependencies (not the full recursive
+        // closure) — angle-bracketed virtual/alternative names (e.g.
+        // "<mail-transport-agent>") are skipped since they aren't a
+        // concrete downloadable package.
+        QStringList depsArgs = {"depends", "--no-recommends", "--no-suggests", "--no-conflicts", "--no-breaks",
+                                 "--no-replaces", "--no-enhances"};
+        depsArgs += packageNames;
+        const Result depsResult = ProcessRunner::run("apt-cache", depsArgs, 30000);
+
+        static const QRegularExpression depPattern(
+            QStringLiteral(R"(^\s*\|?(?:Pre)?Depends:\s*([A-Za-z0-9.+\-]+)(?:\s*\([^)]*\))?\s*$)"));
+        for (const QString &line : depsResult.stdOut.split('\n', Qt::SkipEmptyParts)) {
+            const QRegularExpressionMatch match = depPattern.match(line);
+            if (!match.hasMatch())
+                continue;
+            const QString name = match.captured(1);
+            if (!allNames.contains(name))
+                allNames << name;
+        }
+    }
+
+    QStringList args = {"download"};
+    args += allNames;
+    // apt-get download always writes into its current directory (it has
+    // no destination flag), so destinationDir is carried as the command's
+    // working directory instead. Unprivileged — no pkexec needed.
+    ProcessRunner::Command command;
+    command.program = "apt-get";
+    command.args = args;
+    command.workingDirectory = destinationDir;
+    return {command};
+}
+
+OperationResult AptBackend::downloadPackages(const QStringList &packageNames, const QString &destinationDir,
+                                              bool includeDependencies)
+{
+    const Result result =
+        ProcessRunner::runSequence(downloadCommands(packageNames, destinationDir, includeDependencies));
     OperationResult op;
     op.success = result.started && result.exitCode == 0;
     op.output = result.stdOut + result.stdErr;

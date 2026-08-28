@@ -49,6 +49,12 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     m_tableView->horizontalHeader()->setSectionResizeMode(PackageTableModel::CheckColumn, QHeaderView::Fixed);
     m_tableView->setColumnWidth(PackageTableModel::CheckColumn, 28);
     m_tableView->setContextMenuPolicy(Qt::CustomContextMenu);
+    // Off by default to match the table's existing appearance; the user
+    // opts in per-column from the header's own right-click menu.
+    m_tableView->setColumnHidden(PackageTableModel::ArchitectureColumn,
+                                  !AppSettings::instance().showArchitectureColumn());
+    m_tableView->setColumnHidden(PackageTableModel::SizeColumn, !AppSettings::instance().showSizeColumn());
+    m_tableView->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
     const int normalRowHeight = m_tableView->verticalHeader()->defaultSectionSize();
     constexpr int compactRowHeight = 22;
     if (AppSettings::instance().compactPackageLists())
@@ -101,10 +107,17 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     m_detailDescription->setWordWrap(true);
     m_detailDescription->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 
+    m_detailUrl = new QLabel(this);
+    m_detailUrl->setTextFormat(Qt::RichText);
+    m_detailUrl->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    m_detailUrl->setOpenExternalLinks(true);
+    m_detailUrl->hide();
+
     auto *detailLayout = new QVBoxLayout;
     detailLayout->addWidget(m_detailTitle);
     detailLayout->addWidget(m_detailMeta);
     detailLayout->addWidget(m_detailDescription, 1);
+    detailLayout->addWidget(m_detailUrl);
     detailLayout->addStretch(1);
     auto *detailPanel = new QWidget(this);
     detailPanel->setLayout(detailLayout);
@@ -126,6 +139,8 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     connect(m_tableView->selectionModel(), &QItemSelectionModel::selectionChanged, this,
             &PackageBrowser::onSelectionChanged);
     connect(m_tableView, &QTableView::customContextMenuRequested, this, &PackageBrowser::showContextMenu);
+    connect(m_tableView->horizontalHeader(), &QWidget::customContextMenuRequested, this,
+            &PackageBrowser::showColumnMenu);
     connect(m_selectAllButton, &QPushButton::clicked, this, [this]() { m_model->checkAll(true); });
     connect(m_selectNoneButton, &QPushButton::clicked, this, [this]() { m_model->checkAll(false); });
     connect(m_installButton, &QPushButton::clicked, this, &PackageBrowser::installChecked);
@@ -257,6 +272,7 @@ void PackageBrowser::updateDescriptionPanel(const PackageInfo *pkg)
         m_detailTitle->setText(QString());
         m_detailMeta->setText(QString());
         m_detailDescription->setText(tr("Select a package to see its details."));
+        m_detailUrl->hide();
         return;
     }
 
@@ -274,6 +290,38 @@ void PackageBrowser::updateDescriptionPanel(const PackageInfo *pkg)
     m_detailMeta->setText(metaParts.join(QStringLiteral("   ·   ")));
 
     m_detailDescription->setText(!pkg->longDescription.isEmpty() ? pkg->longDescription : pkg->description);
+
+    if (pkg->homepageUrl.isEmpty()) {
+        m_detailUrl->hide();
+    } else {
+        const QString escaped = pkg->homepageUrl.toHtmlEscaped();
+        m_detailUrl->setText(tr("Homepage: <a href=\"%1\">%1</a>").arg(escaped));
+        m_detailUrl->show();
+    }
+}
+
+void PackageBrowser::showColumnMenu(const QPoint &pos)
+{
+    QMenu menu(this);
+
+    QAction *archAction = menu.addAction(tr("Show Architecture Column"));
+    archAction->setCheckable(true);
+    archAction->setChecked(!m_tableView->isColumnHidden(PackageTableModel::ArchitectureColumn));
+
+    QAction *sizeAction = menu.addAction(tr("Show Size Column"));
+    sizeAction->setCheckable(true);
+    sizeAction->setChecked(!m_tableView->isColumnHidden(PackageTableModel::SizeColumn));
+
+    connect(archAction, &QAction::toggled, this, [this](bool checked) {
+        m_tableView->setColumnHidden(PackageTableModel::ArchitectureColumn, !checked);
+        AppSettings::instance().setShowArchitectureColumn(checked);
+    });
+    connect(sizeAction, &QAction::toggled, this, [this](bool checked) {
+        m_tableView->setColumnHidden(PackageTableModel::SizeColumn, !checked);
+        AppSettings::instance().setShowSizeColumn(checked);
+    });
+
+    menu.exec(m_tableView->horizontalHeader()->mapToGlobal(pos));
 }
 
 void PackageBrowser::installChecked()

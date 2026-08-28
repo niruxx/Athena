@@ -245,4 +245,24 @@ void cleanUnusedDependencies(QWidget *parentWidget, PackageBackend *backend,
         std::move(onFinished));
 }
 
+void downloadPackages(QWidget *parentWidget, PackageBackend *backend, const QStringList &packageNames,
+                       const QString &destinationDir, bool includeDependencies,
+                       std::function<void(bool)> onFinished)
+{
+    if (!backend || packageNames.isEmpty())
+        return;
+
+    const QString verb = includeDependencies ? QObject::tr("Download Plus Dependencies") : QObject::tr("Download");
+    const QString summary = includeDependencies
+        ? QObject::tr("Download %1 plus dependencies to %2?").arg(summarizeNames(packageNames), destinationDir)
+        : QObject::tr("Download %1 to %2?").arg(summarizeNames(packageNames), destinationDir);
+
+    confirmAndRunCommandsWithTerminal(
+        parentWidget, verb, summary,
+        [backend, packageNames, destinationDir, includeDependencies]() {
+            return backend->downloadCommands(packageNames, destinationDir, includeDependencies);
+        },
+        std::move(onFinished));
+}
+
 } // namespace PackageActions

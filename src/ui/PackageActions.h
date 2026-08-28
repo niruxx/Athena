@@ -53,4 +53,12 @@ void reinstallPackages(QWidget *parentWidget, PackageBackend *backend, const QSt
 void cleanUnusedDependencies(QWidget *parentWidget, PackageBackend *backend,
                               std::function<void(bool success)> onFinished);
 
+// Downloads (without installing) a batch of packages by name into
+// destinationDir, optionally including their not-yet-installed
+// dependencies. Same confirm-then-live-terminal treatment as the other
+// wrappers above.
+void downloadPackages(QWidget *parentWidget, PackageBackend *backend, const QStringList &packageNames,
+                       const QString &destinationDir, bool includeDependencies,
+                       std::function<void(bool success)> onFinished);
+
 } // namespace PackageActions

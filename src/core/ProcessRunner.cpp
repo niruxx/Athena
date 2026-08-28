@@ -9,7 +9,7 @@ namespace ProcessRunner {
 namespace {
 
 Result runInternal(const QString &program, const QStringList &args, const QByteArray *stdinData,
-                    int timeoutMs)
+                    int timeoutMs, const QString &workingDirectory)
 {
     Result result;
 
@@ -19,6 +19,8 @@ Result runInternal(const QString &program, const QStringList &args, const QByteA
     // translated CLI output.
     env.insert("LC_ALL", "C");
     process.setProcessEnvironment(env);
+    if (!workingDirectory.isEmpty())
+        process.setWorkingDirectory(workingDirectory);
 
     process.start(program, args);
     if (!process.waitForStarted(5000)) {
@@ -45,15 +47,15 @@ Result runInternal(const QString &program, const QStringList &args, const QByteA
 
 } // namespace
 
-Result run(const QString &program, const QStringList &args, int timeoutMs)
+Result run(const QString &program, const QStringList &args, int timeoutMs, const QString &workingDirectory)
 {
-    return runInternal(program, args, nullptr, timeoutMs);
+    return runInternal(program, args, nullptr, timeoutMs, workingDirectory);
 }
 
 Result runWithStdin(const QString &program, const QStringList &args, const QByteArray &stdinData,
                      int timeoutMs)
 {
-    return runInternal(program, args, &stdinData, timeoutMs);
+    return runInternal(program, args, &stdinData, timeoutMs, QString());
 }
 
 Result runSequence(const QVector<Command> &commands, int timeoutMsPerCommand)
@@ -63,7 +65,8 @@ Result runSequence(const QVector<Command> &commands, int timeoutMsPerCommand)
     combined.exitCode = 0;
 
     for (const Command &command : commands) {
-        const Result stepResult = run(command.program, command.args, timeoutMsPerCommand);
+        const Result stepResult =
+            run(command.program, command.args, timeoutMsPerCommand, command.workingDirectory);
         combined.stdOut += stepResult.stdOut;
         combined.stdErr += stepResult.stdErr;
 

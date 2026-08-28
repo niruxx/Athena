@@ -39,10 +39,11 @@ QVector<PackageInfo> FlatpakBackend::listInstalled()
     QVector<PackageInfo> packages;
 
     const Result result = ProcessRunner::run(
-        "flatpak", {"list", "--app", "--columns=name,description,application,version,branch,arch,origin"});
+        "flatpak",
+        {"list", "--app", "--columns=name,description,application,version,branch,arch,origin,size"});
 
     for (const QStringList &fields : parseTabSeparatedRows(result.stdOut)) {
-        if (fields.size() < 7)
+        if (fields.size() < 8)
             continue;
 
         PackageInfo pkg;
@@ -51,6 +52,7 @@ QVector<PackageInfo> FlatpakBackend::listInstalled()
         pkg.installedVersion = !fields[3].isEmpty() ? fields[3] : fields[4];
         pkg.architecture = fields[5];
         pkg.repository = fields[6];
+        pkg.size = fields[7]; // flatpak already formats this human-readably (e.g. "20.4 MB")
         pkg.installed = true;
         packages.append(pkg);
     }
@@ -94,6 +96,13 @@ QVector<PackageInfo> FlatpakBackend::search(const QString &query)
     }
 
     return results;
+}
+
+QVector<PackageInfo> FlatpakBackend::dependencyQuery(const QString & /*capability*/, bool /*findRequires*/)
+{
+    // Flatpak apps run sandboxed and bundle their own libraries; there's
+    // no package-level capability graph to query the way rpm/dpkg have.
+    return {};
 }
 
 QVector<PackageGroupInfo> FlatpakBackend::listGroups()
@@ -411,6 +420,59 @@ OperationResult FlatpakBackend::setRepositoryEnabled(const QString &repoId, bool
     // action covers system-wide remote modification too.
     const Result result =
         ProcessRunner::run("flatpak", {"remote-modify", enabled ? "--enable" : "--disable", repoId}, 30000);
+    OperationResult op;
+    op.success = result.started && result.exitCode == 0;
+    op.output = result.stdOut + result.stdErr;
+    return op;
+}
+
+QVector<ProcessRunner::Command> FlatpakBackend::downloadCommands(const QStringList &packageNames,
+                                                                  const QString & /*destinationDir*/,
+                                                                  bool includeDependencies) const
+{
+    // No destination-directory concept: --no-deploy fetches into
+    // flatpak's own local OSTree object store (so a later `flatpak
+    // install` of the same ref is instant/offline) rather than a
+    // standalone file the user could move elsewhere, so destinationDir is
+    // ignored here.
+    QMap<QString, QStringList> refsByRemote;
+    for (const QString &appId : packageNames)
+        refsByRemote[resolveRemoteForAppId(appId)].append(appId);
+
+    QVector<ProcessRunner::Command> commands;
+    QSet<QString> queuedRuntimes;
+    for (auto it = refsByRemote.constBegin(); it != refsByRemote.constEnd(); ++it) {
+        QStringList args = {"install", "--no-deploy", "-y", "--noninteractive", it.key()};
+        args += it.value();
+        commands.append({"flatpak", args});
+
+        if (!includeDependencies)
+            continue;
+
+        for (const QString &appId : it.value()) {
+            const Result infoResult = ProcessRunner::run("flatpak", {"remote-info", it.key(), appId}, 20000);
+            for (const QString &line : infoResult.stdOut.split('\n')) {
+                const QString trimmed = line.trimmed();
+                if (!trimmed.startsWith(QLatin1String("Runtime:")))
+                    continue;
+                const QString runtimeSpec = trimmed.mid(QString("Runtime:").length()).trimmed();
+                if (!runtimeSpec.isEmpty() && !queuedRuntimes.contains(runtimeSpec)) {
+                    queuedRuntimes.insert(runtimeSpec);
+                    commands.append(
+                        {"flatpak", {"install", "--no-deploy", "-y", "--noninteractive", it.key(), runtimeSpec}});
+                }
+                break;
+            }
+        }
+    }
+    return commands;
+}
+
+OperationResult FlatpakBackend::downloadPackages(const QStringList &packageNames, const QString &destinationDir,
+                                                  bool includeDependencies)
+{
+    const Result result =
+        ProcessRunner::runSequence(downloadCommands(packageNames, destinationDir, includeDependencies));
     OperationResult op;
     op.success = result.started && result.exitCode == 0;
     op.output = result.stdOut + result.stdErr;

@@ -12,6 +12,7 @@ public:
 
     QVector<PackageInfo> listInstalled() override;
     QVector<PackageInfo> search(const QString &query) override;
+    QVector<PackageInfo> dependencyQuery(const QString &capability, bool findRequires) override;
 
     QVector<PackageGroupInfo> listGroups() override;
     PackageGroupInfo groupDetails(const QString &groupId, bool isMeta) override;
@@ -34,6 +35,11 @@ public:
     QVector<PackageInfo> listUpdates() override;
     OperationResult upgradePackages(const QStringList &packageNames) override;
     OperationResult refreshMetadata() override;
+
+    QVector<ProcessRunner::Command> downloadCommands(const QStringList &packageNames, const QString &destinationDir,
+                                                      bool includeDependencies) const override;
+    OperationResult downloadPackages(const QStringList &packageNames, const QString &destinationDir,
+                                      bool includeDependencies) override;
 
     // NOTE: like the rest of this backend, developed and tested on Fedora
     // without a live Arch system — implemented against the documented

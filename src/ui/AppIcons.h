@@ -66,4 +66,15 @@ inline QIcon selectNone()
     return QIcon::fromTheme(QStringLiteral("edit-clear"));
 }
 
+inline QIcon folder()
+{
+    return QIcon::fromTheme(QStringLiteral("folder"), qApp->style()->standardIcon(QStyle::SP_DirIcon));
+}
+
+inline QIcon download()
+{
+    return QIcon::fromTheme(QStringLiteral("folder-download"),
+                             qApp->style()->standardIcon(QStyle::SP_ArrowDown));
+}
+
 } // namespace AppIcons

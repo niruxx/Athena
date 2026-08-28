@@ -121,6 +121,8 @@ QVariant PackageTableModel::data(const QModelIndex &index, int role) const
             if (!pkg.availableVersion.isEmpty())
                 return pkg.availableVersion;
             return pkg.installed ? pkg.installedVersion : QStringLiteral("-");
+        case ArchitectureColumn: return pkg.architecture.isEmpty() ? QStringLiteral("-") : pkg.architecture;
+        case SizeColumn: return pkg.size.isEmpty() ? QStringLiteral("-") : pkg.size;
         case DescriptionColumn: return pkg.description;
         default: return {};
         }
@@ -159,6 +161,8 @@ QVariant PackageTableModel::headerData(int section, Qt::Orientation orientation,
         case NameColumn: return tr("Name");
         case InstalledVersionColumn: return tr("Installed Version");
         case AvailableVersionColumn: return tr("Latest Version");
+        case ArchitectureColumn: return tr("Architecture");
+        case SizeColumn: return tr("Size");
         case DescriptionColumn: return tr("Description");
         default: return {};
         }

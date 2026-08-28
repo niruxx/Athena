@@ -23,11 +23,17 @@ struct Result {
 struct Command {
     QString program;
     QStringList args;
+    // Empty means "current directory" (the default for every existing
+    // caller). Set for commands that only know how to write output
+    // relative to their cwd (e.g. `apt-get download`, `snap download`)
+    // rather than accepting an explicit destination flag.
+    QString workingDirectory;
 };
 
 // Runs `program` with `args` and waits for it to finish (bounded by
 // timeoutMs). Does not go through a shell, so no quoting concerns.
-Result run(const QString &program, const QStringList &args, int timeoutMs = 30000);
+Result run(const QString &program, const QStringList &args, int timeoutMs = 30000,
+           const QString &workingDirectory = QString());
 
 // Same, but writes `stdinData` to the child's stdin before waiting for it
 // to finish. Used for e.g. `pkexec tee <path>` to write a file as root

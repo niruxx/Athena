@@ -156,6 +156,10 @@ QVector<PackageInfo> PacmanBackend::packageDetails(const QStringList &packageNam
             pkg.description = fields.value("Description");
             pkg.longDescription = fields.value("Description");
             pkg.repository = "installed";
+            const QString url = fields.value("URL");
+            if (url != QLatin1String("None"))
+                pkg.homepageUrl = url;
+            pkg.size = fields.value("Installed Size");
         }
         if (syncBlocks.contains(name)) {
             const QMap<QString, QString> &fields = syncBlocks[name];
@@ -168,11 +172,47 @@ QVector<PackageInfo> PacmanBackend::packageDetails(const QStringList &packageNam
             }
             if (!pkg.installed)
                 pkg.repository = fields.value("Repository");
+            if (pkg.homepageUrl.isEmpty()) {
+                const QString url = fields.value("URL");
+                if (url != QLatin1String("None"))
+                    pkg.homepageUrl = url;
+            }
+            if (pkg.size.isEmpty())
+                pkg.size = fields.value("Download Size");
         }
 
         results.append(pkg);
     }
     return results;
+}
+
+QVector<PackageInfo> PacmanBackend::dependencyQuery(const QString &capability, bool findRequires)
+{
+    const QString trimmed = capability.trimmed();
+    if (trimmed.isEmpty())
+        return {};
+
+    if (!findRequires) {
+        // Pacman has no non-interactive "what provides this capability
+        // across the whole sync database" query (resolving a provider via
+        // `pacman -S` can prompt interactively when more than one package
+        // provides it), so this direction isn't supported here.
+        return {};
+    }
+
+    // "Required By" is only meaningful for an installed package — pacman
+    // has no reverse-dependency query against the sync database for
+    // packages that aren't installed.
+    const Result result = ProcessRunner::run("pacman", {"-Qi", trimmed}, 15000);
+    const auto blocks = parsePacmanInfoBlocks(result.stdOut);
+    if (!blocks.contains(trimmed))
+        return {};
+
+    const QString requiredBy = blocks[trimmed].value("Required By").trimmed();
+    if (requiredBy.isEmpty() || requiredBy.compare(QLatin1String("None"), Qt::CaseInsensitive) == 0)
+        return {};
+
+    return packageDetails(requiredBy.split(' ', Qt::SkipEmptyParts));
 }
 
 QVector<PackageGroupInfo> PacmanBackend::listGroups()
@@ -527,6 +567,36 @@ QVector<RepositoryAddField> PacmanBackend::repositoryAddFields() const
         {"name", "Repository Name", "myrepo", true},
         {"server", "Server URL", "https://example.com/repo/$arch", true},
     };
+}
+
+QVector<ProcessRunner::Command> PacmanBackend::downloadCommands(const QStringList &packageNames,
+                                                                 const QString &destinationDir,
+                                                                 bool includeDependencies) const
+{
+    // -Sw downloads without installing; it resolves and downloads
+    // dependencies by default, so --nodeps is what turns that off for a
+    // download-only-the-named-packages request.
+    QStringList args = {"pacman", "-Sw", "--noconfirm"};
+    if (!includeDependencies)
+        args << "--nodeps";
+    if (!destinationDir.isEmpty())
+        args << QStringLiteral("--cachedir=%1").arg(destinationDir);
+    args += packageNames;
+    // Still needs pkexec: pacman takes a database lock for any -S
+    // operation regardless of whether anything will actually be
+    // installed, even when the target cache directory is user-writable.
+    return {{"pkexec", args}};
+}
+
+OperationResult PacmanBackend::downloadPackages(const QStringList &packageNames, const QString &destinationDir,
+                                                 bool includeDependencies)
+{
+    const Result result =
+        ProcessRunner::runSequence(downloadCommands(packageNames, destinationDir, includeDependencies));
+    OperationResult op;
+    op.success = result.started && result.exitCode == 0;
+    op.output = result.stdOut + result.stdErr;
+    return op;
 }
 
 OperationResult PacmanBackend::addRepository(const RepositoryAddValues &values)

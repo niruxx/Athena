@@ -66,6 +66,7 @@ private slots:
     void reinstallSelected();
     void updateChecked();
     void showContextMenu(const QPoint &pos);
+    void showColumnMenu(const QPoint &pos);
 
 private:
     void updateDescriptionPanel(const PackageInfo *pkg);
@@ -92,5 +93,6 @@ private:
     QLabel *m_detailTitle;
     QLabel *m_detailMeta;
     QLabel *m_detailDescription;
+    QLabel *m_detailUrl;
     bool m_busy = false;
 };

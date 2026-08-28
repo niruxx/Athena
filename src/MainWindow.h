@@ -1,16 +1,24 @@
 #pragma once
 
 #include <memory>
+#include <utility>
 
 #include <QMainWindow>
+#include <QMap>
 #include <QString>
+#include <QSystemTrayIcon>
+#include <QVector>
 
 #include "core/PackageBackend.h"
+#include "core/PackageInfo.h"
 
 class QTabWidget;
 class QStackedWidget;
 class QComboBox;
+class QTimer;
+class QAction;
 class PackageBrowser;
+class GroupsPage;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -28,6 +36,16 @@ private slots:
     // is currently visible, so it shares the tab bar's row instead of
     // sitting in a row of its own.
     void placeGroupComboInCornerWidget();
+
+    // Background poll (on the interval from AppSettings) of every active
+    // backend's listUpdates(), feeding the tray icon's visibility/tooltip
+    // and the "Update" tray action's target package list.
+    void pollForTrayUpdates();
+    void updateTrayIconState(int totalUpdates);
+    // Installs every update found by the last pollForTrayUpdates(), across
+    // all backends, in one confirm-then-run transaction.
+    void updateAllFromTray();
+    void applyDisableGroupView(bool disabled);
 
 private:
     void setupMenuBar();
@@ -65,4 +83,14 @@ private:
     QTabWidget *m_flatpakTabs = nullptr;
     QTabWidget *m_snapTabs = nullptr;
     class QLabel *m_statsLabel = nullptr;
+
+    // Kept alive (and parented to m_systemTabs) even while
+    // AppSettings::disableGroupView() has it removed from the tab bar, so
+    // toggling the setting back on doesn't need to recreate the page.
+    GroupsPage *m_systemGroupsPage = nullptr;
+
+    QSystemTrayIcon *m_trayIcon = nullptr;
+    QAction *m_trayUpdateAction = nullptr;
+    QTimer *m_updateCheckTimer = nullptr;
+    QMap<PackageBackend *, QVector<PackageInfo>> m_pendingUpdatesByBackend;
 };

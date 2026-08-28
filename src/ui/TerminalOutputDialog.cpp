@@ -105,6 +105,9 @@ void TerminalOutputDialog::runNextCommand()
                 runNextCommand();
             });
 
+    if (!command.workingDirectory.isEmpty())
+        m_process->setWorkingDirectory(command.workingDirectory);
+
     m_process->start(command.program, command.args);
     m_process->closeWriteChannel();
 }

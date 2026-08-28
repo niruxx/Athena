@@ -42,6 +42,16 @@ public:
     virtual QVector<PackageInfo> listInstalled() = 0;
     virtual QVector<PackageInfo> search(const QString &query) = 0;
 
+    // "Dependency Query" search mode: packages that provide
+    // (findRequires=false) or require (findRequires=true) the given
+    // name/capability, instead of a plain keyword/name search. Not every
+    // backend has a real, safe, non-interactive query for both directions
+    // — Flatpak/Snap apps are self-contained with no comparable capability
+    // graph, and Pacman has no non-interactive way to query "provides"
+    // across the whole sync database — those return an empty result
+    // rather than guessing.
+    virtual QVector<PackageInfo> dependencyQuery(const QString &capability, bool findRequires) = 0;
+
     virtual QVector<PackageGroupInfo> listGroups() = 0;
     virtual PackageGroupInfo groupDetails(const QString &groupId, bool isMeta) = 0;
 
@@ -94,6 +104,18 @@ public:
     // it" as different operations).
     virtual QVector<PackageInfo> listUpdates() = 0;
     virtual OperationResult upgradePackages(const QStringList &packageNames) = 0;
+
+    // Downloads (without installing) the named packages into
+    // destinationDir, optionally also fetching their not-yet-installed
+    // dependencies. Where a backend has no way to redirect its download to
+    // an arbitrary directory (Flatpak), destinationDir is ignored — it
+    // still fetches into its own local cache so a later install of the
+    // same ref is instant/offline.
+    virtual QVector<ProcessRunner::Command> downloadCommands(const QStringList &packageNames,
+                                                              const QString &destinationDir,
+                                                              bool includeDependencies) const = 0;
+    virtual OperationResult downloadPackages(const QStringList &packageNames, const QString &destinationDir,
+                                              bool includeDependencies) = 0;
 
     // Re-syncs this backend's repository metadata/package-index cache
     // (e.g. `dnf makecache`, `apt-get update`) so packages from a

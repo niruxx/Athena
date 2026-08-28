@@ -8,6 +8,8 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
+#include "../core/AppSettings.h"
+
 TransactionConfirmDialog::TransactionConfirmDialog(const QString &title, const QString &summary,
                                                      const QString &planText, QWidget *parent)
     : QDialog(parent)
@@ -59,6 +61,9 @@ TransactionConfirmDialog::TransactionConfirmDialog(const QString &title, const Q
 bool TransactionConfirmDialog::confirm(QWidget *parent, const QString &title, const QString &summary,
                                         const QString &planText)
 {
+    if (AppSettings::instance().autoConfirmTransactions())
+        return true;
+
     TransactionConfirmDialog dialog(title, summary, planText, parent);
     return dialog.exec() == QDialog::Accepted;
 }

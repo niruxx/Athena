@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QObject>
 #include <QRegularExpression>
+#include <QSet>
 
 #include "../ProcessRunner.h"
 
@@ -148,6 +149,13 @@ QVector<PackageInfo> SnapBackend::search(const QString &query)
         results.append(pkg);
     }
     return results;
+}
+
+QVector<PackageInfo> SnapBackend::dependencyQuery(const QString & /*capability*/, bool /*findRequires*/)
+{
+    // Snaps bundle their own dependencies inside the snap image; there's
+    // no package-level capability graph to query the way rpm/dpkg have.
+    return {};
 }
 
 QVector<PackageGroupInfo> SnapBackend::listGroups()
@@ -375,6 +383,52 @@ OperationResult SnapBackend::setRepositoryEnabled(const QString & /*repoId*/, bo
 {
     OperationResult op;
     op.output = QStringLiteral("Snap has no per-repository concept to toggle (one global store).");
+    return op;
+}
+
+QVector<ProcessRunner::Command> SnapBackend::downloadCommands(const QStringList &packageNames,
+                                                               const QString &destinationDir,
+                                                               bool includeDependencies) const
+{
+    QStringList names = packageNames;
+
+    if (includeDependencies) {
+        // A snap's only real "dependency" other than itself is its base
+        // snap (e.g. core22), declared in `snap info`'s "base:" field.
+        QSet<QString> queuedBases;
+        for (const QString &name : packageNames) {
+            const Result infoResult = ProcessRunner::run("snap", {"info", name}, 20000);
+            if (!infoResult.started || infoResult.exitCode != 0)
+                continue;
+            const SnapInfoBlock block = parseSnapInfo(infoResult.stdOut);
+            const QString base = block.fields.value("base");
+            if (!base.isEmpty() && !queuedBases.contains(base) && !names.contains(base)) {
+                queuedBases.insert(base);
+                names << base;
+            }
+        }
+    }
+
+    QStringList args = {"download"};
+    args += names;
+    // snap download always writes into its current directory (it has no
+    // destination flag), so destinationDir is carried as the command's
+    // working directory instead. Unprivileged — no pkexec needed.
+    ProcessRunner::Command command;
+    command.program = "snap";
+    command.args = args;
+    command.workingDirectory = destinationDir;
+    return {command};
+}
+
+OperationResult SnapBackend::downloadPackages(const QStringList &packageNames, const QString &destinationDir,
+                                               bool includeDependencies)
+{
+    const Result result =
+        ProcessRunner::runSequence(downloadCommands(packageNames, destinationDir, includeDependencies));
+    OperationResult op;
+    op.success = result.started && result.exitCode == 0;
+    op.output = result.stdOut + result.stdErr;
     return op;
 }
 

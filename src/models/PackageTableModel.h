@@ -16,7 +16,16 @@ class PackageTableModel : public QAbstractTableModel {
     Q_OBJECT
 
 public:
-    enum Column { CheckColumn = 0, NameColumn, InstalledVersionColumn, AvailableVersionColumn, DescriptionColumn, ColumnCount };
+    enum Column {
+        CheckColumn = 0,
+        NameColumn,
+        InstalledVersionColumn,
+        AvailableVersionColumn,
+        ArchitectureColumn,
+        SizeColumn,
+        DescriptionColumn,
+        ColumnCount
+    };
 
     explicit PackageTableModel(QObject *parent = nullptr);
 

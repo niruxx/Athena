@@ -3,6 +3,7 @@
 #include <QAction>
 #include <QComboBox>
 #include <QDesktopServices>
+#include <QFutureWatcher>
 #include <QGuiApplication>
 #include <QKeySequence>
 #include <QLabel>
@@ -12,10 +13,12 @@
 #include <QScreen>
 #include <QStackedWidget>
 #include <QStatusBar>
+#include <QStringList>
 #include <QTabWidget>
 #include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
+#include <QtConcurrent/QtConcurrent>
 
 #include "core/AppSettings.h"
 #include "core/BackendFactory.h"
@@ -85,11 +88,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         auto *installedPage = new InstalledPage(m_backend.get(), m_systemTabs);
         auto *updatesPage = new UpdatesPage(m_backend.get(), m_systemTabs);
         auto *searchPage = new SearchPage(m_backend.get(), m_systemTabs);
-        auto *groupsPage = new GroupsPage(m_backend.get(), m_systemTabs);
+        m_systemGroupsPage = new GroupsPage(m_backend.get(), m_systemTabs);
         m_systemTabs->addTab(installedPage, tr("Installed"));
         m_systemTabs->addTab(updatesPage, tr("Updates"));
         m_systemTabs->addTab(searchPage, tr("Search"));
-        m_systemTabs->addTab(groupsPage, tr("Groups"));
+        if (!AppSettings::instance().disableGroupView())
+            m_systemTabs->addTab(m_systemGroupsPage, tr("Groups"));
         m_systemTabs->addTab(
             new RepositoriesPage({{m_backend.get(), tr("System")}}, m_systemTabs), tr("Repositories"));
         m_systemTabs->addTab(new HistoryPage(m_backend.get(), m_systemTabs), tr("History"));
@@ -100,8 +104,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         watchBrowserStats(installedPage->browser());
         watchBrowserStats(updatesPage->browser());
         watchBrowserStats(searchPage->browser());
-        watchBrowserStats(groupsPage->browser());
+        watchBrowserStats(m_systemGroupsPage->browser());
         connect(m_systemTabs, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
+        connect(&AppSettings::instance(), &AppSettings::disableGroupViewChanged, this,
+                &MainWindow::applyDisableGroupView);
     } else {
         // Wrapped in a QTabWidget (with a single tab) rather than added to
         // the stack directly, so this page has a tab bar to host
@@ -205,6 +211,45 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         checker->checkForUpdate();
     }
 
+    if (QSystemTrayIcon::isSystemTrayAvailable()) {
+        m_trayIcon = new QSystemTrayIcon(AppIcons::update(), this);
+        m_trayIcon->setToolTip(tr("Athena"));
+
+        auto *trayMenu = new QMenu(this);
+        QAction *traySettingsAction = trayMenu->addAction(tr("Settings"));
+        connect(traySettingsAction, &QAction::triggered, this, [this]() {
+            PreferencesDialog dialog(this);
+            dialog.exec();
+        });
+        m_trayUpdateAction = trayMenu->addAction(tr("Update"));
+        m_trayUpdateAction->setEnabled(false);
+        connect(m_trayUpdateAction, &QAction::triggered, this, &MainWindow::updateAllFromTray);
+        trayMenu->addSeparator();
+        QAction *trayQuitAction = trayMenu->addAction(tr("Quit"));
+        connect(trayQuitAction, &QAction::triggered, qApp, &QApplication::quit);
+        m_trayIcon->setContextMenu(trayMenu);
+
+        connect(m_trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
+            if (reason != QSystemTrayIcon::Trigger)
+                return;
+            setVisible(!isVisible());
+            if (isVisible()) {
+                raise();
+                activateWindow();
+            }
+        });
+
+        m_trayIcon->setVisible(!AppSettings::instance().hideTrayWhenNoUpdates());
+
+        m_updateCheckTimer = new QTimer(this);
+        connect(m_updateCheckTimer, &QTimer::timeout, this, &MainWindow::pollForTrayUpdates);
+        auto applyUpdateInterval = [this](int minutes) { m_updateCheckTimer->start(minutes * 60000); };
+        applyUpdateInterval(AppSettings::instance().updateCheckIntervalMinutes());
+        connect(&AppSettings::instance(), &AppSettings::updateCheckIntervalMinutesChanged, this, applyUpdateInterval);
+
+        pollForTrayUpdates();
+    }
+
     if (!AppSettings::instance().hasCompletedFirstRun()) {
         const QString backendName = m_backend ? m_backend->backendName() : QString();
         // Deferred so the main window is already visible behind it, rather
@@ -220,6 +265,120 @@ void MainWindow::placeGroupComboInCornerWidget()
 {
     if (auto *tabs = qobject_cast<QTabWidget *>(m_groupStack->currentWidget()))
         tabs->setCornerWidget(m_groupCombo, Qt::TopRightCorner);
+}
+
+void MainWindow::pollForTrayUpdates()
+{
+    QVector<PackageBackend *> backends;
+    if (m_backend)
+        backends.append(m_backend.get());
+    if (m_flatpakBackend)
+        backends.append(m_flatpakBackend.get());
+    if (m_snapBackend)
+        backends.append(m_snapBackend.get());
+    if (backends.isEmpty())
+        return;
+
+    using BackendUpdates = QVector<std::pair<PackageBackend *, QVector<PackageInfo>>>;
+    auto *watcher = new QFutureWatcher<BackendUpdates>(this);
+    QFuture<BackendUpdates> future = QtConcurrent::run([backends]() {
+        BackendUpdates results;
+        for (PackageBackend *backend : backends)
+            results.append({backend, backend->listUpdates()});
+        return results;
+    });
+
+    connect(watcher, &QFutureWatcher<BackendUpdates>::finished, this, [this, watcher]() {
+        const BackendUpdates results = watcher->result();
+        watcher->deleteLater();
+
+        m_pendingUpdatesByBackend.clear();
+        int total = 0;
+        for (const auto &entry : results) {
+            if (!entry.second.isEmpty())
+                m_pendingUpdatesByBackend.insert(entry.first, entry.second);
+            total += entry.second.size();
+        }
+        updateTrayIconState(total);
+    });
+    watcher->setFuture(future);
+}
+
+void MainWindow::updateTrayIconState(int totalUpdates)
+{
+    if (!m_trayIcon)
+        return;
+
+    const bool shouldShow = totalUpdates > 0 || !AppSettings::instance().hideTrayWhenNoUpdates();
+    m_trayIcon->setVisible(shouldShow);
+    m_trayIcon->setToolTip(totalUpdates > 0 ? tr("%n update(s) available", "", totalUpdates)
+                                             : tr("Athena — up to date"));
+    if (m_trayUpdateAction)
+        m_trayUpdateAction->setEnabled(totalUpdates > 0);
+}
+
+void MainWindow::updateAllFromTray()
+{
+    if (m_pendingUpdatesByBackend.isEmpty())
+        return;
+
+    QMap<PackageBackend *, QStringList> namesByBackend;
+    int total = 0;
+    for (auto it = m_pendingUpdatesByBackend.constBegin(); it != m_pendingUpdatesByBackend.constEnd(); ++it) {
+        QStringList names;
+        for (const PackageInfo &pkg : it.value())
+            names << pkg.name;
+        namesByBackend.insert(it.key(), names);
+        total += names.size();
+    }
+
+    const QString summary = tr("Install %1 available update(s) across all package managers?").arg(total);
+    PackageActions::confirmAndRun(
+        this, tr("Update All"), summary,
+        [namesByBackend]() -> OperationResult {
+            OperationResult combined;
+            combined.success = true;
+            for (auto it = namesByBackend.constBegin(); it != namesByBackend.constEnd(); ++it) {
+                const OperationResult result = it.key()->upgradePackages(it.value());
+                combined.success = combined.success && result.success;
+                if (!result.output.isEmpty())
+                    combined.output += result.output + '\n';
+            }
+            return combined;
+        },
+        [this](bool success) {
+            statusBar()->showMessage(success ? tr("Updates installed.") : tr("Some updates failed to install."),
+                                      5000);
+            pollForTrayUpdates();
+        });
+}
+
+void MainWindow::applyDisableGroupView(bool disabled)
+{
+    if (!m_systemTabs || !m_systemGroupsPage)
+        return;
+
+    const int existingIndex = m_systemTabs->indexOf(m_systemGroupsPage);
+    if (disabled) {
+        if (existingIndex >= 0)
+            m_systemTabs->removeTab(existingIndex);
+        return;
+    }
+
+    if (existingIndex >= 0)
+        return;
+
+    // Re-insert right after "Search" (or at the end if that tab is somehow
+    // gone), keeping the same Installed/Updates/Search/Groups/... order it
+    // started in.
+    int insertIndex = m_systemTabs->count();
+    for (int i = 0; i < m_systemTabs->count(); ++i) {
+        if (m_systemTabs->tabText(i) == tr("Search")) {
+            insertIndex = i + 1;
+            break;
+        }
+    }
+    m_systemTabs->insertTab(insertIndex, m_systemGroupsPage, tr("Groups"));
 }
 
 QTabWidget *MainWindow::currentGroupTabs() const

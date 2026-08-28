@@ -10,5 +10,7 @@ struct PackageInfo {
     QString repository;
     QString description;     // short, one-line summary
     QString longDescription; // full description text, empty if not fetched
+    QString size;            // human-readable (e.g. "12.3 MB"); empty if not reported by the backend
+    QString homepageUrl;     // project/vendor homepage; empty if not reported by the backend
     bool installed = false;
 };

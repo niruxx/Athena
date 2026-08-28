@@ -4,10 +4,37 @@
 
 #include <QMap>
 #include <QRegularExpression>
+#include <QSet>
 
+#include "../AppSettings.h"
 #include "../ProcessRunner.h"
 
 using ProcessRunner::Result;
+
+namespace {
+
+QString humanReadableSize(qint64 bytes)
+{
+    static const char *units[] = {"B", "KB", "MB", "GB", "TB"};
+    double size = bytes;
+    int unitIndex = 0;
+    while (size >= 1024.0 && unitIndex < 4) {
+        size /= 1024.0;
+        ++unitIndex;
+    }
+    return QString::number(size, 'f', unitIndex == 0 ? 0 : 1) + ' ' + QString::fromLatin1(units[unitIndex]);
+}
+
+// dnf5's own metadata-freshness setting; applied to any command whose
+// result depends on repo metadata being reasonably current, so a smaller
+// AppSettings::metadataExpireHours() forces a re-fetch sooner than
+// whatever the system's dnf5.conf otherwise defaults to.
+QString metadataExpireArg()
+{
+    return QStringLiteral("--setopt=metadata_expire=%1h").arg(AppSettings::instance().metadataExpireHours());
+}
+
+} // namespace
 
 QString DnfBackend::dnfExecutable() const
 {
@@ -33,20 +60,25 @@ QVector<PackageInfo> DnfBackend::listInstalled()
     // rpm queries the local database directly; it's far faster than asking
     // dnf to list installed packages since dnf also touches repo metadata.
     const Result result = ProcessRunner::run(
-        "rpm",
-        {"-qa", "--queryformat", "%{NAME}\t%{VERSION}-%{RELEASE}\t%{ARCH}\t%{SUMMARY}\n"});
+        "rpm", {"-qa", "--queryformat", "%{NAME}\t%{VERSION}-%{RELEASE}\t%{ARCH}\t%{SIZE}\t%{URL}\t%{SUMMARY}\n"});
 
     const QStringList lines = result.stdOut.split('\n', Qt::SkipEmptyParts);
     packages.reserve(lines.size());
     for (const QString &line : lines) {
         const QStringList fields = line.split('\t');
-        if (fields.size() < 4)
+        if (fields.size() < 6)
             continue;
         PackageInfo pkg;
         pkg.name = fields[0];
         pkg.installedVersion = fields[1];
         pkg.architecture = fields[2];
-        pkg.description = fields[3];
+        bool sizeOk = false;
+        const qint64 sizeBytes = fields[3].toLongLong(&sizeOk);
+        if (sizeOk && sizeBytes > 0)
+            pkg.size = humanReadableSize(sizeBytes);
+        if (fields[4] != QLatin1String("(none)"))
+            pkg.homepageUrl = fields[4];
+        pkg.description = fields[5];
         pkg.repository = "installed";
         pkg.installed = true;
         packages.append(pkg);
@@ -95,6 +127,8 @@ QVector<PackageInfo> DnfBackend::search(const QString &query)
             pkg.installed = true;
             pkg.installedVersion = installedIt->installedVersion;
             pkg.repository = "installed";
+            pkg.size = installedIt->size;
+            pkg.homepageUrl = installedIt->homepageUrl;
         } else {
             pkg.repository = "available";
         }
@@ -102,6 +136,51 @@ QVector<PackageInfo> DnfBackend::search(const QString &query)
         results.append(pkg);
     }
 
+    return results;
+}
+
+QVector<PackageInfo> DnfBackend::dependencyQuery(const QString &capability, bool findRequires)
+{
+    QVector<PackageInfo> results;
+    if (capability.trimmed().isEmpty())
+        return results;
+
+    const QStringList args = {"repoquery", findRequires ? "--whatrequires" : "--whatprovides", capability,
+                               "--queryformat", "%{name}\t%{arch}\t%{reponame}\t%{summary}\n"};
+    const Result result = ProcessRunner::run(dnfExecutable(), args, 60000);
+
+    QMap<QString, PackageInfo> installedByName;
+    for (const PackageInfo &pkg : listInstalled())
+        installedByName.insert(pkg.name, pkg);
+
+    QSet<QString> seenNames;
+    for (const QString &line : result.stdOut.split('\n', Qt::SkipEmptyParts)) {
+        const QStringList fields = line.split('\t');
+        if (fields.size() < 4)
+            continue;
+
+        const QString &name = fields[0];
+        if (seenNames.contains(name))
+            continue; // the same package can satisfy the query via more than one repo
+        seenNames.insert(name);
+
+        PackageInfo pkg;
+        pkg.name = name;
+        pkg.architecture = fields[1];
+        pkg.repository = fields[2];
+        pkg.description = fields[3];
+
+        const auto installedIt = installedByName.constFind(name);
+        if (installedIt != installedByName.constEnd()) {
+            pkg.installed = true;
+            pkg.installedVersion = installedIt->installedVersion;
+            pkg.size = installedIt->size;
+            pkg.homepageUrl = installedIt->homepageUrl;
+            pkg.repository = QStringLiteral("installed");
+        }
+
+        results.append(pkg);
+    }
     return results;
 }
 
@@ -241,6 +320,10 @@ QVector<PackageInfo> parsePackageInfoBlocks(const QString &text)
             pkg.description = currentFields.value("Summary").value(0);
         if (pkg.longDescription.isEmpty())
             pkg.longDescription = currentFields.value("Description").join(' ');
+        if (pkg.size.isEmpty())
+            pkg.size = currentFields.value("Size").value(0);
+        if (pkg.homepageUrl.isEmpty())
+            pkg.homepageUrl = currentFields.value("URL").value(0);
 
         currentFields.clear();
         lastKey.clear();
@@ -358,7 +441,8 @@ QVector<PackageInfo> DnfBackend::listUpdates()
 {
     QVector<PackageInfo> updates;
 
-    const Result result = ProcessRunner::run(dnfExecutable(), {"list", "--upgrades"}, 60000);
+    const Result result =
+        ProcessRunner::run(dnfExecutable(), {"list", "--upgrades", metadataExpireArg()}, 60000);
 
     QMap<QString, PackageInfo> installedByName;
     for (const PackageInfo &pkg : listInstalled())
@@ -391,6 +475,9 @@ QVector<PackageInfo> DnfBackend::listUpdates()
         if (installedIt != installedByName.constEnd()) {
             pkg.installedVersion = installedIt->installedVersion;
             pkg.description = installedIt->description;
+            // Not size: the installed package's size describes the old
+            // version, which would misleadingly label this update.
+            pkg.homepageUrl = installedIt->homepageUrl;
         }
 
         updates.append(pkg);
@@ -411,7 +498,8 @@ OperationResult DnfBackend::upgradePackages(const QStringList &packageNames)
 
 OperationResult DnfBackend::refreshMetadata()
 {
-    const Result result = ProcessRunner::run("pkexec", {dnfExecutable(), "makecache"}, 120000);
+    const Result result =
+        ProcessRunner::run("pkexec", {dnfExecutable(), "makecache", metadataExpireArg()}, 120000);
     OperationResult op;
     op.success = result.started && result.exitCode == 0;
     op.output = result.stdOut + result.stdErr;
@@ -553,6 +641,32 @@ QVector<RepositoryAddField> DnfBackend::repositoryAddFields() const
         {"baseurl", "Base URL", "https://example.com/repo/", true},
         {"name", "Display Name (optional)", "My Repo", false},
     };
+}
+
+QVector<ProcessRunner::Command> DnfBackend::downloadCommands(const QStringList &packageNames,
+                                                              const QString &destinationDir,
+                                                              bool includeDependencies) const
+{
+    QStringList args = {"download"};
+    if (!destinationDir.isEmpty())
+        args << QStringLiteral("--destdir=%1").arg(destinationDir);
+    if (includeDependencies)
+        args << QStringLiteral("--resolve");
+    args += packageNames;
+    // Unprivileged: dnf5 download only reads already-cached repo metadata
+    // and writes plain files to destinationDir, no pkexec needed.
+    return {{dnfExecutable(), args}};
+}
+
+OperationResult DnfBackend::downloadPackages(const QStringList &packageNames, const QString &destinationDir,
+                                              bool includeDependencies)
+{
+    const Result result =
+        ProcessRunner::runSequence(downloadCommands(packageNames, destinationDir, includeDependencies));
+    OperationResult op;
+    op.success = result.started && result.exitCode == 0;
+    op.output = result.stdOut + result.stdErr;
+    return op;
 }
 
 OperationResult DnfBackend::addRepository(const RepositoryAddValues &values)
