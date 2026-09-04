@@ -84,6 +84,16 @@ private:
     QTabWidget *m_snapTabs = nullptr;
     class QLabel *m_statsLabel = nullptr;
 
+    // Whichever QTabWidget m_groupCombo is currently a corner widget of, so
+    // placeGroupComboInCornerWidget() can explicitly detach it from there
+    // before attaching it elsewhere. QTabWidget::setCornerWidget() is a
+    // no-op when asked to set the same widget it already believes is its
+    // corner widget — without this, a tab widget that hosted the combo
+    // once (e.g. at startup) keeps thinking it still does, so handing the
+    // combo back to it later silently fails and the combo is left an
+    // invisible child of whichever tab widget last actually held it.
+    QTabWidget *m_groupComboHost = nullptr;
+
     // Kept alive (and parented to m_systemTabs) even while
     // AppSettings::disableGroupView() has it removed from the tab bar, so
     // toggling the setting back on doesn't need to recreate the page.

@@ -263,8 +263,20 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
 void MainWindow::placeGroupComboInCornerWidget()
 {
-    if (auto *tabs = qobject_cast<QTabWidget *>(m_groupStack->currentWidget()))
-        tabs->setCornerWidget(m_groupCombo, Qt::TopRightCorner);
+    auto *tabs = qobject_cast<QTabWidget *>(m_groupStack->currentWidget());
+    if (!tabs || tabs == m_groupComboHost)
+        return;
+
+    // Detach from the previous host first: QTabWidget::setCornerWidget()
+    // no-ops if the widget passed in is already what it thinks its corner
+    // widget is, so a tab widget visited earlier (its own corner already
+    // recorded as m_groupCombo) would otherwise refuse to take it back.
+    if (m_groupComboHost)
+        m_groupComboHost->setCornerWidget(nullptr, Qt::TopRightCorner);
+
+    tabs->setCornerWidget(m_groupCombo, Qt::TopRightCorner);
+    m_groupCombo->show();
+    m_groupComboHost = tabs;
 }
 
 void MainWindow::pollForTrayUpdates()

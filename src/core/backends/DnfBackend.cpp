@@ -636,9 +636,15 @@ OperationResult DnfBackend::setRepositoryEnabled(const QString &repoId, bool ena
 
 QVector<RepositoryAddField> DnfBackend::repositoryAddFields() const
 {
+    // Two independent ways to add a repo share one form: fill in "COPR
+    // repository" for a `dnf copr enable`, or "Repository ID" + "Base URL"
+    // for a plain custom repo — none are marked required since either pair
+    // is acceptable, and addRepository() rejects the submission if neither
+    // is filled in.
     return {
-        {"id", "Repository ID", "myrepo", true},
-        {"baseurl", "Base URL", "https://example.com/repo/", true},
+        {"copr", "COPR Repository (owner/project)", "owner/project", false},
+        {"id", "Repository ID", "myrepo", false},
+        {"baseurl", "Base URL", "https://example.com/repo/", false},
         {"name", "Display Name (optional)", "My Repo", false},
     };
 }
@@ -671,13 +677,32 @@ OperationResult DnfBackend::downloadPackages(const QStringList &packageNames, co
 
 OperationResult DnfBackend::addRepository(const RepositoryAddValues &values)
 {
+    const QString copr = values.value("copr").trimmed();
     const QString id = values.value("id").trimmed();
     const QString baseUrl = values.value("baseurl").trimmed();
     const QString name = values.value("name").trimmed();
 
     OperationResult op;
+
+    if (!copr.isEmpty()) {
+        static const QRegularExpression coprPattern(QStringLiteral(R"(^[\w.-]+/[\w.-]+$)"));
+        if (!coprPattern.match(copr).hasMatch()) {
+            op.output = QStringLiteral("COPR repository must be in \"owner/project\" form (e.g. user/myrepo).");
+            return op;
+        }
+
+        // dnf5's copr plugin (dnf5-plugins) provides `dnf5 copr`, mirroring
+        // legacy dnf's dnf-plugins-core `dnf copr`; enable is idempotent
+        // and non-interactive with -y.
+        const Result result = ProcessRunner::run("pkexec", {dnfExecutable(), "copr", "enable", "-y", copr}, 60000);
+        op.success = result.started && result.exitCode == 0;
+        op.output = result.stdOut + result.stdErr;
+        return op;
+    }
+
     if (id.isEmpty() || baseUrl.isEmpty()) {
-        op.output = QStringLiteral("Repository ID and base URL are required");
+        op.output =
+            QStringLiteral("Provide either a COPR repository (owner/project) or a Repository ID and Base URL.");
         return op;
     }
 

@@ -5,6 +5,10 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  schedule:
+    # Nightly build at 03:00 UTC, independent of whether anything changed
+    # that day, so a broken build surfaces even without a same-day push.
+    - cron: '0 3 * * *'
   workflow_dispatch:
 
 jobs:
