@@ -5,6 +5,7 @@
 #include <QFile>
 #include <QMap>
 #include <QRegularExpression>
+#include <QSet>
 #include <QTextStream>
 
 #include "../ProcessRunner.h"
@@ -219,29 +220,32 @@ QVector<PackageGroupInfo> PacmanBackend::listGroups()
 {
     QVector<PackageGroupInfo> groups;
 
+    // Unlike `pacman -Sg <name>`, bare `-Sg` prints just one group name per
+    // line (no member packages) — groupDetails() fetches a given group's
+    // packages on demand, so that's all listGroups() needs here.
     const Result allGroups = ProcessRunner::run("pacman", {"-Sg"}, 30000);
-    QMap<QString, QStringList> groupPackages;
-    QStringList order;
-    for (const QString &line : allGroups.stdOut.split('\n', Qt::SkipEmptyParts)) {
+
+    // Bare `-Qg` does print "group package" pairs (unlike bare `-Sg`), so
+    // one call covers every installed group instead of one `pacman -Qg
+    // <name>` subprocess per group.
+    const Result installedGroups = ProcessRunner::run("pacman", {"-Qg"}, 15000);
+    QSet<QString> installedGroupNames;
+    for (const QString &line : installedGroups.stdOut.split('\n', Qt::SkipEmptyParts)) {
         const QStringList fields = line.split(' ', Qt::SkipEmptyParts);
-        if (fields.size() < 2)
-            continue;
-        const QString &groupName = fields[0];
-        if (!groupPackages.contains(groupName))
-            order.append(groupName);
-        groupPackages[groupName].append(fields[1]);
+        if (!fields.isEmpty())
+            installedGroupNames.insert(fields[0]);
     }
 
-    for (const QString &groupName : order) {
+    for (const QString &line : allGroups.stdOut.split('\n', Qt::SkipEmptyParts)) {
+        const QString groupName = line.trimmed();
+        if (groupName.isEmpty())
+            continue;
+
         PackageGroupInfo group;
         group.id = groupName;
         group.name = groupName;
         group.isMeta = false;
-        group.packages = groupPackages.value(groupName);
-
-        const Result installedCheck = ProcessRunner::run("pacman", {"-Qg", groupName}, 15000);
-        group.installed = installedCheck.exitCode == 0 && !installedCheck.stdOut.trimmed().isEmpty();
-
+        group.installed = installedGroupNames.contains(groupName);
         groups.append(group);
     }
 
