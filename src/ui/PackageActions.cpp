@@ -44,9 +44,10 @@ bool runTerminalDialog(QWidget *parentWidget, const QString &actionVerb,
 namespace PackageActions {
 
 void confirmAndRun(QWidget *parentWidget, const QString &actionVerb, const QString &confirmText,
-                    std::function<OperationResult()> operation, std::function<void(bool)> onFinished)
+                    std::function<OperationResult()> operation, std::function<void(bool)> onFinished,
+                    bool requiresPrivileges)
 {
-    if (!TransactionConfirmDialog::confirm(parentWidget, actionVerb, confirmText)) {
+    if (!TransactionConfirmDialog::confirm(parentWidget, actionVerb, confirmText, QString(), requiresPrivileges)) {
         // Callers commonly set a busy/disabled state before calling this,
         // expecting onFinished to be the one place that clears it again —
         // so it must still fire (as "not successful") on a decline, not

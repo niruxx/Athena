@@ -28,17 +28,21 @@
 #include "core/backends/SnapBackend.h"
 #include "models/PackageTableModel.h"
 #include "ui/AppIcons.h"
+#include "ui/BackupRestorePage.h"
 #include "ui/FirstRunDialog.h"
 #include "ui/GroupsPage.h"
 #include "ui/HistoryPage.h"
 #include "ui/InstalledPage.h"
+#include "ui/LeftoverDataPage.h"
 #include "ui/PackageActions.h"
 #include "ui/PackageBrowser.h"
+#include "ui/PermissionsPage.h"
 #include "ui/PreferencesDialog.h"
 #include "ui/RepositoriesPage.h"
 #include "ui/SearchPage.h"
 #include "ui/UpdateBannerWidget.h"
 #include "ui/UpdatesPage.h"
+#include "ui/UserDataPage.h"
 
 namespace {
 const char *kProjectUrl = "https://github.com/niruxx/Athena";
@@ -135,6 +139,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         m_flatpakTabs->addTab(searchPage, tr("Search"));
         m_flatpakTabs->addTab(
             new RepositoriesPage({{m_flatpakBackend.get(), tr("Flatpak")}}, m_flatpakTabs), tr("Repositories"));
+        m_flatpakTabs->addTab(new PermissionsPage(m_flatpakBackend.get(), m_flatpakTabs), tr("Permissions"));
+        m_flatpakTabs->addTab(new UserDataPage(m_flatpakBackend.get(), m_flatpakTabs), tr("User Data"));
+        m_flatpakTabs->addTab(new LeftoverDataPage(m_flatpakBackend.get(), m_flatpakTabs), tr("Leftover Data"));
+        m_flatpakTabs->addTab(new BackupRestorePage(m_flatpakBackend.get(), m_flatpakTabs), tr("Backup & Restore"));
         m_flatpakTabs->addTab(new HistoryPage(m_flatpakBackend.get(), m_flatpakTabs), tr("History"));
         flatpakGroupIndex = m_groupStack->addWidget(m_flatpakTabs);
         m_groupCombo->addItem(tr("Flatpak"));

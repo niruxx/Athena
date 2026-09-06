@@ -1,5 +1,10 @@
 #pragma once
 
+#include <QPair>
+#include <QSet>
+#include <QString>
+#include <QStringList>
+
 #include "../PackageBackend.h"
 
 // Flatpak, via the `flatpak` CLI. Independent of the distro's native
@@ -56,6 +61,49 @@ public:
 
     QVector<RepositoryAddField> repositoryAddFields() const override;
     OperationResult addRepository(const RepositoryAddValues &values) override;
+
+    // Flatpak's per-app sandbox overrides (`flatpak override`) — a
+    // Flatpak-only concept with nothing corresponding in PackageBackend,
+    // so these live directly on this class instead of the shared
+    // interface. Everything here acts on user-level overrides
+    // (~/.local/share/flatpak/overrides), which need no elevated
+    // privileges and apply regardless of whether a given app itself is
+    // installed per-user or system-wide.
+    struct Permissions {
+        QSet<QString> shared;    // e.g. "network", "ipc"
+        QSet<QString> sockets;   // e.g. "x11", "wayland", "pulseaudio", "session-bus", "system-bus", "ssh-auth"
+        QSet<QString> devices;   // e.g. "dri", "all", "kvm", "shm"
+        QSet<QString> features;  // e.g. "devel", "multiarch", "bluetooth", "canbus", "per-app-dev-shm"
+        QStringList filesystems; // raw entries as reported, e.g. "home", "host", "xdg-download:ro"
+        QStringList sessionBusTalk;
+        QStringList sessionBusOwn;
+        QStringList systemBusTalk;
+        QStringList systemBusOwn;
+        QVector<QPair<QString, QString>> envVars; // KEY -> VALUE
+    };
+
+    Permissions permissionsForApp(const QString &appId) const;
+    OperationResult setSharedEnabled(const QString &appId, const QString &name, bool enabled);
+    OperationResult setSocketEnabled(const QString &appId, const QString &name, bool enabled);
+    OperationResult setDeviceEnabled(const QString &appId, const QString &name, bool enabled);
+    OperationResult setFeatureEnabled(const QString &appId, const QString &name, bool enabled);
+    OperationResult addFilesystemAccess(const QString &appId, const QString &pathSpec);
+    OperationResult removeFilesystemAccess(const QString &appId, const QString &pathSpec);
+    OperationResult setEnvironmentVariable(const QString &appId, const QString &key, const QString &value);
+    OperationResult unsetEnvironmentVariable(const QString &appId, const QString &key);
+    // bus is "session" or "system"; kind is "talk" or "own".
+    OperationResult grantDBusName(const QString &appId, const QString &bus, const QString &kind,
+                                  const QString &name);
+    OperationResult revokeDBusName(const QString &appId, const QString &bus, const QString &kind,
+                                    const QString &name);
+    OperationResult resetOverrides(const QString &appId);
+
+    // Where Flatpak keeps per-app user data and user-level permission
+    // overrides — used by the User Data / Leftover Data tabs, which work
+    // directly with these directories rather than through `flatpak`
+    // subcommands (there is no CLI query for either).
+    static QString userDataRoot();      // ~/.var/app
+    static QString userOverridesRoot(); // ~/.local/share/flatpak/overrides
 
 private:
     // Which remote a given application ID should be installed from;

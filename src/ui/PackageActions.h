@@ -25,9 +25,15 @@ namespace PackageActions {
 // (e.g. GroupsPage expanding a selected sub-group into its member packages
 // before installing), and for operations that don't need the live-terminal
 // treatment (e.g. repository metadata refresh).
+//
+// requiresPrivileges defaults to true (every package-manager operation
+// this is normally used for goes through pkexec) — pass false for a
+// confirm-then-run action that's actually plain, unprivileged file I/O
+// (e.g. clearing a user-owned data directory), so the confirmation dialog
+// doesn't claim it needs administrator privileges when it doesn't.
 void confirmAndRun(QWidget *parentWidget, const QString &actionVerb, const QString &confirmText,
                     std::function<OperationResult()> operation,
-                    std::function<void(bool success)> onFinished);
+                    std::function<void(bool success)> onFinished, bool requiresPrivileges = true);
 
 // Same shape as confirmAndRun, but computes a TransactionPreview first (in
 // the background) and shows its plan text in the confirmation dialog —

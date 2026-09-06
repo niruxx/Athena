@@ -33,6 +33,8 @@ add_executable(athena
     src/core/GitHubReleaseChecker.cpp
     src/core/Logger.h
     src/core/Logger.cpp
+    src/core/DirSizeScanner.h
+    src/core/DirSizeScanner.cpp
 
     src/core/backends/DnfBackend.h
     src/core/backends/DnfBackend.cpp
@@ -51,6 +53,8 @@ add_executable(athena
     src/ui/AddRepositoryDialog.h
     src/ui/AddRepositoryDialog.cpp
     src/ui/AppIcons.h
+    src/ui/BackupRestorePage.h
+    src/ui/BackupRestorePage.cpp
     src/ui/FirstRunDialog.h
     src/ui/FirstRunDialog.cpp
     src/ui/HistoryPage.h
@@ -67,6 +71,12 @@ add_executable(athena
     src/ui/PackageBrowser.cpp
     src/ui/PackageFormatInstallWidget.h
     src/ui/PackageFormatInstallWidget.cpp
+    src/ui/PermissionsPage.h
+    src/ui/PermissionsPage.cpp
+    src/ui/UserDataPage.h
+    src/ui/UserDataPage.cpp
+    src/ui/LeftoverDataPage.h
+    src/ui/LeftoverDataPage.cpp
     src/ui/PreferencesDialog.h
     src/ui/PreferencesDialog.cpp
     src/ui/RepositoriesPage.h

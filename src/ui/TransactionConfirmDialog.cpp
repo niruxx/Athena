@@ -11,7 +11,8 @@
 #include "../core/AppSettings.h"
 
 TransactionConfirmDialog::TransactionConfirmDialog(const QString &title, const QString &summary,
-                                                     const QString &planText, QWidget *parent)
+                                                     const QString &planText, QWidget *parent,
+                                                     bool requiresPrivileges)
     : QDialog(parent)
 {
     setWindowTitle(title);
@@ -44,11 +45,13 @@ TransactionConfirmDialog::TransactionConfirmDialog(const QString &title, const Q
         resize(420, 140);
     }
 
-    auto *privilegeNote = new QLabel(tr("This requires administrator privileges."), this);
-    QFont noteFont = privilegeNote->font();
-    noteFont.setItalic(true);
-    privilegeNote->setFont(noteFont);
-    layout->addWidget(privilegeNote);
+    if (requiresPrivileges) {
+        auto *privilegeNote = new QLabel(tr("This requires administrator privileges."), this);
+        QFont noteFont = privilegeNote->font();
+        noteFont.setItalic(true);
+        privilegeNote->setFont(noteFont);
+        layout->addWidget(privilegeNote);
+    }
 
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Yes | QDialogButtonBox::No, this);
     buttons->button(QDialogButtonBox::No)->setDefault(true);
@@ -59,11 +62,11 @@ TransactionConfirmDialog::TransactionConfirmDialog(const QString &title, const Q
 }
 
 bool TransactionConfirmDialog::confirm(QWidget *parent, const QString &title, const QString &summary,
-                                        const QString &planText)
+                                        const QString &planText, bool requiresPrivileges)
 {
     if (AppSettings::instance().autoConfirmTransactions())
         return true;
 
-    TransactionConfirmDialog dialog(title, summary, planText, parent);
+    TransactionConfirmDialog dialog(title, summary, planText, parent, requiresPrivileges);
     return dialog.exec() == QDialog::Accepted;
 }

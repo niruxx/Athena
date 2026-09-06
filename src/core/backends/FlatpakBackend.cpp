@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include <QDir>
 #include <QMap>
 #include <QObject>
 #include <QSet>
@@ -503,4 +504,164 @@ OperationResult FlatpakBackend::addRepository(const RepositoryAddValues &values)
     op.success = result.started && result.exitCode == 0;
     op.output = result.stdOut + result.stdErr;
     return op;
+}
+
+namespace {
+
+QSet<QString> splitSemicolonSet(const QString &value)
+{
+    QSet<QString> result;
+    for (const QString &entry : value.split(';', Qt::SkipEmptyParts))
+        result.insert(entry);
+    return result;
+}
+
+// `flatpak override --user` writes to ~/.local/share/flatpak/overrides,
+// which is user-writable, so (unlike install/remove) this never needs
+// flatpak's own polkit prompt either.
+OperationResult runUserOverride(const QString &appId, const QStringList &flags)
+{
+    QStringList args = {"override", "--user"};
+    args += flags;
+    args << appId;
+    const Result result = ProcessRunner::run("flatpak", args, 15000);
+    OperationResult op;
+    op.success = result.started && result.exitCode == 0;
+    op.output = result.stdOut + result.stdErr;
+    return op;
+}
+
+} // namespace
+
+FlatpakBackend::Permissions FlatpakBackend::permissionsForApp(const QString &appId) const
+{
+    Permissions perms;
+
+    // Shows the EFFECTIVE permissions (the app's own declared metadata
+    // merged with any user/system overrides) rather than just the
+    // override delta, so this reflects what the app can actually do.
+    // The output is INI-shaped with several sections beyond [Context]
+    // (bus policy, environment), so unlike a plain per-line prefix match
+    // this needs to track which section a line is currently in.
+    const Result result = ProcessRunner::run("flatpak", {"info", "--show-permissions", appId}, 15000);
+
+    QString section;
+    for (const QString &rawLine : result.stdOut.split('\n')) {
+        const QString line = rawLine.trimmed();
+        if (line.isEmpty())
+            continue;
+        if (line.startsWith('[') && line.endsWith(']')) {
+            section = line.mid(1, line.length() - 2);
+            continue;
+        }
+        const int eq = line.indexOf('=');
+        if (eq < 0)
+            continue;
+        const QString key = line.left(eq).trimmed();
+        const QString value = line.mid(eq + 1).trimmed();
+
+        if (section == QLatin1String("Context")) {
+            if (key == QLatin1String("shared"))
+                perms.shared = splitSemicolonSet(value);
+            else if (key == QLatin1String("sockets"))
+                perms.sockets = splitSemicolonSet(value);
+            else if (key == QLatin1String("devices"))
+                perms.devices = splitSemicolonSet(value);
+            else if (key == QLatin1String("features"))
+                perms.features = splitSemicolonSet(value);
+            else if (key == QLatin1String("filesystems"))
+                perms.filesystems = value.split(';', Qt::SkipEmptyParts);
+        } else if (section == QLatin1String("Session Bus Policy")) {
+            if (value.compare(QLatin1String("talk"), Qt::CaseInsensitive) == 0)
+                perms.sessionBusTalk << key;
+            else if (value.compare(QLatin1String("own"), Qt::CaseInsensitive) == 0)
+                perms.sessionBusOwn << key;
+        } else if (section == QLatin1String("System Bus Policy")) {
+            if (value.compare(QLatin1String("talk"), Qt::CaseInsensitive) == 0)
+                perms.systemBusTalk << key;
+            else if (value.compare(QLatin1String("own"), Qt::CaseInsensitive) == 0)
+                perms.systemBusOwn << key;
+        } else if (section == QLatin1String("Environment")) {
+            perms.envVars.append({key, value});
+        }
+    }
+    return perms;
+}
+
+OperationResult FlatpakBackend::setSharedEnabled(const QString &appId, const QString &name, bool enabled)
+{
+    return runUserOverride(appId, {(enabled ? QStringLiteral("--share=") : QStringLiteral("--unshare=")) + name});
+}
+
+OperationResult FlatpakBackend::setSocketEnabled(const QString &appId, const QString &name, bool enabled)
+{
+    return runUserOverride(appId, {(enabled ? QStringLiteral("--socket=") : QStringLiteral("--nosocket=")) + name});
+}
+
+OperationResult FlatpakBackend::setDeviceEnabled(const QString &appId, const QString &name, bool enabled)
+{
+    return runUserOverride(appId, {(enabled ? QStringLiteral("--device=") : QStringLiteral("--nodevice=")) + name});
+}
+
+OperationResult FlatpakBackend::setFeatureEnabled(const QString &appId, const QString &name, bool enabled)
+{
+    return runUserOverride(appId, {(enabled ? QStringLiteral("--allow=") : QStringLiteral("--disallow=")) + name});
+}
+
+OperationResult FlatpakBackend::addFilesystemAccess(const QString &appId, const QString &pathSpec)
+{
+    return runUserOverride(appId, {QStringLiteral("--filesystem=") + pathSpec});
+}
+
+OperationResult FlatpakBackend::removeFilesystemAccess(const QString &appId, const QString &pathSpec)
+{
+    // --nofilesystem takes the bare path; a trailing :ro/:rw qualifier
+    // (only meaningful for granting) isn't part of what identifies it.
+    const QString bare = pathSpec.section(':', 0, 0);
+    return runUserOverride(appId, {QStringLiteral("--nofilesystem=") + bare});
+}
+
+OperationResult FlatpakBackend::setEnvironmentVariable(const QString &appId, const QString &key, const QString &value)
+{
+    return runUserOverride(appId, {QStringLiteral("--env=%1=%2").arg(key, value)});
+}
+
+OperationResult FlatpakBackend::unsetEnvironmentVariable(const QString &appId, const QString &key)
+{
+    return runUserOverride(appId, {QStringLiteral("--unset-env=") + key});
+}
+
+OperationResult FlatpakBackend::grantDBusName(const QString &appId, const QString &bus, const QString &kind,
+                                               const QString &name)
+{
+    const QString prefix = bus == QLatin1String("system") ? QStringLiteral("--system-") : QStringLiteral("--");
+    return runUserOverride(appId, {QStringLiteral("%1%2-name=%3").arg(prefix, kind, name)});
+}
+
+OperationResult FlatpakBackend::revokeDBusName(const QString &appId, const QString &bus, const QString &kind,
+                                                const QString &name)
+{
+    // flatpak override has --no-talk-name / --system-no-talk-name, but no
+    // equivalent for revoking an *owned* name — fall back to the generic
+    // policy flag, which backs both talk and own entries.
+    if (kind == QLatin1String("own"))
+        return runUserOverride(appId, {QStringLiteral("--remove-policy=%1-bus.%2=own").arg(bus, name)});
+
+    const QString prefix = bus == QLatin1String("system") ? QStringLiteral("--system-no-") : QStringLiteral("--no-");
+    return runUserOverride(appId, {QStringLiteral("%1%2-name=%3").arg(prefix, kind, name)});
+}
+
+OperationResult FlatpakBackend::resetOverrides(const QString &appId)
+{
+    return runUserOverride(appId, {QStringLiteral("--reset")});
+}
+
+QString FlatpakBackend::userDataRoot()
+{
+    return QDir::homePath() + QStringLiteral("/.var/app");
+}
+
+QString FlatpakBackend::userOverridesRoot()
+{
+    return QDir::homePath() + QStringLiteral("/.local/share/flatpak/overrides");
 }

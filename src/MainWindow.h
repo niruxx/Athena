@@ -11,6 +11,7 @@
 
 #include "core/PackageBackend.h"
 #include "core/PackageInfo.h"
+#include "core/backends/FlatpakBackend.h"
 
 class QTabWidget;
 class QStackedWidget;
@@ -70,7 +71,10 @@ private:
     void showAboutDialog();
 
     std::unique_ptr<PackageBackend> m_backend;
-    std::unique_ptr<PackageBackend> m_flatpakBackend;
+    // Kept as the concrete type (not PackageBackend, unlike the other two)
+    // since PermissionsPage needs Flatpak-only methods that aren't part of
+    // the shared PackageBackend interface.
+    std::unique_ptr<FlatpakBackend> m_flatpakBackend;
     std::unique_ptr<PackageBackend> m_snapBackend;
     class UpdateBannerWidget *m_updateBanner = nullptr;
 
