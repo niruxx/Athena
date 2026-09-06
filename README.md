@@ -19,6 +19,8 @@ Manage your system's native packages (DNF, APT, or Pacman), plus Flatpak and Sna
 ## Contents
 
 - [Features](#features)
+- [See it in action](#see-it-in-action)
+- [Screenshots](#screenshots)
 - [Supported systems](#supported-systems)
 - [Installing](#installing)
 - [Building from source](#building-from-source)
@@ -34,10 +36,12 @@ Manage your system's native packages (DNF, APT, or Pacman), plus Flatpak and Sna
 - 📟 **Live terminal output** — every install, uninstall, and reinstall runs in a small terminal window showing the exact command and its output as it streams, so failures are never a mystery.
 - 🧹 **Uninstall really cleans up** — removing a package also removes the dependencies it pulled in that nothing else needs, and a dedicated "Clean Left Behind Dependencies" button sweeps up anything left over from the past.
 - 📂 **Category browser** — browse packages by group/meta-group (comps groups on Fedora, tasksel tasks on Debian, pacman groups on Arch) instead of only searching by name.
-- 🌐 **Repository management** — enable/disable repos, add new ones, and refresh package metadata, for your native package manager and Flatpak remotes alike.
+- 🌐 **Repository management** — enable/disable repos, add new ones, and refresh package metadata, for your native package manager and Flatpak remotes alike. On DNF, a repo can also be added straight from a **COPR** `owner/project`, alongside plain ID/URL repos.
+- 🔒 **Full Flatpak sandbox control** — a dedicated **Permissions** editor (shared namespaces, sockets, devices, sandbox features, filesystem access, D-Bus name policies, environment variables) built on `flatpak override`, plus **User Data** (browse/clear `~/.var/app` per app) and **Leftover Data** (find and remove data left behind by apps uninstalled outside Athena) tabs.
+- 💾 **Flatpak Backup & Restore** — back up every Flatpak app's user data and the list of installed apps to a single `.tar.gz`, then restore the data or reinstall the apps on a new machine or after a fresh OS install.
 - ⬆️ **Update checking** — a dedicated Updates tab per backend, with one-click "Select All" to batch-upgrade everything at once.
 - 🕘 **History** — see recent install/remove/update activity for each backend.
-- 👋 **First-run onboarding** — detects your distro and offers to install Flatpak/Snap support on the spot if it's missing.
+- 👋 **Guided first-run setup** — detects your distro, lets you set theme/startup tab/compact lists/update-checking right there, and offers to install Flatpak/Snap support on the spot if it's missing. Revisit it anytime from **Preferences → Run First-Time Setup Again**.
 - ⚙️ **Customizable** — theme (light/dark/system), startup tab, compact list rows, and a full Preferences dialog organized into General, System, Layout, and Logging Options tabs.
 - 🔔 **Notifies you about new Athena releases** — checks GitHub on startup (optional) and shows a dismissible banner when a newer version is out.
 - 🖲️ **System tray integration** — a tray icon appears when updates are available, with a right-click menu for Settings, Update (installs everything pending in one go), and Quit. Polls on a configurable interval.
@@ -46,13 +50,112 @@ Manage your system's native packages (DNF, APT, or Pacman), plus Flatpak and Sna
 - 📏 **Architecture and size columns** — optional columns in every package list (toggle from the table header), and a package's homepage link — when the backend reports one — shown right in its details panel.
 - 📝 **Optional file logging** — enable logging to a folder of your choice with a configurable verbosity level, for troubleshooting.
 
+## See it in action
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+**Switching backends**
+
+One dropdown moves between your system's package manager and Flatpak/Snap, tab bar and all.
+
+![Switching between System and Flatpak](docs/media/switching-backends.gif)
+
+</td>
+<td width="33%" valign="top">
+
+**Live sandbox permissions**
+
+Toggle a Flatpak app's sandbox access and it takes effect immediately — no restart, no rebuild.
+
+![Toggling a Flatpak permission](docs/media/toggling-permissions.gif)
+
+</td>
+<td width="33%" valign="top">
+
+**Search as you go**
+
+Type a name, hit enter, and results (with live install status) show up right away.
+
+![Searching for a package](docs/media/searching.gif)
+
+</td>
+</tr>
+</table>
+
+## Screenshots
+
+<details>
+<summary><strong>Category browser</strong> — browse by group instead of searching by name</summary>
+
+![Groups tab](docs/screenshots/groups-tab.png)
+
+</details>
+
+<details>
+<summary><strong>Advanced search</strong> — Dependency Query plus Repository/Architecture filters</summary>
+
+![Search tab](docs/screenshots/search-tab.png)
+
+</details>
+
+<details>
+<summary><strong>Repository management</strong></summary>
+
+![Repositories tab](docs/screenshots/repositories-tab.png)
+
+</details>
+
+<details>
+<summary><strong>Flatpak Permissions</strong> — the full sandbox editor</summary>
+
+![Flatpak Permissions tab](docs/screenshots/flatpak-permissions-tab.png)
+
+</details>
+
+<details>
+<summary><strong>Flatpak User Data</strong> — browse/clear per-app data with size scanning</summary>
+
+![Flatpak User Data tab](docs/screenshots/flatpak-userdata-tab.png)
+
+</details>
+
+<details>
+<summary><strong>Flatpak Leftover Data</strong> — find data left behind by uninstalled apps</summary>
+
+![Flatpak Leftover Data tab](docs/screenshots/flatpak-leftover-tab.png)
+
+</details>
+
+<details>
+<summary><strong>Flatpak Backup &amp; Restore</strong></summary>
+
+![Flatpak Backup and Restore tab](docs/screenshots/flatpak-backup-restore-tab.png)
+
+</details>
+
+<details>
+<summary><strong>Guided first-run setup</strong></summary>
+
+![First-run setup dialog](docs/screenshots/first-run-setup.png)
+
+</details>
+
+<details>
+<summary><strong>Preferences</strong></summary>
+
+![Preferences — General tab](docs/screenshots/preferences-general.png)
+
+</details>
+
 ## Supported systems
 
 | Distro family     | Package manager | Status                             |
 | ------------------ | ---------------- | ----------------------------------- |
 | Fedora / RHEL       | `dnf5`            | Fully tested                        |
 | Debian / Ubuntu     | `apt`             | Implemented, not yet field-tested   |
-| Arch Linux          | `pacman`          | Implemented, not yet field-tested   |
+| Arch Linux          | `pacman`          | Fully tested                        |
 | Any of the above    | `flatpak`         | Fully tested                        |
 | Any of the above    | `snap`            | Implemented, not yet field-tested   |
 
@@ -111,11 +214,11 @@ The resulting binary is at `build/athena`:
 ./build/athena
 ```
 
-Packaging (`.rpm`/`.deb` via CPack, `.AppImage` via `linuxdeploy`, Arch via `packaging/arch/PKGBUILD`) is what [the CI workflow](.github/workflows/c-cpp.yml) runs on every push — check there for the exact commands if you want to build a package yourself.
+Packaging (`.rpm`/`.deb` via CPack, `.AppImage` via `linuxdeploy`, Arch via `packaging/arch/PKGBUILD`) is what [the CI workflow](.github/workflows/c-cpp.yml) runs on every push and nightly — check there for the exact commands if you want to build a package yourself. Each of Arch, Fedora, and Debian can also be built locally in an isolated container via `packaging/<distro>/build-in-podman.sh` (needs [podman](https://podman.io/)), which is how each format's real package gets built and linked against that distro's own Qt6/glibc without needing a matching host.
 
 ## A note on privileges
 
-Installing, removing, and reinstalling packages is done through [`pkexec`](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html) (Polkit), which prompts you for your password through your desktop's native authentication dialog — Athena never asks for or stores a password itself. Flatpak operations use Flatpak's own built-in Polkit integration the same way; Snap has no such integration of its own, so its operations go through `pkexec` too. Downloading packages (without installing them) is unprivileged on DNF, APT, and Snap; Pacman and Flatpak downloads still go through the same privilege model as a normal install.
+Installing, removing, and reinstalling packages is done through [`pkexec`](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html) (Polkit), which prompts you for your password through your desktop's native authentication dialog — Athena never asks for or stores a password itself. Flatpak install/remove operations use Flatpak's own built-in Polkit integration the same way; Snap has no such integration of its own, so its operations go through `pkexec` too. Downloading packages (without installing them) is unprivileged on DNF, APT, and Snap; Pacman and Flatpak downloads still go through the same privilege model as a normal install. Flatpak's Permissions, User Data, Leftover Data, and Backup & Restore tabs are the exception in the other direction — they all act on user-level state (`~/.local/share/flatpak/overrides`, `~/.var/app`), so none of them need a privilege prompt at all.
 
 ## Changelog
 
