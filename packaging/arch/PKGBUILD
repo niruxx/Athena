@@ -6,7 +6,7 @@
 # the source tree via $startdir/../..
 
 pkgname=athena
-pkgver=2.0.0
+pkgver=2.1.0
 pkgrel=1
 pkgdesc="Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak"
 arch=('x86_64')

@@ -15,7 +15,9 @@
 #include <QVBoxLayout>
 
 #include "../core/AppSettings.h"
+#include "../core/BackendFactory.h"
 #include "AppIcons.h"
+#include "FirstRunDialog.h"
 #include "PackageFormatInstallWidget.h"
 
 namespace {
@@ -65,10 +67,36 @@ QWidget *buildGeneralTab(QWidget *parent, QComboBox *&themeCombo, QCheckBox *&co
     auto *formatsLayout = new QVBoxLayout(formatsGroup);
     formatsLayout->addWidget(new PackageFormatInstallWidget(formatsGroup));
 
+    auto *setupGroup = new QGroupBox(QObject::tr("Setup"), tab);
+    auto *setupLayout = new QVBoxLayout(setupGroup);
+    auto *rerunFirstRunButton = new QPushButton(QObject::tr("Run First-Time Setup Again..."), tab);
+    setupLayout->addWidget(rerunFirstRunButton, 0, Qt::AlignLeft);
+    // Re-detects the backend fresh (rather than plumbing MainWindow's
+    // instance all the way through PreferencesDialog) purely to name it
+    // in the dialog's text — cheap, and identical to what MainWindow does
+    // once at real startup.
+    QObject::connect(rerunFirstRunButton, &QPushButton::clicked, tab,
+                      [tab, themeCombo, startupTabCombo, compactListsCheck, checkForUpdatesCheck]() {
+                          const auto backend = BackendFactory::createForHostSystem();
+                          FirstRunDialog dialog(backend ? backend->backendName() : QString(), tab->window());
+                          dialog.exec();
+
+                          // FirstRunDialog edits these same four settings
+                          // live, so this tab's own widgets need refreshing
+                          // afterward — most of AppSettings has no change
+                          // signal to pick this up automatically.
+                          themeCombo->setCurrentIndex(static_cast<int>(AppSettings::instance().themeMode()));
+                          startupTabCombo->setCurrentIndex(
+                              static_cast<int>(AppSettings::instance().startupTab()));
+                          compactListsCheck->setChecked(AppSettings::instance().compactPackageLists());
+                          checkForUpdatesCheck->setChecked(AppSettings::instance().checkForAppUpdatesOnStartup());
+                      });
+
     auto *layout = new QVBoxLayout(tab);
     layout->addWidget(appearanceGroup);
     layout->addWidget(generalGroup);
     layout->addWidget(formatsGroup);
+    layout->addWidget(setupGroup);
     layout->addStretch(1);
 
     return tab;

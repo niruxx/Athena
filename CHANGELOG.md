@@ -3,6 +3,51 @@
 All notable changes to Athena are documented in this file. Newest release first;
 append new entries above as changes land.
 
+## [2.1.0] - 2026-09-06
+
+### Added
+
+- **Flatpak permission editor**: a new Permissions tab under the Flatpak
+  group lets you inspect and edit an installed app's sandbox access —
+  shared namespaces (network/IPC), sockets, devices, sandbox features
+  (devel/multiarch/bluetooth/canbus/etc.), filesystem access, D-Bus name
+  policies, and environment variables — all backed by `flatpak override
+  --user`, so changes apply immediately and need no elevated privileges.
+- **Flatpak User Data tab**: browse and clear `~/.var/app/<id>` data for
+  currently installed apps, with recursive size scanning.
+- **Flatpak Leftover Data tab**: find (and delete) data left behind under
+  `~/.var/app`, plus orphaned permission-override files, from apps
+  uninstalled outside Athena.
+- **Flatpak Backup & Restore tab**: back up all Flatpak user data and the
+  list of installed apps to a single `.tar.gz`; restore the data or
+  reinstall the listed apps on a new machine or after a fresh OS install.
+- **COPR support** in the DNF Repositories tab's "Add Repository" dialog —
+  enter an `owner/project` COPR repo to enable it via `dnf copr enable`,
+  alongside the existing custom repository ID/URL fields.
+- **Nightly CI build**: the GitHub Actions build workflow now also runs on
+  a nightly schedule, not just on push/PR/manual dispatch.
+- The first-run setup dialog now lets you configure theme, startup tab,
+  compact package lists, and update-check-on-startup right there, instead
+  of only offering the Flatpak/Snap install prompt.
+- A **"Run First-Time Setup Again..."** button in Preferences → General,
+  for revisiting the first-run dialog's choices without reinstalling.
+
+### Fixed
+
+- The Repository/Flatpak/Snap group switcher (top-right of the window)
+  could become invisible and unusable after switching groups more than
+  once, due to a Qt quirk where `QTabWidget::setCornerWidget()` silently
+  no-ops if handed a widget it already believes is its corner widget.
+- **Pacman backend**: the Groups tab always showed "0 categories" — 
+  `listGroups()` was parsing bare `pacman -Sg` output (one group name per
+  line) as if it were the `pacman -Sg <name>` pairs format, so every
+  group was dropped. Fixed, and the per-group "installed?" check is now a
+  single batched `pacman -Qg` call instead of one subprocess per group.
+
+### Changed
+
+- Version bumped to 2.1.0.
+
 ## [2.0.0] - 2026-08-27
 
 ### Added

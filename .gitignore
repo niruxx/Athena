@@ -5,5 +5,7 @@ build-*/
 *.AppImage
 /dist-appimage
 /dist-arch
+/dist-fedora
+/dist-debian
 /dist-rpm
 /dist-deb
