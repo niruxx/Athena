@@ -77,4 +77,44 @@ inline QIcon download()
                              qApp->style()->standardIcon(QStyle::SP_ArrowDown));
 }
 
+inline QIcon trash()
+{
+    return QIcon::fromTheme(QStringLiteral("user-trash"), qApp->style()->standardIcon(QStyle::SP_TrashIcon));
+}
+
+inline QIcon temporary()
+{
+    return QIcon::fromTheme(QStringLiteral("folder-temp"), qApp->style()->standardIcon(QStyle::SP_DirIcon));
+}
+
+inline QIcon cache()
+{
+    return QIcon::fromTheme(QStringLiteral("preferences-system-time"),
+                             qApp->style()->standardIcon(QStyle::SP_DriveHDIcon));
+}
+
+inline QIcon image()
+{
+    return QIcon::fromTheme(QStringLiteral("image-x-generic"),
+                             qApp->style()->standardIcon(QStyle::SP_FileDialogContentsView));
+}
+
+inline QIcon terminal()
+{
+    return QIcon::fromTheme(QStringLiteral("utilities-terminal"),
+                             qApp->style()->standardIcon(QStyle::SP_FileDialogDetailedView));
+}
+
+inline QIcon history()
+{
+    return QIcon::fromTheme(QStringLiteral("document-open-recent"),
+                             qApp->style()->standardIcon(QStyle::SP_FileIcon));
+}
+
+inline QIcon archive()
+{
+    return QIcon::fromTheme(QStringLiteral("package-x-generic"),
+                             qApp->style()->standardIcon(QStyle::SP_DriveFDIcon));
+}
+
 } // namespace AppIcons

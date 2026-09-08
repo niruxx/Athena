@@ -5,8 +5,10 @@
 #include <QDir>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QFont>
 #include <QGroupBox>
 #include <QHBoxLayout>
+#include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -14,9 +16,11 @@
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSet>
+#include <QTreeWidget>
 #include <QVBoxLayout>
 #include <QtConcurrent/QtConcurrent>
 
+#include "../core/DirSizeScanner.h"
 #include "../core/ProcessRunner.h"
 #include "AppIcons.h"
 #include "PackageActions.h"
@@ -24,10 +28,52 @@
 using ProcessRunner::Result;
 
 namespace {
+constexpr int RoleSize = Qt::UserRole;
+
 // Hidden top-level entries under $HOME that are transient/regenerable
 // rather than actual configuration — unchecked by default so a routine
 // backup doesn't balloon in size, though the user can still opt in.
 const QSet<QString> kDefaultUncheckedEntries = {QStringLiteral(".cache")};
+
+QString formatSize(qint64 bytes)
+{
+    static const char *units[] = {"B", "KB", "MB", "GB", "TB"};
+    double value = static_cast<double>(bytes);
+    int unit = 0;
+    while (value >= 1024.0 && unit < 4) {
+        value /= 1024.0;
+        ++unit;
+    }
+    return QStringLiteral("%1 %2").arg(value, 0, 'f', unit == 0 ? 0 : 1).arg(units[unit]);
+}
+
+// Top-level entry names found in a backup, for the Restore section's
+// preview list — either the immediate children of a folder-mode backup,
+// or the top segment of every path an archive-mode backup's tar members
+// start with (a member like ".config/foo/bar" only contributes ".config").
+QStringList topLevelEntries(const QString &source, bool isFolder)
+{
+    if (isFolder) {
+        return QDir(source).entryList(QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot,
+                                       QDir::Name);
+    }
+
+    const Result result = ProcessRunner::run("tar", {"-tzf", source}, 30000);
+    if (!(result.started && result.exitCode == 0))
+        return {};
+
+    QStringList entries;
+    QSet<QString> seen;
+    const QStringList lines = result.stdOut.split(QChar('\n'), Qt::SkipEmptyParts);
+    for (const QString &line : lines) {
+        const QString top = line.section(QChar('/'), 0, 0);
+        if (!seen.contains(top)) {
+            seen.insert(top);
+            entries << top;
+        }
+    }
+    return entries;
+}
 } // namespace
 
 UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
@@ -44,7 +90,7 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
     auto *destRow = new QHBoxLayout;
     m_backupDestEdit = new QLineEdit(backupGroup);
     m_backupDestEdit->setPlaceholderText(tr("Destination folder..."));
-    auto *browseDestButton = new QPushButton(tr("Browse..."), backupGroup);
+    auto *browseDestButton = new QPushButton(AppIcons::folder(), tr("Browse..."), backupGroup);
     destRow->addWidget(m_backupDestEdit, 1);
     destRow->addWidget(browseDestButton);
     backupLayout->addLayout(destRow);
@@ -58,23 +104,45 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
     formatRow->addStretch(1);
     backupLayout->addLayout(formatRow);
 
-    m_entriesList = new QListWidget(backupGroup);
-    m_entriesList->setSelectionMode(QAbstractItemView::NoSelection);
-    backupLayout->addWidget(m_entriesList, 1);
+    // Two-column body: the entry list gets most of the width, with the
+    // list-related controls and the summary/backup action beside it
+    // instead of stretched across a mostly-empty row underneath.
+    auto *backupBody = new QHBoxLayout;
 
-    auto *entriesButtonRow = new QHBoxLayout;
+    m_entriesTree = new QTreeWidget(backupGroup);
+    m_entriesTree->setColumnCount(2);
+    m_entriesTree->setHeaderLabels({tr("Dotfile / Folder"), tr("Size")});
+    m_entriesTree->setRootIsDecorated(false);
+    m_entriesTree->setAlternatingRowColors(true);
+    m_entriesTree->setSelectionMode(QAbstractItemView::NoSelection);
+    m_entriesTree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
+    m_entriesTree->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    backupBody->addWidget(m_entriesTree, 1);
+
+    auto *backupSideLayout = new QVBoxLayout;
     m_selectAllCheck = new QCheckBox(tr("Select All"), backupGroup);
     m_selectAllCheck->setChecked(true);
     m_rescanButton = new QPushButton(AppIcons::refresh(), tr("Rescan"), backupGroup);
-    entriesButtonRow->addWidget(m_selectAllCheck);
-    entriesButtonRow->addStretch(1);
-    entriesButtonRow->addWidget(m_rescanButton);
-    backupLayout->addLayout(entriesButtonRow);
+    m_selectedSummaryLabel = new QLabel(backupGroup);
+    m_selectedSummaryLabel->setWordWrap(true);
+    QFont summaryFont = m_selectedSummaryLabel->font();
+    summaryFont.setBold(true);
+    m_selectedSummaryLabel->setFont(summaryFont);
+    m_backupButton = new QPushButton(AppIcons::archive(), tr("Back Up Now"), backupGroup);
+    backupSideLayout->addWidget(m_selectAllCheck);
+    backupSideLayout->addWidget(m_rescanButton);
+    backupSideLayout->addSpacing(8);
+    backupSideLayout->addWidget(m_selectedSummaryLabel);
+    backupSideLayout->addStretch(1);
+    backupSideLayout->addWidget(m_backupButton);
+    auto *backupSideWidget = new QWidget(backupGroup);
+    backupSideWidget->setLayout(backupSideLayout);
+    backupSideWidget->setMaximumWidth(220);
+    backupBody->addWidget(backupSideWidget);
 
-    m_backupButton = new QPushButton(AppIcons::download(), tr("Back Up Now"), backupGroup);
-    backupLayout->addWidget(m_backupButton, 0, Qt::AlignLeft);
+    backupLayout->addLayout(backupBody, 1);
 
-    outer->addWidget(backupGroup, 1);
+    outer->addWidget(backupGroup, 3);
 
     auto *restoreGroup = new QGroupBox(tr("Restore"), this);
     auto *restoreLayout = new QVBoxLayout(restoreGroup);
@@ -87,17 +155,41 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
     auto *sourceRow = new QHBoxLayout;
     m_restoreSourceEdit = new QLineEdit(restoreGroup);
     m_restoreSourceEdit->setPlaceholderText(tr("Backup archive or folder..."));
-    auto *browseArchiveButton = new QPushButton(tr("Browse Archive..."), restoreGroup);
-    auto *browseFolderButton = new QPushButton(tr("Browse Folder..."), restoreGroup);
+    auto *browseArchiveButton = new QPushButton(AppIcons::archive(), tr("Browse Archive..."), restoreGroup);
+    auto *browseFolderButton = new QPushButton(AppIcons::folder(), tr("Browse Folder..."), restoreGroup);
     sourceRow->addWidget(m_restoreSourceEdit, 1);
     sourceRow->addWidget(browseArchiveButton);
     sourceRow->addWidget(browseFolderButton);
     restoreLayout->addLayout(sourceRow);
 
-    m_restoreButton = new QPushButton(AppIcons::download(), tr("Restore Now..."), restoreGroup);
-    restoreLayout->addWidget(m_restoreButton, 0, Qt::AlignLeft);
+    auto *restoreBody = new QHBoxLayout;
 
-    outer->addWidget(restoreGroup);
+    auto *previewLayout = new QVBoxLayout;
+    m_previewSummaryLabel = new QLabel(tr("Choose a backup above to see what it contains."), restoreGroup);
+    m_previewSummaryLabel->setWordWrap(true);
+    m_previewList = new QListWidget(restoreGroup);
+    m_previewList->setSelectionMode(QAbstractItemView::NoSelection);
+    m_previewList->setAlternatingRowColors(true);
+    previewLayout->addWidget(m_previewSummaryLabel);
+    previewLayout->addWidget(m_previewList, 1);
+    restoreBody->addLayout(previewLayout, 1);
+
+    auto *restoreSideLayout = new QVBoxLayout;
+    auto *restoreWarning = new QLabel(
+        tr("Files already in your home directory with the same name will be overwritten."), restoreGroup);
+    restoreWarning->setWordWrap(true);
+    m_restoreButton = new QPushButton(AppIcons::download(), tr("Restore Now..."), restoreGroup);
+    restoreSideLayout->addWidget(restoreWarning);
+    restoreSideLayout->addStretch(1);
+    restoreSideLayout->addWidget(m_restoreButton);
+    auto *restoreSideWidget = new QWidget(restoreGroup);
+    restoreSideWidget->setLayout(restoreSideLayout);
+    restoreSideWidget->setMaximumWidth(220);
+    restoreBody->addWidget(restoreSideWidget);
+
+    restoreLayout->addLayout(restoreBody, 1);
+
+    outer->addWidget(restoreGroup, 2);
 
     m_statusLabel = new QLabel(this);
     m_statusLabel->setWordWrap(true);
@@ -109,10 +201,14 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
     connect(m_backupButton, &QPushButton::clicked, this, &UserBackupRestorePage::onCreateBackup);
     connect(browseArchiveButton, &QPushButton::clicked, this, &UserBackupRestorePage::onBrowseRestoreArchive);
     connect(browseFolderButton, &QPushButton::clicked, this, &UserBackupRestorePage::onBrowseRestoreFolder);
+    connect(m_restoreSourceEdit, &QLineEdit::editingFinished, this, &UserBackupRestorePage::onRestoreSourceEdited);
     connect(m_restoreButton, &QPushButton::clicked, this, &UserBackupRestorePage::onRestore);
+    connect(m_entriesTree, &QTreeWidget::itemChanged, this, &UserBackupRestorePage::onEntryChecked);
     connect(&m_scanWatcher, &QFutureWatcher<QStringList>::finished, this, &UserBackupRestorePage::onEntriesScanned);
     connect(&m_backupWatcher, &QFutureWatcher<OperationResult>::finished, this,
             &UserBackupRestorePage::onBackupFinished);
+    connect(&m_previewWatcher, &QFutureWatcher<QStringList>::finished, this,
+            &UserBackupRestorePage::onPreviewScanned);
 
     onRescanEntries();
 }
@@ -128,6 +224,7 @@ void UserBackupRestorePage::onRescanEntries()
 {
     m_rescanButton->setEnabled(false);
     m_backupButton->setEnabled(false);
+    m_selectedSummaryLabel->setText(tr("Scanning..."));
 
     QFuture<QStringList> future = QtConcurrent::run([]() {
         QStringList dotfiles;
@@ -145,21 +242,79 @@ void UserBackupRestorePage::onRescanEntries()
 
 void UserBackupRestorePage::onEntriesScanned()
 {
-    m_entriesList->clear();
+    m_entriesTree->clear();
     const QStringList entries = m_scanWatcher.result();
+
+    QStringList paths;
     for (const QString &entry : entries) {
-        auto *item = new QListWidgetItem(entry, m_entriesList);
+        auto *item = new QTreeWidgetItem(m_entriesTree);
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
-        item->setCheckState(kDefaultUncheckedEntries.contains(entry) ? Qt::Unchecked : Qt::Checked);
+        item->setText(0, entry);
+        item->setCheckState(0, kDefaultUncheckedEntries.contains(entry) ? Qt::Unchecked : Qt::Checked);
+        item->setText(1, tr("scanning..."));
+        item->setData(0, RoleSize, 0);
+        paths << QDir(QDir::homePath()).filePath(entry);
     }
     m_rescanButton->setEnabled(true);
     m_backupButton->setEnabled(!entries.isEmpty());
+
+    if (m_scanner) {
+        m_scanner->wait();
+        m_scanner->deleteLater();
+        m_scanner = nullptr;
+    }
+    if (!paths.isEmpty()) {
+        m_scanner = new DirSizeScanner(paths, this);
+        connect(m_scanner, &DirSizeScanner::sizeComputed, this, &UserBackupRestorePage::onEntrySizeComputed);
+        connect(m_scanner, &DirSizeScanner::finished, this, &UserBackupRestorePage::onEntrySizeScanFinished);
+        m_scanner->start();
+    } else {
+        updateSelectedSummary();
+    }
+}
+
+void UserBackupRestorePage::onEntrySizeComputed(const QString &path, qint64 bytes)
+{
+    const QString home = QDir::homePath();
+    for (int i = 0; i < m_entriesTree->topLevelItemCount(); ++i) {
+        QTreeWidgetItem *item = m_entriesTree->topLevelItem(i);
+        if (QDir(home).filePath(item->text(0)) == path) {
+            item->setText(1, formatSize(bytes));
+            item->setData(0, RoleSize, bytes);
+            break;
+        }
+    }
+    updateSelectedSummary();
+}
+
+void UserBackupRestorePage::onEntrySizeScanFinished()
+{
+    updateSelectedSummary();
 }
 
 void UserBackupRestorePage::onSelectAll(bool checked)
 {
-    for (int i = 0; i < m_entriesList->count(); ++i)
-        m_entriesList->item(i)->setCheckState(checked ? Qt::Checked : Qt::Unchecked);
+    for (int i = 0; i < m_entriesTree->topLevelItemCount(); ++i)
+        m_entriesTree->topLevelItem(i)->setCheckState(0, checked ? Qt::Checked : Qt::Unchecked);
+}
+
+void UserBackupRestorePage::onEntryChecked()
+{
+    updateSelectedSummary();
+}
+
+void UserBackupRestorePage::updateSelectedSummary()
+{
+    int count = 0;
+    qint64 total = 0;
+    for (int i = 0; i < m_entriesTree->topLevelItemCount(); ++i) {
+        const QTreeWidgetItem *item = m_entriesTree->topLevelItem(i);
+        if (item->checkState(0) == Qt::Checked) {
+            ++count;
+            total += item->data(0, RoleSize).toLongLong();
+        }
+    }
+    m_selectedSummaryLabel->setText(tr("%n item(s) selected, %1", nullptr, count).arg(formatSize(total)));
 }
 
 void UserBackupRestorePage::onCreateBackup()
@@ -171,9 +326,10 @@ void UserBackupRestorePage::onCreateBackup()
     }
 
     QStringList selected;
-    for (int i = 0; i < m_entriesList->count(); ++i) {
-        if (m_entriesList->item(i)->checkState() == Qt::Checked)
-            selected << m_entriesList->item(i)->text();
+    for (int i = 0; i < m_entriesTree->topLevelItemCount(); ++i) {
+        const QTreeWidgetItem *item = m_entriesTree->topLevelItem(i);
+        if (item->checkState(0) == Qt::Checked)
+            selected << item->text(0);
     }
     if (selected.isEmpty()) {
         QMessageBox::information(this, tr("Backup"), tr("No dotfiles/folders selected."));
@@ -237,15 +393,49 @@ void UserBackupRestorePage::onBrowseRestoreArchive()
 {
     const QString file = QFileDialog::getOpenFileName(this, tr("Choose Backup Archive"), QDir::homePath(),
                                                         tr("Athena backups (*.tar.gz);;All files (*)"));
-    if (!file.isEmpty())
+    if (!file.isEmpty()) {
         m_restoreSourceEdit->setText(file);
+        schedulePreviewScan();
+    }
 }
 
 void UserBackupRestorePage::onBrowseRestoreFolder()
 {
     const QString dir = QFileDialog::getExistingDirectory(this, tr("Choose Backup Folder"), QDir::homePath());
-    if (!dir.isEmpty())
+    if (!dir.isEmpty()) {
         m_restoreSourceEdit->setText(dir);
+        schedulePreviewScan();
+    }
+}
+
+void UserBackupRestorePage::onRestoreSourceEdited()
+{
+    schedulePreviewScan();
+}
+
+void UserBackupRestorePage::schedulePreviewScan()
+{
+    const QString source = m_restoreSourceEdit->text().trimmed();
+    if (source.isEmpty() || !QFileInfo::exists(source)) {
+        m_previewList->clear();
+        m_previewSummaryLabel->setText(tr("Choose a backup above to see what it contains."));
+        return;
+    }
+
+    m_previewSummaryLabel->setText(tr("Reading contents..."));
+    const bool isFolder = QFileInfo(source).isDir();
+    QFuture<QStringList> future = QtConcurrent::run([source, isFolder]() { return topLevelEntries(source, isFolder); });
+    m_previewWatcher.setFuture(future);
+}
+
+void UserBackupRestorePage::onPreviewScanned()
+{
+    const QStringList entries = m_previewWatcher.result();
+    m_previewList->clear();
+    for (const QString &entry : entries)
+        new QListWidgetItem(entry, m_previewList);
+    m_previewSummaryLabel->setText(entries.isEmpty() ? tr("No contents found — is this a valid backup?")
+                                                      : tr("%n item(s) in this backup:", nullptr, entries.size()));
 }
 
 void UserBackupRestorePage::onRestore()
@@ -297,7 +487,7 @@ void UserBackupRestorePage::setBusy(bool busy, const QString &status)
 {
     if (!status.isEmpty())
         m_statusLabel->setText(status);
-    m_backupButton->setEnabled(!busy && m_entriesList->count() > 0);
+    m_backupButton->setEnabled(!busy && m_entriesTree->topLevelItemCount() > 0);
     m_rescanButton->setEnabled(!busy);
     m_restoreButton->setEnabled(!busy);
 }

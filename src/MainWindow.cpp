@@ -177,8 +177,15 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     }
 
     m_userMgmtTabs = new QTabWidget(m_groupStack);
-    m_userMgmtTabs->addTab(new UserCleanupPage(UserCleanupTargets::general(), m_userMgmtTabs), tr("General"));
-    m_userMgmtTabs->addTab(new UserCleanupPage(UserCleanupTargets::advanced(), m_userMgmtTabs), tr("Advanced"));
+    m_userMgmtTabs->addTab(new UserCleanupPage(tr("Everyday cleanup — temporary files and cache that are always "
+                                                   "safe to clear and get regenerated automatically as needed."),
+                                                UserCleanupTargets::general(), m_userMgmtTabs),
+                            tr("General"));
+    m_userMgmtTabs->addTab(new UserCleanupPage(tr("Less-common cleanup targets — still your own data, but worth a "
+                                                   "second look (history, recently-used lists, trash) before "
+                                                   "clearing them."),
+                                                UserCleanupTargets::advanced(), m_userMgmtTabs),
+                            tr("Advanced"));
     m_userMgmtTabs->addTab(new UserBackupRestorePage(m_userMgmtTabs), tr("Backup & Restore"));
     m_groupStack->addWidget(m_userMgmtTabs);
     m_groupCombo->addItem(tr("User Management"));
