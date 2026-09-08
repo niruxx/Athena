@@ -42,6 +42,8 @@
 #include "ui/SearchPage.h"
 #include "ui/UpdateBannerWidget.h"
 #include "ui/UpdatesPage.h"
+#include "ui/UserBackupRestorePage.h"
+#include "ui/UserCleanupPage.h"
 #include "ui/UserDataPage.h"
 
 namespace {
@@ -173,6 +175,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         watchBrowserStats(searchPage->browser());
         connect(m_snapTabs, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
     }
+
+    m_userMgmtTabs = new QTabWidget(m_groupStack);
+    m_userMgmtTabs->addTab(new UserCleanupPage(UserCleanupTargets::general(), m_userMgmtTabs), tr("General"));
+    m_userMgmtTabs->addTab(new UserCleanupPage(UserCleanupTargets::advanced(), m_userMgmtTabs), tr("Advanced"));
+    m_userMgmtTabs->addTab(new UserBackupRestorePage(m_userMgmtTabs), tr("Backup & Restore"));
+    m_groupStack->addWidget(m_userMgmtTabs);
+    m_groupCombo->addItem(tr("User Management"));
 
     connect(m_groupCombo, &QComboBox::currentIndexChanged, m_groupStack, &QStackedWidget::setCurrentIndex);
 

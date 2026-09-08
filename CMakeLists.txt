@@ -35,6 +35,8 @@ add_executable(athena
     src/core/Logger.cpp
     src/core/DirSizeScanner.h
     src/core/DirSizeScanner.cpp
+    src/core/UserCleanupUtils.h
+    src/core/UserCleanupUtils.cpp
 
     src/core/backends/DnfBackend.h
     src/core/backends/DnfBackend.cpp
@@ -91,6 +93,10 @@ add_executable(athena
     src/ui/UpdateBannerWidget.cpp
     src/ui/UpdatesPage.h
     src/ui/UpdatesPage.cpp
+    src/ui/UserCleanupPage.h
+    src/ui/UserCleanupPage.cpp
+    src/ui/UserBackupRestorePage.h
+    src/ui/UserBackupRestorePage.cpp
 )
 
 target_link_libraries(athena PRIVATE Qt6::Widgets Qt6::Concurrent Qt6::Network)

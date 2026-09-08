@@ -3,6 +3,21 @@
 All notable changes to Athena are documented in this file. Newest release first;
 append new entries above as changes land.
 
+## [Unreleased]
+
+### Added
+
+- **User Management group**: a new entry in the top-right dropdown, alongside
+  System/Flatpak/Snap, for housekeeping that isn't about packages at all —
+  General (clear `/tmp` and `~/.cache`) and Advanced (trash, thumbnail cache,
+  shell/tool history, recently-used files list) tabs show a size for each
+  item before you delete it, and only ever remove files you own (so pointing
+  it at a shared `/tmp` is safe). Its Backup & Restore tab archives your
+  dotfiles/configuration (hidden top-level entries under your home
+  directory) to either a `.tar.gz` or a plain uncompressed copy — your
+  choice — and restores either kind back, for moving to a new machine or a
+  fresh OS install.
+
 ## [2.1.0] - 2026-09-06
 
 ### Added

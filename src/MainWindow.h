@@ -54,7 +54,10 @@ private:
     // Which backend/group (System, Flatpak, or Snap) the top-right
     // dropdown is currently showing, so menu actions (Reload, Clean
     // Unused Dependencies, Find, ...) apply to whatever the user is
-    // actually looking at rather than a fixed backend.
+    // actually looking at rather than a fixed backend. Deliberately
+    // returns nullptr while User Management is showing (not backed by a
+    // PackageBackend), which is what keeps those package-only actions
+    // disabled for it rather than enabled-but-inert.
     QTabWidget *currentGroupTabs() const;
     PackageBackend *currentGroupBackend() const;
     // Switches the current group's sub-tab widget to the tab named
@@ -86,6 +89,7 @@ private:
     QTabWidget *m_systemTabs = nullptr;
     QTabWidget *m_flatpakTabs = nullptr;
     QTabWidget *m_snapTabs = nullptr;
+    QTabWidget *m_userMgmtTabs = nullptr;
     class QLabel *m_statsLabel = nullptr;
 
     // Whichever QTabWidget m_groupCombo is currently a corner widget of, so
