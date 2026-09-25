@@ -225,6 +225,10 @@ Installing, removing, and reinstalling packages is done through [`pkexec`](https
 
 See [CHANGELOG.md](CHANGELOG.md) for a version-by-version history of what's changed.
 
+## TODO
+Improved UI
+AUR support for Arch Linux
+
 ## License
 
 Athena is licensed under the [GNU General Public License v3.0](LICENSE).
