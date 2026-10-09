@@ -1,5 +1,7 @@
 #include "InstalledPage.h"
 
+#include <algorithm>
+
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -10,6 +12,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include "AppIcons.h"
+#include "AthenaStyle.h"
 #include "PackageActions.h"
 #include "PackageBrowser.h"
 
@@ -24,7 +27,9 @@ InstalledPage::InstalledPage(PackageBackend *backend, QWidget *parent)
     m_categoryTree = new QTreeWidget(this);
     m_categoryTree->setHeaderHidden(true);
     m_categoryTree->setColumnCount(1);
+    AthenaStyle::makeSidebar(m_categoryTree);
     auto *allItem = new QTreeWidgetItem(m_categoryTree, {tr("All Installed Packages")});
+    allItem->setIcon(0, AppIcons::archive());
     m_categoryTree->setCurrentItem(allItem);
 
     m_filterEdit = new QLineEdit(this);
@@ -43,6 +48,8 @@ InstalledPage::InstalledPage(PackageBackend *backend, QWidget *parent)
     topRow->addWidget(m_refreshButton);
 
     auto *rightLayout = new QVBoxLayout;
+    // The page's own layout already pads the whole splitter.
+    rightLayout->setContentsMargins(AthenaStyle::kSidebarGap, 0, 0, 0);
     rightLayout->addLayout(topRow);
     rightLayout->addWidget(m_browser, 1);
     rightLayout->addWidget(m_statusLabel);
@@ -50,7 +57,8 @@ InstalledPage::InstalledPage(PackageBackend *backend, QWidget *parent)
     rightPanel->setLayout(rightLayout);
 
     auto *splitter = new QSplitter(this);
-    splitter->addWidget(m_categoryTree);
+    AthenaStyle::makeSidebarSplitter(splitter);
+    splitter->addWidget(AthenaStyle::wrapSidebar(m_categoryTree, this));
     splitter->addWidget(rightPanel);
     splitter->setStretchFactor(0, 1);
     splitter->setStretchFactor(1, 3);
@@ -108,16 +116,23 @@ void InstalledPage::refreshCategories()
 
 void InstalledPage::onCategoriesLoaded()
 {
-    const QVector<PackageGroupInfo> groups = m_categoriesWatcher.result();
+    QVector<PackageGroupInfo> groups = m_categoriesWatcher.result();
     if (groups.isEmpty())
         return;
+    std::sort(groups.begin(), groups.end(), [](const PackageGroupInfo &a, const PackageGroupInfo &b) {
+        return QString::compare(a.name, b.name, Qt::CaseInsensitive) < 0;
+    });
 
     QTreeWidgetItem *allItem = m_categoryTree->topLevelItem(0);
     auto *categoriesRoot = new QTreeWidgetItem(m_categoryTree, {tr("Categories")});
     categoriesRoot->setFlags(Qt::ItemIsEnabled);
+    QFont sectionFont = categoriesRoot->font(0);
+    sectionFont.setBold(true);
+    categoriesRoot->setFont(0, sectionFont);
 
     for (const PackageGroupInfo &group : groups) {
         auto *item = new QTreeWidgetItem(categoriesRoot, {group.name});
+        item->setIcon(0, AppIcons::folder());
         item->setData(0, CategoryIdRole, group.id);
         item->setData(0, CategoryIsMetaRole, group.isMeta);
     }

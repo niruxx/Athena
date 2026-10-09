@@ -57,10 +57,11 @@ FirstRunDialog::FirstRunDialog(const QString &detectedBackendName, QWidget *pare
     setupForm->addRow(tr("Theme:"), themeCombo);
 
     auto *startupTabCombo = new QComboBox(this);
-    // Index order matches StartupTab's declaration order (System, Flatpak, Snap).
+    // Index order matches StartupTab's declaration order (System, Flatpak, Snap, AUR).
     startupTabCombo->addItem(tr("System"));
     startupTabCombo->addItem(tr("Flatpak"));
     startupTabCombo->addItem(tr("Snap"));
+    startupTabCombo->addItem(tr("AUR (Arch Linux)"));
     startupTabCombo->setCurrentIndex(static_cast<int>(AppSettings::instance().startupTab()));
     setupForm->addRow(tr("Start on tab:"), startupTabCombo);
 

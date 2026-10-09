@@ -3,7 +3,8 @@
 #include <QObject>
 
 enum class ThemeMode { System, Light, Dark };
-enum class StartupTab { System, Flatpak, Snap };
+// Values are persisted as ints, so new entries only ever go on the end.
+enum class StartupTab { System, Flatpak, Snap, Aur };
 enum class LogLevel { Error, Warning, Info, Debug };
 
 // Thin QSettings wrapper for the app's persisted preferences. Singleton
@@ -22,7 +23,7 @@ public:
     // Call once at startup, before showing any windows.
     void applyCurrentTheme() const;
 
-    // Which top-level tab (System/Flatpak/Snap) is active when the app opens.
+    // Which top-level tab (System/Flatpak/Snap/AUR) is active when the app opens.
     StartupTab startupTab() const;
     void setStartupTab(StartupTab tab);
 
@@ -82,6 +83,13 @@ public:
     // System group's tab bar.
     bool disableGroupView() const;
     void setDisableGroupView(bool disabled);
+
+    // Whether every AUR build first stops in a review dialog where the
+    // user reads (and may edit) each package's PKGBUILD and other build
+    // files, then builds exactly the reviewed copy. On by default; off
+    // hands builds straight to the AUR helper (or makepkg) unreviewed.
+    bool reviewAurBuilds() const;
+    void setReviewAurBuilds(bool review);
 
     // Whether application log messages are appended to a file on disk.
     bool loggingEnabled() const;

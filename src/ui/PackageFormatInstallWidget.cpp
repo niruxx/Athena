@@ -66,8 +66,8 @@ void PackageFormatInstallWidget::refreshState()
     if (!snapInstalled && DistroSupport::snapInstallCommands().isEmpty()) {
         m_snapInstallButton->setEnabled(false);
         m_snapInstallButton->setToolTip(
-            tr("Snap isn't available in this distribution's official repositories. Install an "
-               "AUR helper (e.g. yay) and run: yay -S snapd"));
+            tr("Snap isn't available in this distribution's official repositories. Install it from "
+               "the AUR instead: search for snapd in the AUR tab."));
     } else {
         m_snapInstallButton->setEnabled(true);
         m_snapInstallButton->setToolTip(QString());

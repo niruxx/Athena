@@ -87,12 +87,10 @@ QVector<PackageInfo> PacmanBackend::search(const QString &query)
     return results;
 }
 
-namespace {
-
 // Parses `pacman -Qi`/`-Si` output: one blank-line-separated "Key : Value"
 // block per package (pacman doesn't wrap long values across lines the way
 // dnf5 does, so no continuation handling is needed).
-QMap<QString, QMap<QString, QString>> parsePacmanInfoBlocks(const QString &text)
+QMap<QString, QMap<QString, QString>> PacmanBackend::parseInfoBlocks(const QString &text)
 {
     QMap<QString, QMap<QString, QString>> blocks;
     QString currentName;
@@ -124,8 +122,6 @@ QMap<QString, QMap<QString, QString>> parsePacmanInfoBlocks(const QString &text)
     return blocks;
 }
 
-} // namespace
-
 QVector<PackageInfo> PacmanBackend::packageDetails(const QStringList &packageNames)
 {
     if (packageNames.isEmpty())
@@ -134,12 +130,12 @@ QVector<PackageInfo> PacmanBackend::packageDetails(const QStringList &packageNam
     QStringList localArgs = {"-Qi"};
     localArgs += packageNames;
     const Result localResult = ProcessRunner::run("pacman", localArgs, 30000);
-    const auto localBlocks = parsePacmanInfoBlocks(localResult.stdOut);
+    const auto localBlocks = parseInfoBlocks(localResult.stdOut);
 
     QStringList syncArgs = {"-Si"};
     syncArgs += packageNames;
     const Result syncResult = ProcessRunner::run("pacman", syncArgs, 30000);
-    const auto syncBlocks = parsePacmanInfoBlocks(syncResult.stdOut);
+    const auto syncBlocks = parseInfoBlocks(syncResult.stdOut);
 
     QVector<PackageInfo> results;
     for (const QString &name : packageNames) {
@@ -205,7 +201,7 @@ QVector<PackageInfo> PacmanBackend::dependencyQuery(const QString &capability, b
     // has no reverse-dependency query against the sync database for
     // packages that aren't installed.
     const Result result = ProcessRunner::run("pacman", {"-Qi", trimmed}, 15000);
-    const auto blocks = parsePacmanInfoBlocks(result.stdOut);
+    const auto blocks = parseInfoBlocks(result.stdOut);
     if (!blocks.contains(trimmed))
         return {};
 

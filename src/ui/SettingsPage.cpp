@@ -16,7 +16,10 @@
 
 #include "../core/AppSettings.h"
 #include "../core/BackendFactory.h"
+#include "../core/DistroSupport.h"
+#include "../core/ProcessRunner.h"
 #include "AppIcons.h"
+#include "AurHelperInstallWidget.h"
 #include "FirstRunDialog.h"
 #include "PackageFormatInstallWidget.h"
 
@@ -46,10 +49,11 @@ QWidget *buildGeneralTab(QWidget *parent, QComboBox *&themeCombo, QCheckBox *&co
     auto *generalForm = new QFormLayout(generalGroup);
 
     startupTabCombo = new QComboBox(tab);
-    // Index order matches StartupTab's declaration order (System, Flatpak, Snap).
+    // Index order matches StartupTab's declaration order (System, Flatpak, Snap, AUR).
     startupTabCombo->addItem(QObject::tr("System"));
     startupTabCombo->addItem(QObject::tr("Flatpak"));
     startupTabCombo->addItem(QObject::tr("Snap"));
+    startupTabCombo->addItem(QObject::tr("AUR (Arch Linux)"));
     startupTabCombo->setCurrentIndex(static_cast<int>(AppSettings::instance().startupTab()));
     generalForm->addRow(QObject::tr("Start on tab:"), startupTabCombo);
 
@@ -66,6 +70,15 @@ QWidget *buildGeneralTab(QWidget *parent, QComboBox *&themeCombo, QCheckBox *&co
     auto *formatsGroup = new QGroupBox(QObject::tr("Additional Package Formats"), tab);
     auto *formatsLayout = new QVBoxLayout(formatsGroup);
     formatsLayout->addWidget(new PackageFormatInstallWidget(formatsGroup));
+
+    // Arch-only: the AUR (and so an AUR helper) means nothing elsewhere.
+    QGroupBox *aurGroup = nullptr;
+    if (DistroSupport::detectDistroFamily() == DistroSupport::DistroFamily::Arch
+        && ProcessRunner::executableExists("pacman")) {
+        aurGroup = new QGroupBox(QObject::tr("AUR (Arch User Repository)"), tab);
+        auto *aurLayout = new QVBoxLayout(aurGroup);
+        aurLayout->addWidget(new AurHelperInstallWidget(aurGroup));
+    }
 
     auto *setupGroup = new QGroupBox(QObject::tr("Setup"), tab);
     auto *setupLayout = new QVBoxLayout(setupGroup);
@@ -96,6 +109,8 @@ QWidget *buildGeneralTab(QWidget *parent, QComboBox *&themeCombo, QCheckBox *&co
     layout->addWidget(appearanceGroup);
     layout->addWidget(generalGroup);
     layout->addWidget(formatsGroup);
+    if (aurGroup)
+        layout->addWidget(aurGroup);
     layout->addWidget(setupGroup);
     layout->addStretch(1);
 
@@ -206,6 +221,7 @@ QWidget *buildLoggingTab(QWidget *parent, QCheckBox *&loggingEnabledCheck, QLine
 SettingsPage::SettingsPage(QWidget *parent) : QWidget(parent)
 {
     auto *tabs = new QTabWidget(this);
+    tabs->setDocumentMode(true);
 
     QPushButton *browseLogButton = nullptr;
     tabs->addTab(buildGeneralTab(tabs, m_themeCombo, m_compactListsCheck, m_startupTabCombo, m_autoCloseCheck,

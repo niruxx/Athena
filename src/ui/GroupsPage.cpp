@@ -1,5 +1,7 @@
 #include "GroupsPage.h"
 
+#include <algorithm>
+
 #include <QFont>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -11,6 +13,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include "AppIcons.h"
+#include "AthenaStyle.h"
 #include "PackageBrowser.h"
 
 namespace {
@@ -22,6 +25,7 @@ GroupsPage::GroupsPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
 {
     m_tree = new QTreeWidget(this);
     m_tree->setHeaderLabels({tr("Category"), tr("Installed")});
+    AthenaStyle::makeSidebar(m_tree);
     // A fixed pixel width truncated longer category/environment names
     // regardless of how wide the splitter panel actually was; resize to
     // fit whatever's currently in the tree instead.
@@ -36,10 +40,13 @@ GroupsPage::GroupsPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
 
     m_categoryDescription = new QLabel(this);
     m_categoryDescription->setWordWrap(true);
+    m_categoryDescription->setAlignment(Qt::AlignCenter);
 
     m_browser = new PackageBrowser(backend, PackageBrowser::Mode::InstallRemove, this);
 
     auto *rightLayout = new QVBoxLayout;
+    // The page's own layout already pads the whole splitter.
+    rightLayout->setContentsMargins(AthenaStyle::kSidebarGap, 0, 0, 0);
     rightLayout->addWidget(m_categoryTitle);
     rightLayout->addWidget(m_categoryDescription);
     rightLayout->addWidget(m_browser, 1);
@@ -47,7 +54,8 @@ GroupsPage::GroupsPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
     rightPanel->setLayout(rightLayout);
 
     auto *splitter = new QSplitter(this);
-    splitter->addWidget(m_tree);
+    AthenaStyle::makeSidebarSplitter(splitter);
+    splitter->addWidget(AthenaStyle::wrapSidebar(m_tree, this));
     splitter->addWidget(rightPanel);
     splitter->setStretchFactor(0, 1);
     splitter->setStretchFactor(1, 3);
@@ -92,7 +100,10 @@ void GroupsPage::refresh()
 
 void GroupsPage::onGroupsLoaded()
 {
-    const QVector<PackageGroupInfo> groups = m_listWatcher.result();
+    QVector<PackageGroupInfo> groups = m_listWatcher.result();
+    std::sort(groups.begin(), groups.end(), [](const PackageGroupInfo &a, const PackageGroupInfo &b) {
+        return QString::compare(a.name, b.name, Qt::CaseInsensitive) < 0;
+    });
 
     const QString previouslySelectedId =
         m_tree->currentItem() ? m_tree->currentItem()->data(0, GroupIdRole).toString() : QString();
@@ -101,10 +112,14 @@ void GroupsPage::onGroupsLoaded()
 
     auto *groupRoot = new QTreeWidgetItem(m_tree, {tr("Groups"), QString()});
     groupRoot->setFlags(Qt::ItemIsEnabled);
+    QFont sectionFont = groupRoot->font(0);
+    sectionFont.setBold(true);
+    groupRoot->setFont(0, sectionFont);
 
     QTreeWidgetItem *itemToReselect = nullptr;
     for (const PackageGroupInfo &group : groups) {
         auto *item = new QTreeWidgetItem(groupRoot, {group.name, group.installed ? tr("Yes") : tr("No")});
+        item->setIcon(0, AppIcons::folder());
         item->setData(0, GroupIdRole, group.id);
         item->setData(0, GroupIsMetaRole, group.isMeta);
         if (!previouslySelectedId.isEmpty() && group.id == previouslySelectedId)

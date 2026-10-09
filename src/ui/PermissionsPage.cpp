@@ -1,5 +1,7 @@
 #include "PermissionsPage.h"
 
+#include <algorithm>
+
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
@@ -24,6 +26,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include "AppIcons.h"
+#include "AthenaStyle.h"
 
 namespace {
 constexpr int AppIdRole = Qt::UserRole;
@@ -49,10 +52,13 @@ const QVector<QPair<QString, QString>> &filesystemPresets()
 PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWidget(parent), m_backend(backend)
 {
     m_appList = new QListWidget(this);
+    AthenaStyle::makeSidebar(m_appList);
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
     m_statusLabel = new QLabel(tr("Loading apps..."), this);
 
     auto *leftLayout = new QVBoxLayout;
+    // The page's own layout already pads the whole splitter.
+    leftLayout->setContentsMargins(0, 0, AthenaStyle::kSidebarGap, 0);
     auto *leftTopRow = new QHBoxLayout;
     leftTopRow->addWidget(m_statusLabel, 1);
     leftTopRow->addWidget(m_refreshButton);
@@ -182,6 +188,7 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     detailScroll->setFrameShape(QFrame::NoFrame);
 
     auto *splitter = new QSplitter(this);
+    AthenaStyle::makeSidebarSplitter(splitter);
     splitter->addWidget(leftPanel);
     splitter->addWidget(detailScroll);
     splitter->setStretchFactor(0, 1);
@@ -505,16 +512,25 @@ void PermissionsPage::onAppListLoaded()
     const QVector<PackageInfo> apps = m_appListWatcher.result();
     const QString previouslySelected = currentAppId();
 
-    m_appList->clear();
+    // pkg.description is "<pretty name> — <summary>" (see
+    // FlatpakBackend::listInstalled) — take just the pretty name half for
+    // a readable list entry, falling back to the app ID. Sorted by that
+    // display label, not the app ID, so e.g. "Firefox" files under F
+    // rather than under "org.mozilla".
+    QVector<QPair<QString, QString>> entries; // (label, app ID)
     for (const PackageInfo &app : apps) {
-        // pkg.description is "<pretty name> — <summary>" (see
-        // FlatpakBackend::listInstalled) — take just the pretty name half
-        // for a readable list entry, falling back to the app ID.
         const QString prettyName = app.description.section(QStringLiteral(" — "), 0, 0);
-        auto *item = new QListWidgetItem(
-            prettyName.isEmpty() ? app.name : tr("%1 (%2)").arg(prettyName, app.name), m_appList);
-        item->setData(AppIdRole, app.name);
-        if (app.name == previouslySelected)
+        entries.append({prettyName.isEmpty() ? app.name : tr("%1 (%2)").arg(prettyName, app.name), app.name});
+    }
+    std::sort(entries.begin(), entries.end(), [](const QPair<QString, QString> &a, const QPair<QString, QString> &b) {
+        return QString::compare(a.first, b.first, Qt::CaseInsensitive) < 0;
+    });
+
+    m_appList->clear();
+    for (const auto &[label, appId] : entries) {
+        auto *item = new QListWidgetItem(label, m_appList);
+        item->setData(AppIdRole, appId);
+        if (appId == previouslySelected)
             m_appList->setCurrentItem(item);
     }
 

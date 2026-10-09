@@ -1,5 +1,7 @@
 #include "PackageBrowser.h"
 
+#include <algorithm>
+
 #include <QAction>
 #include <QFont>
 #include <QHBoxLayout>
@@ -14,8 +16,10 @@
 #include <QVBoxLayout>
 
 #include "../core/AppSettings.h"
+#include "../core/backends/AurBackend.h"
 #include "../models/PackageTableModel.h"
 #include "AppIcons.h"
+#include "AurReviewDialog.h"
 #include "PackageActions.h"
 
 namespace {
@@ -45,6 +49,11 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     m_tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_tableView->setSortingEnabled(true);
     m_tableView->verticalHeader()->setVisible(false);
+    // Flat, airy rows (no cell grid), Discover-style.
+    m_tableView->setShowGrid(false);
+    m_tableView->setWordWrap(false);
+    m_tableView->horizontalHeader()->setHighlightSections(false);
+    m_tableView->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_tableView->horizontalHeader()->setStretchLastSection(true);
     m_tableView->horizontalHeader()->setSectionResizeMode(PackageTableModel::CheckColumn, QHeaderView::Fixed);
     m_tableView->setColumnWidth(PackageTableModel::CheckColumn, 28);
@@ -55,10 +64,11 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
                                   !AppSettings::instance().showArchitectureColumn());
     m_tableView->setColumnHidden(PackageTableModel::SizeColumn, !AppSettings::instance().showSizeColumn());
     m_tableView->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
-    const int normalRowHeight = m_tableView->verticalHeader()->defaultSectionSize();
+    const int normalRowHeight =
+        std::max(m_tableView->verticalHeader()->defaultSectionSize(), m_tableView->fontMetrics().height() + 16);
     constexpr int compactRowHeight = 22;
-    if (AppSettings::instance().compactPackageLists())
-        m_tableView->verticalHeader()->setDefaultSectionSize(compactRowHeight);
+    m_tableView->verticalHeader()->setDefaultSectionSize(
+        AppSettings::instance().compactPackageLists() ? compactRowHeight : normalRowHeight);
     connect(&AppSettings::instance(), &AppSettings::compactPackageListsChanged, this,
             [this, normalRowHeight](bool compact) {
                 m_tableView->verticalHeader()->setDefaultSectionSize(compact ? compactRowHeight
@@ -95,13 +105,13 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     m_detailTitle = new QLabel(this);
     QFont titleFont = m_detailTitle->font();
     titleFont.setBold(true);
-    titleFont.setPointSize(titleFont.pointSize() + 1);
+    titleFont.setPointSize(titleFont.pointSize() + 4);
     m_detailTitle->setFont(titleFont);
 
+    // Dimmed secondary text (a palette role, so it follows theme changes)
+    // rather than italics.
     m_detailMeta = new QLabel(this);
-    QFont metaFont = m_detailMeta->font();
-    metaFont.setItalic(true);
-    m_detailMeta->setFont(metaFont);
+    m_detailMeta->setForegroundRole(QPalette::PlaceholderText);
 
     m_detailDescription = new QLabel(this);
     m_detailDescription->setWordWrap(true);
@@ -272,9 +282,11 @@ void PackageBrowser::updateDescriptionPanel(const PackageInfo *pkg)
         m_detailTitle->setText(QString());
         m_detailMeta->setText(QString());
         m_detailDescription->setText(tr("Select a package to see its details."));
+        m_detailDescription->setAlignment(Qt::AlignCenter);
         m_detailUrl->hide();
         return;
     }
+    m_detailDescription->setAlignment(Qt::AlignTop | Qt::AlignLeft);
 
     m_detailTitle->setText(pkg->name);
 
@@ -456,17 +468,24 @@ void PackageBrowser::runUpgrade(const QStringList &names)
         return;
     setBusy(true);
 
+    auto onFinished = [this](bool success) {
+        if (success)
+            emit refreshRequested();
+        else
+            setBusy(false);
+    };
+    // An AUR upgrade is a fresh build from new build files — reviewed
+    // like any other.
+    if (dynamic_cast<AurBackend *>(m_backend) && AurBackend::reviewRequired()) {
+        AurReviewDialog::reviewAndBuild(this, names, true, onFinished);
+        return;
+    }
+
     PackageBackend *backend = m_backend;
     const QString verb = names.size() == 1 ? tr("Update") : tr("Update packages");
     const QString confirmText =
         tr("Update %1?").arg(names.size() > 10 ? tr("%1 packages").arg(names.size()) : names.join(", "));
 
     PackageActions::confirmAndRun(
-        this, verb, confirmText, [backend, names]() { return backend->upgradePackages(names); },
-        [this](bool success) {
-            if (success)
-                emit refreshRequested();
-            else
-                setBusy(false);
-        });
+        this, verb, confirmText, [backend, names]() { return backend->upgradePackages(names); }, onFinished);
 }

@@ -5,8 +5,46 @@ append new entries above as changes land.
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-09
+
 ### Added
 
+- **AUR support (Arch Linux)**: a new **AUR** entry in the top-right
+  dropdown, shown when the system backend is pacman, with Installed (foreign
+  packages), Updates (AUR version vs. installed, via `vercmp`), Search (by
+  name/description, plus Dependency Query for provides/depends), PKGBUILD,
+  and History tabs. Metadata comes from the AUR RPC v5 API. Packages are
+  built with `paru` or `yay` when installed (told to use `pkexec` instead of
+  `sudo`), or else with a built-in `git clone` + `makepkg -si` fallback that
+  also resolves and builds AUR-only dependencies first (installed
+  `--asdeps`). The install confirmation lists everything that will be built
+  along with each package's votes, maintainer, and out-of-date/orphan
+  status. The PKGBUILD tab shows a package's build script before you
+  install it. "Download" clones the package's AUR git repo into the chosen
+  folder.
+- **PKGBUILD review before every AUR build** (on by default): installing,
+  reinstalling, or updating AUR packages — including from the tray's
+  "Update" action and the AUR helper installer — first downloads each
+  package's build files, AUR dependencies included, and opens them in a
+  review dialog. Every file (PKGBUILD, `.install` scriptlets, patches) can
+  be read and edited, lines worth a closer look (piping downloads into a
+  shell, `sudo`, `eval`, base64 decoding, plain-HTTP sources, skipped
+  checksums, edits to shell startup files/sudoers/cron...) are flagged and
+  jump to the line, and symlinks/binaries/subdirectories are called out
+  rather than hidden. "Build & Install" stays disabled until every package
+  has been opened and you confirm you trust it, and exactly the reviewed
+  (and possibly edited) copies are built with makepkg — nothing is
+  re-downloaded in between. "Run transactions without confirmation"
+  doesn't skip it, and while review is on, every unreviewed build path
+  refuses to run instead of silently building. It can be turned off (with
+  a warning) in Preferences → General → AUR.
+- **AUR helper installer** in Preferences → General (Arch only): pick `yay`
+  or `paru` and Athena clones it from its official AUR git repo and runs
+  `makepkg -si` for it, installing `git`/`base-devel` first if needed. The
+  AUR tab switches to the new helper for its next build, with no restart.
+  An **Uninstall** button next to it removes the installed helper again
+  (whichever package provides it — `yay`, `yay-bin`, `paru-git`...), via
+  `pacman -Rs`.
 - **User Management group**: a new entry in the top-right dropdown, alongside
   System/Flatpak/Snap, for housekeeping that isn't about packages at all —
   General (clear `/tmp` and `~/.cache`) and Advanced (trash, thumbnail cache,
@@ -17,6 +55,26 @@ append new entries above as changes land.
   directory) to either a `.tar.gz` or a plain uncompressed copy — your
   choice — and restores either kind back, for moving to a new machine or a
   fresh OS install.
+
+### Changed
+
+- Version bumped to 2.2.0.
+- Sidebars are separated from the content beside them by a thin divider
+  line with proper spacing on both sides, instead of sitting right against
+  the filter field and package list, and empty-state hints ("Select a
+  package to see its details.") are centered.
+- **Breeze-style refresh, modeled on KDE Discover**: roomier layout margins
+  and spacing, taller buttons/fields/tabs/list rows, flat document-mode tab
+  bars, a grid-less package table, and a larger details-panel title. The
+  left-hand lists (Installed categories, Groups, Flatpak Permissions apps)
+  are now borderless sidebars with icons. Forced Light/Dark themes now use
+  the Breeze style and KDE's own Breeze Light/Breeze Dark colors (falling
+  back to Fusion where Breeze isn't installed), including the menu bar
+  area and Breeze's light/dark icon variants. "Follow System" now keeps
+  your desktop's own color scheme instead of resetting to the style's
+  default.
+- The left-hand lists are sorted alphabetically (case-insensitive), with
+  entries like "All Installed Packages" kept pinned at the top.
 
 ## [2.1.0] - 2026-09-06
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QMap>
+
 #include "../PackageBackend.h"
 
 // Arch Linux / pacman. Arch's package groups are flat (no environment /
@@ -51,4 +53,9 @@ public:
 
     QVector<RepositoryAddField> repositoryAddFields() const override;
     OperationResult addRepository(const RepositoryAddValues &values) override;
+
+    // Parses `pacman -Qi`/`-Si` output into name -> ("Key" -> "Value")
+    // blocks. Public so AurBackend can read local details for the foreign
+    // packages it lists without a second copy of the parser.
+    static QMap<QString, QMap<QString, QString>> parseInfoBlocks(const QString &text);
 };

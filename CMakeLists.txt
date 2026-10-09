@@ -44,6 +44,8 @@ add_executable(athena
     src/core/backends/AptBackend.cpp
     src/core/backends/PacmanBackend.h
     src/core/backends/PacmanBackend.cpp
+    src/core/backends/AurBackend.h
+    src/core/backends/AurBackend.cpp
     src/core/backends/FlatpakBackend.h
     src/core/backends/FlatpakBackend.cpp
     src/core/backends/SnapBackend.h
@@ -55,6 +57,14 @@ add_executable(athena
     src/ui/AddRepositoryDialog.h
     src/ui/AddRepositoryDialog.cpp
     src/ui/AppIcons.h
+    src/ui/AthenaStyle.h
+    src/ui/AthenaStyle.cpp
+    src/ui/AurPkgbuildPage.h
+    src/ui/AurPkgbuildPage.cpp
+    src/ui/AurHelperInstallWidget.h
+    src/ui/AurHelperInstallWidget.cpp
+    src/ui/AurReviewDialog.h
+    src/ui/AurReviewDialog.cpp
     src/ui/BackupRestorePage.h
     src/ui/BackupRestorePage.cpp
     src/ui/FirstRunDialog.h

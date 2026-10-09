@@ -11,6 +11,7 @@
 
 #include "core/PackageBackend.h"
 #include "core/PackageInfo.h"
+#include "core/backends/AurBackend.h"
 #include "core/backends/FlatpakBackend.h"
 
 class QTabWidget;
@@ -79,9 +80,13 @@ private:
     // the shared PackageBackend interface.
     std::unique_ptr<FlatpakBackend> m_flatpakBackend;
     std::unique_ptr<PackageBackend> m_snapBackend;
+    // Concrete type for the same reason as m_flatpakBackend:
+    // AurPkgbuildPage needs fetchPkgbuild(). Only created when the native
+    // backend is pacman, since the AUR is meaningless anywhere else.
+    std::unique_ptr<AurBackend> m_aurBackend;
     class UpdateBannerWidget *m_updateBanner = nullptr;
 
-    // The System/Flatpak/Snap groups, switched via m_groupCombo (top-right
+    // The System/AUR/Flatpak/Snap groups, switched via m_groupCombo (top-right
     // of the window) instead of a top-level tab bar. Settings lives in its
     // own PreferencesDialog (Settings > Preferences) rather than a tab.
     QStackedWidget *m_groupStack = nullptr;
@@ -89,6 +94,7 @@ private:
     QTabWidget *m_systemTabs = nullptr;
     QTabWidget *m_flatpakTabs = nullptr;
     QTabWidget *m_snapTabs = nullptr;
+    QTabWidget *m_aurTabs = nullptr;
     QTabWidget *m_userMgmtTabs = nullptr;
     class QLabel *m_statsLabel = nullptr;
 

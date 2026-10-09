@@ -7,6 +7,8 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include "../core/AppSettings.h"
+#include "../core/backends/AurBackend.h"
+#include "AurReviewDialog.h"
 #include "TerminalOutputDialog.h"
 #include "TransactionConfirmDialog.h"
 
@@ -182,6 +184,10 @@ void installPackages(QWidget *parentWidget, PackageBackend *backend, const QStri
 {
     if (!backend || packageNames.isEmpty())
         return;
+    if (dynamic_cast<AurBackend *>(backend) && AurBackend::reviewRequired()) {
+        AurReviewDialog::reviewAndBuild(parentWidget, packageNames, false, std::move(onFinished));
+        return;
+    }
 
     const QString verb = packageNames.size() == 1 ? QObject::tr("Install") : QObject::tr("Install packages");
     const QString summary = QObject::tr("Install %1?").arg(summarizeNames(packageNames));
@@ -222,6 +228,10 @@ void reinstallPackages(QWidget *parentWidget, PackageBackend *backend, const QSt
 {
     if (!backend || packageNames.isEmpty())
         return;
+    if (dynamic_cast<AurBackend *>(backend) && AurBackend::reviewRequired()) {
+        AurReviewDialog::reviewAndBuild(parentWidget, packageNames, true, std::move(onFinished));
+        return;
+    }
 
     const QString verb = packageNames.size() == 1 ? QObject::tr("Reinstall") : QObject::tr("Reinstall packages");
     const QString summary = QObject::tr("Reinstall %1?").arg(summarizeNames(packageNames));

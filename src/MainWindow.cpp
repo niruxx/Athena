@@ -25,9 +25,12 @@
 #include "core/GitHubReleaseChecker.h"
 #include "core/Version.h"
 #include "core/backends/FlatpakBackend.h"
+#include "core/backends/PacmanBackend.h"
 #include "core/backends/SnapBackend.h"
 #include "models/PackageTableModel.h"
 #include "ui/AppIcons.h"
+#include "ui/AurPkgbuildPage.h"
+#include "ui/AurReviewDialog.h"
 #include "ui/BackupRestorePage.h"
 #include "ui/FirstRunDialog.h"
 #include "ui/GroupsPage.h"
@@ -76,6 +79,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     m_groupStack = new QStackedWidget(this);
     m_groupCombo = new QComboBox(this);
     int systemGroupIndex = -1;
+    int aurGroupIndex = -1;
     int flatpakGroupIndex = -1;
     int snapGroupIndex = -1;
 
@@ -126,6 +130,32 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         m_systemTabs->addTab(label, tr("System"));
         systemGroupIndex = m_groupStack->addWidget(m_systemTabs);
         m_groupCombo->addItem(tr("Repository"));
+    }
+
+    // Right after the system group it extends: AUR packages are installed
+    // into, and removed from, the same pacman database.
+    if (dynamic_cast<PacmanBackend *>(m_backend.get())) {
+        auto aurBackend = std::make_unique<AurBackend>();
+        if (aurBackend->isAvailable()) {
+            m_aurBackend = std::move(aurBackend);
+
+            m_aurTabs = new QTabWidget(m_groupStack);
+            auto *installedPage = new InstalledPage(m_aurBackend.get(), m_aurTabs);
+            auto *updatesPage = new UpdatesPage(m_aurBackend.get(), m_aurTabs);
+            auto *searchPage = new SearchPage(m_aurBackend.get(), m_aurTabs);
+            m_aurTabs->addTab(installedPage, tr("Installed"));
+            m_aurTabs->addTab(updatesPage, tr("Updates"));
+            m_aurTabs->addTab(searchPage, tr("Search"));
+            m_aurTabs->addTab(new AurPkgbuildPage(m_aurBackend.get(), m_aurTabs), tr("PKGBUILD"));
+            m_aurTabs->addTab(new HistoryPage(m_aurBackend.get(), m_aurTabs), tr("History"));
+            aurGroupIndex = m_groupStack->addWidget(m_aurTabs);
+            m_groupCombo->addItem(tr("AUR"));
+
+            watchBrowserStats(installedPage->browser());
+            watchBrowserStats(updatesPage->browser());
+            watchBrowserStats(searchPage->browser());
+            connect(m_aurTabs, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
+        }
     }
 
     auto flatpakBackend = std::make_unique<FlatpakBackend>();
@@ -190,6 +220,13 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     m_groupStack->addWidget(m_userMgmtTabs);
     m_groupCombo->addItem(tr("User Management"));
 
+    // Document mode: flat, frameless tab bars like KDE apps (Discover,
+    // Dolphin) use, instead of a boxed notebook around every page.
+    for (int i = 0; i < m_groupStack->count(); ++i) {
+        if (auto *tabs = qobject_cast<QTabWidget *>(m_groupStack->widget(i)))
+            tabs->setDocumentMode(true);
+    }
+
     connect(m_groupCombo, &QComboBox::currentIndexChanged, m_groupStack, &QStackedWidget::setCurrentIndex);
 
     setupMenuBar();
@@ -223,6 +260,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         startupIndex = flatpakGroupIndex;
     else if (requestedStartupTab == StartupTab::Snap && snapGroupIndex >= 0)
         startupIndex = snapGroupIndex;
+    else if (requestedStartupTab == StartupTab::Aur && aurGroupIndex >= 0)
+        startupIndex = aurGroupIndex;
     if (startupIndex >= 0)
         m_groupCombo->setCurrentIndex(startupIndex);
 
@@ -312,6 +351,8 @@ void MainWindow::pollForTrayUpdates()
         backends.append(m_flatpakBackend.get());
     if (m_snapBackend)
         backends.append(m_snapBackend.get());
+    if (m_aurBackend)
+        backends.append(m_aurBackend.get());
     if (backends.isEmpty())
         return;
 
@@ -368,7 +409,34 @@ void MainWindow::updateAllFromTray()
         total += names.size();
     }
 
-    const QString summary = tr("Install %1 available update(s) across all package managers?").arg(total);
+    // AUR updates are new builds from new build files, so (with review on)
+    // they're pulled out of the unattended batch and go through the
+    // review dialog once everything else is done.
+    QStringList aurNames;
+    if (m_aurBackend && AurBackend::reviewRequired() && namesByBackend.contains(m_aurBackend.get())) {
+        aurNames = namesByBackend.take(m_aurBackend.get());
+        total -= aurNames.size();
+    }
+    auto reviewAurUpdates = [this, aurNames]() {
+        if (aurNames.isEmpty()) {
+            pollForTrayUpdates();
+            return;
+        }
+        AurReviewDialog::reviewAndBuild(this, aurNames, true, [this](bool success) {
+            statusBar()->showMessage(success ? tr("AUR updates installed.") : tr("AUR updates were not installed."),
+                                     5000);
+            pollForTrayUpdates();
+        });
+    };
+    if (namesByBackend.isEmpty()) {
+        reviewAurUpdates();
+        return;
+    }
+
+    const QString summary = tr("Install %1 available update(s) across all package managers?").arg(total)
+        + (aurNames.isEmpty() ? QString()
+                              : tr("\n\n%n AUR update(s) will open for PKGBUILD review afterwards.", "",
+                                   aurNames.size()));
     PackageActions::confirmAndRun(
         this, tr("Update All"), summary,
         [namesByBackend]() -> OperationResult {
@@ -382,10 +450,10 @@ void MainWindow::updateAllFromTray()
             }
             return combined;
         },
-        [this](bool success) {
+        [this, reviewAurUpdates](bool success) {
             statusBar()->showMessage(success ? tr("Updates installed.") : tr("Some updates failed to install."),
                                       5000);
-            pollForTrayUpdates();
+            reviewAurUpdates();
         });
 }
 
@@ -429,6 +497,8 @@ QTabWidget *MainWindow::currentGroupTabs() const
         return m_flatpakTabs;
     if (current == m_snapTabs)
         return m_snapTabs;
+    if (current == m_aurTabs)
+        return m_aurTabs;
     return nullptr;
 }
 
@@ -444,6 +514,8 @@ PackageBackend *MainWindow::currentGroupBackend() const
         return m_flatpakBackend.get();
     if (current == m_snapTabs)
         return m_snapBackend.get();
+    if (current == m_aurTabs)
+        return m_aurBackend.get();
     return nullptr;
 }
 
@@ -557,7 +629,7 @@ void MainWindow::showAboutDialog()
     QMessageBox::about(
         this, tr("About Athena"),
         tr("<h3>Athena %1</h3>"
-           "<p>A cross-distro package manager for DNF, APT, Pacman, Flatpak, and Snap.</p>"
+           "<p>A cross-distro package manager for DNF, APT, Pacman (plus the AUR), Flatpak, and Snap.</p>"
            "<p><a href=\"%2\">%2</a></p>")
             .arg(QStringLiteral(ATHENA_VERSION), QString::fromLatin1(kProjectUrl)));
 }
@@ -619,7 +691,7 @@ void MainWindow::setupMenuBar()
     connect(aboutAction, &QAction::triggered, this, &MainWindow::showAboutDialog);
 
     // Group-scoped actions (Find, View Updates, Clean, Repositories) only
-    // make sense while a System/Flatpak/Snap tab is active, and
+    // make sense while a System/AUR/Flatpak/Snap tab is active, and
     // Repositories only exists as a sub-tab for some groups — keep them
     // enabled/disabled to match whatever the user is currently looking at.
     auto updateActionStates = [this, findAction, showUpdatesAction, cleanAction, repositoriesAction]() {
