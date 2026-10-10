@@ -13,15 +13,22 @@ append new entries above as changes land.
   dropdown, shown when the system backend is pacman, with Installed (foreign
   packages), Updates (AUR version vs. installed, via `vercmp`), Search (by
   name/description, plus Dependency Query for provides/depends), PKGBUILD,
-  and History tabs. Metadata comes from the AUR RPC v5 API. Packages are
-  built with `paru` or `yay` when installed (told to use `pkexec` instead of
-  `sudo`), or else with a built-in `git clone` + `makepkg -si` fallback that
-  also resolves and builds AUR-only dependencies first (installed
-  `--asdeps`). The install confirmation lists everything that will be built
-  along with each package's votes, maintainer, and out-of-date/orphan
-  status. The PKGBUILD tab shows a package's build script before you
-  install it. "Download" clones the package's AUR git repo into the chosen
-  folder.
+  and History tabs. Metadata comes from the AUR RPC v5 API (fetched with
+  `curl`, which falls back to IPv4 promptly on networks with a broken IPv6
+  route). Athena resolves AUR-only dependencies itself and builds them
+  first (installed `--asdeps`); repository dependencies are installed by
+  makepkg through `pkexec`. With PKGBUILD review on (the default, see
+  below), every build goes through the review dialog; with it off, builds
+  go to `paru` or `yay` if installed (told to use `pkexec` instead of
+  `sudo`), or else to a built-in `git clone` + `makepkg -si` fallback, and
+  the install confirmation lists everything that will be built along with
+  each package's votes, maintainer, and out-of-date/orphan status. The
+  PKGBUILD tab shows any package's build script on demand, and "Download"
+  clones a package's AUR git repo into the chosen folder. Uninstalling and
+  "Clean Left Behind Dependencies" go through pacman as usual.
+- The AUR group can be chosen as the **startup tab** (Preferences →
+  General, and the first-run dialog), and the tray icon's update check now
+  includes AUR updates.
 - **PKGBUILD review before every AUR build** (on by default): installing,
   reinstalling, or updating AUR packages — including from the tray's
   "Update" action and the AUR helper installer — first downloads each
@@ -38,10 +45,13 @@ append new entries above as changes land.
   doesn't skip it, and while review is on, every unreviewed build path
   refuses to run instead of silently building. It can be turned off (with
   a warning) in Preferences → General → AUR.
-- **AUR helper installer** in Preferences → General (Arch only): pick `yay`
-  or `paru` and Athena clones it from its official AUR git repo and runs
-  `makepkg -si` for it, installing `git`/`base-devel` first if needed. The
-  AUR tab switches to the new helper for its next build, with no restart.
+- **AUR helper installer** in Preferences → General → AUR (Arch only): pick
+  `yay` or `paru` and Athena builds it from its official AUR git repo with
+  `makepkg -si`, installing `git`/`base-devel` first if needed. With
+  PKGBUILD review on, the helper's own build files go through the review
+  dialog like any other AUR package. Since a reviewed build has to build
+  exactly the reviewed copy, Athena builds those with makepkg itself; the
+  helper is used whenever review is turned off, with no restart needed.
   An **Uninstall** button next to it removes the installed helper again
   (whichever package provides it — `yay`, `yay-bin`, `paru-git`...), via
   `pacman -Rs`.
@@ -59,6 +69,11 @@ append new entries above as changes land.
 ### Changed
 
 - Version bumped to 2.2.0.
+- The Arch package (`packaging/arch/PKGBUILD`) lists `git`, `base-devel`,
+  and `paru` as optional dependencies for AUR support.
+- On Arch, the disabled "Install Snap Support" button's tooltip now points
+  to installing `snapd` from the AUR tab instead of telling you to install
+  an AUR helper by hand.
 - Sidebars are separated from the content beside them by a thin divider
   line with proper spacing on both sides, instead of sitting right against
   the filter field and package list, and empty-state hints ("Select a
