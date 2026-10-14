@@ -10,6 +10,8 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QSignalBlocker>
+#include <QSlider>
 #include <QSpinBox>
 #include <QTabWidget>
 #include <QVBoxLayout>
@@ -17,13 +19,17 @@
 #include "../core/AppSettings.h"
 #include "../core/BackendFactory.h"
 #include "../core/DistroSupport.h"
+#include "../core/SystemTools.h"
 #include "../core/ProcessRunner.h"
 #include "AppIcons.h"
 #include "AurHelperInstallWidget.h"
 #include "FirstRunDialog.h"
+#include "M3Widgets.h"
+#include "MaterialTheme.h"
 #include "PackageFormatInstallWidget.h"
 
 namespace {
+
 QWidget *buildGeneralTab(QWidget *parent, QComboBox *&themeCombo, QCheckBox *&compactListsCheck,
                           QComboBox *&startupTabCombo, QCheckBox *&autoCloseCheck, QCheckBox *&checkForUpdatesCheck)
 {
@@ -41,6 +47,31 @@ QWidget *buildGeneralTab(QWidget *parent, QComboBox *&themeCombo, QCheckBox *&co
     themeCombo->setCurrentIndex(static_cast<int>(AppSettings::instance().themeMode()));
     appearanceForm->addRow(QObject::tr("Theme:"), themeCombo);
 
+    auto *lookCombo = new QComboBox(tab);
+    // Index order matches LookStyle's declaration order (Breeze, Material).
+    lookCombo->addItem(QObject::tr("Breeze (matches KDE Plasma)"));
+    lookCombo->addItem(QObject::tr("Material You"));
+    lookCombo->setCurrentIndex(static_cast<int>(AppSettings::instance().lookStyle()));
+    appearanceForm->addRow(QObject::tr("Look:"), lookCombo);
+    QWidget *accentPicker = M3::accentPicker(tab);
+    accentPicker->setEnabled(AppSettings::instance().lookStyle() == LookStyle::Material);
+    appearanceForm->addRow(QObject::tr("Accent color:"), accentPicker);
+    auto *animationsCheck = new QCheckBox(QObject::tr("Animations (page transitions, hover fades, ripples)"), tab);
+    animationsCheck->setChecked(AppSettings::instance().animationsEnabled());
+    animationsCheck->setToolTip(QObject::tr("Also off whenever your desktop turns animations off."));
+    appearanceForm->addRow(animationsCheck);
+    QObject::connect(animationsCheck, &QCheckBox::toggled, tab,
+                     [](bool checked) { AppSettings::instance().setAnimationsEnabled(checked); });
+    auto *titleBarCheck = new QCheckBox(QObject::tr("Use Athena's own title bar instead of the desktop's"), tab);
+    titleBarCheck->setChecked(AppSettings::instance().useCustomTitleBar());
+    appearanceForm->addRow(titleBarCheck);
+    QObject::connect(titleBarCheck, &QCheckBox::toggled, tab,
+                     [](bool checked) { AppSettings::instance().setUseCustomTitleBar(checked); });
+    QObject::connect(lookCombo, &QComboBox::currentIndexChanged, tab, [accentPicker](int index) {
+        AppSettings::instance().setLookStyle(static_cast<LookStyle>(index));
+        accentPicker->setEnabled(index == static_cast<int>(LookStyle::Material));
+    });
+
     compactListsCheck = new QCheckBox(QObject::tr("Use compact rows in package lists"), tab);
     compactListsCheck->setChecked(AppSettings::instance().compactPackageLists());
     appearanceForm->addRow(compactListsCheck);
@@ -49,13 +80,11 @@ QWidget *buildGeneralTab(QWidget *parent, QComboBox *&themeCombo, QCheckBox *&co
     auto *generalForm = new QFormLayout(generalGroup);
 
     startupTabCombo = new QComboBox(tab);
-    // Index order matches StartupTab's declaration order (System, Flatpak, Snap, AUR).
-    startupTabCombo->addItem(QObject::tr("System"));
-    startupTabCombo->addItem(QObject::tr("Flatpak"));
-    startupTabCombo->addItem(QObject::tr("Snap"));
-    startupTabCombo->addItem(QObject::tr("AUR (Arch Linux)"));
+    // Index order matches StartupTab's declaration order.
+    startupTabCombo->addItems({QObject::tr("Home"), QObject::tr("Discover"), QObject::tr("Installed"), QObject::tr("Updates"),
+                               QObject::tr("Sources"), QObject::tr("Tools")});
     startupTabCombo->setCurrentIndex(static_cast<int>(AppSettings::instance().startupTab()));
-    generalForm->addRow(QObject::tr("Start on tab:"), startupTabCombo);
+    generalForm->addRow(QObject::tr("Start on page:"), startupTabCombo);
 
     autoCloseCheck = new QCheckBox(QObject::tr("Automatically close the results window after a successful "
                                                 "install, uninstall, or reinstall"),
@@ -85,7 +114,7 @@ QWidget *buildGeneralTab(QWidget *parent, QComboBox *&themeCombo, QCheckBox *&co
     auto *rerunFirstRunButton = new QPushButton(QObject::tr("Run First-Time Setup Again..."), tab);
     setupLayout->addWidget(rerunFirstRunButton, 0, Qt::AlignLeft);
     // Re-detects the backend fresh (rather than plumbing MainWindow's
-    // instance all the way through PreferencesDialog) purely to name it
+    // instance all the way into the Settings page) purely to name it
     // in the dialog's text — cheap, and identical to what MainWindow does
     // once at real startup.
     QObject::connect(rerunFirstRunButton, &QPushButton::clicked, tab,
@@ -129,6 +158,25 @@ QWidget *buildSystemTab(QWidget *parent, QCheckBox *&autoConfirmCheck, QCheckBox
     autoConfirmCheck->setChecked(AppSettings::instance().autoConfirmTransactions());
     transactionsLayout->addWidget(autoConfirmCheck);
 
+    // Snapshots before system-level transactions, when a tool is set up.
+    const SystemTools::SnapshotTool tool = SystemTools::snapshotTool();
+    auto *snapshotCheck = new QCheckBox(
+        tool == SystemTools::SnapshotTool::None
+            ? QObject::tr("Take a snapshot before installing, removing, or updating system packages")
+            : QObject::tr("Take a %1 snapshot before installing, removing, or updating system packages")
+                  .arg(SystemTools::snapshotToolName(tool)),
+        tab);
+    snapshotCheck->setChecked(AppSettings::instance().snapshotBeforeTransactions() && tool != SystemTools::SnapshotTool::None);
+    snapshotCheck->setEnabled(tool != SystemTools::SnapshotTool::None);
+    transactionsLayout->addWidget(snapshotCheck);
+    if (tool == SystemTools::SnapshotTool::None) {
+        auto *note = new QLabel(QObject::tr("Needs Snapper (with a root config, on btrfs) or Timeshift."), tab);
+        note->setProperty("m3", QStringLiteral("muted"));
+        transactionsLayout->addWidget(note);
+    }
+    QObject::connect(snapshotCheck, &QCheckBox::toggled, tab,
+                     [](bool checked) { AppSettings::instance().setSnapshotBeforeTransactions(checked); });
+
     auto *trayGroup = new QGroupBox(QObject::tr("Tray Icon"), tab);
     auto *trayLayout = new QVBoxLayout(trayGroup);
     hideTrayCheck = new QCheckBox(QObject::tr("Hide traybar when no updates are present"), tab);
@@ -168,6 +216,16 @@ QWidget *buildLayoutTab(QWidget *parent, QCheckBox *&disableGroupViewCheck)
     disableGroupViewCheck = new QCheckBox(QObject::tr("Disable Group view"), tab);
     disableGroupViewCheck->setChecked(AppSettings::instance().disableGroupView());
     browsingLayout->addWidget(disableGroupViewCheck);
+    auto *architectureCheck = new QCheckBox(QObject::tr("Show architecture in package lists"), tab);
+    architectureCheck->setChecked(AppSettings::instance().showArchitectureColumn());
+    browsingLayout->addWidget(architectureCheck);
+    QObject::connect(architectureCheck, &QCheckBox::toggled, tab,
+                     [](bool checked) { AppSettings::instance().setShowArchitectureColumn(checked); });
+    auto *sizeCheck = new QCheckBox(QObject::tr("Show size in package lists"), tab);
+    sizeCheck->setChecked(AppSettings::instance().showSizeColumn());
+    browsingLayout->addWidget(sizeCheck);
+    QObject::connect(sizeCheck, &QCheckBox::toggled, tab,
+                     [](bool checked) { AppSettings::instance().setShowSizeColumn(checked); });
 
     auto *layout = new QVBoxLayout(tab);
     layout->addWidget(browsingGroup);

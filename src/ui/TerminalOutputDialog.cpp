@@ -6,20 +6,31 @@
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QProcess>
+#include <QProgressBar>
 #include <QProcessEnvironment>
 #include <QPushButton>
 #include <QTextCursor>
 #include <QVBoxLayout>
 
-TerminalOutputDialog::TerminalOutputDialog(const QString &title, QWidget *parent) : QDialog(parent)
-{
-    setWindowTitle(title);
-    resize(640, 420);
+#include "MaterialTheme.h"
 
-    m_statusLabel = new QLabel(tr("Running..."), this);
+TerminalOutputDialog::TerminalOutputDialog(const QString &title, QWidget *parent) : M3Dialog(parent)
+{
+    setHeadline(title, QStringLiteral("terminal"));
+    setResizable(true);
+    resize(720, 520);
+
+    m_statusIcon = new QLabel(this);
+    m_statusIcon->hide();
+    m_statusLabel = new QLabel(tr("Running…"), this);
     QFont statusFont = m_statusLabel->font();
-    statusFont.setBold(true);
+    statusFont.setWeight(QFont::DemiBold);
     m_statusLabel->setFont(statusFont);
+    // Material's indeterminate linear progress indicator while running.
+    m_progress = new QProgressBar(this);
+    m_progress->setRange(0, 0);
+    m_progress->setTextVisible(false);
+    m_progress->setFixedHeight(6);
 
     m_output = new QPlainTextEdit(this);
     m_output->setReadOnly(true);
@@ -28,19 +39,19 @@ TerminalOutputDialog::TerminalOutputDialog(const QString &title, QWidget *parent
     // A terminal-like scheme independent of the app's own theme, matching
     // how most terminal/IDE-console panels look regardless of app chrome.
     m_output->setStyleSheet(QStringLiteral(
-        "QPlainTextEdit { background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #3c3c3c; }"));
+        "QPlainTextEdit { background-color: #1b1d1f; color: #d4d4d4; border: none; border-radius: 12px; padding: 10px; }"));
+    m_output->setMinimumHeight(240);
 
-    m_closeButton = new QPushButton(tr("Close"), this);
+    auto *statusRow = new QHBoxLayout;
+    statusRow->setSpacing(8);
+    statusRow->addWidget(m_statusIcon);
+    statusRow->addWidget(m_statusLabel, 1);
+    body()->addLayout(statusRow);
+    body()->addWidget(m_progress);
+    body()->addWidget(m_output, 1);
+
+    m_closeButton = addAction(tr("Close"), QStringLiteral("filled"));
     m_closeButton->setEnabled(false);
-
-    auto *buttonRow = new QHBoxLayout;
-    buttonRow->addStretch(1);
-    buttonRow->addWidget(m_closeButton);
-
-    auto *layout = new QVBoxLayout(this);
-    layout->addWidget(m_statusLabel);
-    layout->addWidget(m_output, 1);
-    layout->addLayout(buttonRow);
 
     connect(m_closeButton, &QPushButton::clicked, this, &QDialog::accept);
 }
@@ -117,9 +128,16 @@ void TerminalOutputDialog::finishAll(bool success)
     m_running = false;
     m_success = success;
 
-    m_statusLabel->setText(success ? tr("✓ Completed successfully") : tr("✗ Failed"));
-    m_statusLabel->setStyleSheet(success ? QStringLiteral("color: #2ecc71;") : QStringLiteral("color: #e74c3c;"));
+    const MaterialTheme::Scheme &s = MaterialTheme::current();
+    const QColor color = success ? s.primary : s.error;
+    m_statusLabel->setText(success ? tr("Completed successfully") : tr("Failed — see the output below"));
+    m_statusLabel->setStyleSheet(QStringLiteral("color: %1;").arg(color.name()));
+    m_statusIcon->setPixmap(MaterialTheme::icon(success ? QStringLiteral("check_circle") : QStringLiteral("error"), color, 20, true)
+                                .pixmap(20, 20));
+    m_statusIcon->show();
+    m_progress->hide();
     m_closeButton->setEnabled(true);
+    m_closeButton->setFocus();
 
     if (success && m_autoCloseOnSuccess)
         accept();

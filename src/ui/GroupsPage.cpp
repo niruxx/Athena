@@ -14,6 +14,7 @@
 
 #include "AppIcons.h"
 #include "AthenaStyle.h"
+#include "MaterialTheme.h"
 #include "PackageBrowser.h"
 
 namespace {
@@ -62,6 +63,7 @@ GroupsPage::GroupsPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
     splitter->setSizes({320, 680});
 
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
+    MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
     m_statusLabel = new QLabel(tr("Loading categories..."), this);
 
     auto *topRow = new QHBoxLayout;

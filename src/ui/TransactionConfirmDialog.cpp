@@ -1,64 +1,59 @@
 #include "TransactionConfirmDialog.h"
 
-#include <QDialogButtonBox>
-#include <QFont>
 #include <QFontDatabase>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QVBoxLayout>
 
 #include "../core/AppSettings.h"
+#include "MaterialTheme.h"
 
 TransactionConfirmDialog::TransactionConfirmDialog(const QString &title, const QString &summary,
                                                      const QString &planText, QWidget *parent,
                                                      bool requiresPrivileges)
-    : QDialog(parent)
+    : M3Dialog(parent)
 {
-    setWindowTitle(title);
-
-    auto *summaryLabel = new QLabel(summary, this);
-    summaryLabel->setWordWrap(true);
-    QFont summaryFont = summaryLabel->font();
-    summaryFont.setBold(true);
-    summaryFont.setPointSize(summaryFont.pointSize() + 1);
-    summaryLabel->setFont(summaryFont);
-
-    auto *layout = new QVBoxLayout(this);
-    layout->addWidget(summaryLabel);
+    setHeadline(title, QStringLiteral("help"));
+    setSupportingText(summary);
 
     if (!planText.isEmpty()) {
-        auto *detailsHeader = new QLabel(tr("This will make the following changes:"), this);
-        layout->addWidget(detailsHeader);
-
+        body()->addWidget(new QLabel(tr("This will make the following changes:"), this));
         auto *planView = new QPlainTextEdit(this);
         planView->setPlainText(planText);
         planView->setReadOnly(true);
         planView->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
         planView->setLineWrapMode(QPlainTextEdit::NoWrap);
-        // No custom colors: inherits the app's own palette (light/dark),
-        // just a plain framed text panel — unlike TerminalOutputDialog,
-        // which intentionally always looks like a terminal.
-        layout->addWidget(planView, 1);
-        resize(520, 380);
-    } else {
-        resize(420, 140);
+        planView->setMinimumHeight(200);
+        body()->addWidget(planView, 1);
+        setResizable(true);
+        resize(620, 520);
     }
 
     if (requiresPrivileges) {
-        auto *privilegeNote = new QLabel(tr("This requires administrator privileges."), this);
-        QFont noteFont = privilegeNote->font();
-        noteFont.setItalic(true);
-        privilegeNote->setFont(noteFont);
-        layout->addWidget(privilegeNote);
+        auto *note = new QHBoxLayout;
+        note->setSpacing(8);
+        auto *lock = new QLabel(this);
+        lock->setPixmap(MaterialTheme::icon(QStringLiteral("lock"), MaterialTheme::current().onSurfaceVariant, 16).pixmap(16, 16));
+        auto *noteText = new QLabel(tr("Your password will be asked for, through the system's authentication prompt."), this);
+        noteText->setProperty("m3", QStringLiteral("muted"));
+        noteText->setWordWrap(true);
+        note->addWidget(lock, 0, Qt::AlignTop);
+        note->addWidget(noteText, 1);
+        body()->addLayout(note);
     }
 
-    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Yes | QDialogButtonBox::No, this);
-    buttons->button(QDialogButtonBox::No)->setDefault(true);
-    buttons->button(QDialogButtonBox::No)->setFocus();
-    connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    layout->addWidget(buttons);
+    QPushButton *cancel = addAction(tr("Cancel"), QStringLiteral("text"));
+    // Name the confirming button after the action ("Uninstall", "Update
+    // All") rather than a bare "Yes", when the title is short enough.
+    QPushButton *confirm = addAction(title.size() <= 28 ? title : tr("Continue"), QStringLiteral("filled"));
+    connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
+    connect(confirm, &QPushButton::clicked, this, &QDialog::accept);
+    // Declining stays the safe default for Enter.
+    confirm->setDefault(false);
+    cancel->setDefault(true);
+    cancel->setFocus();
 }
 
 bool TransactionConfirmDialog::confirm(QWidget *parent, const QString &title, const QString &summary,

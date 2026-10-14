@@ -18,6 +18,7 @@
 
 #include "../core/DirSizeScanner.h"
 #include "AppIcons.h"
+#include "MaterialTheme.h"
 #include "PackageActions.h"
 
 namespace {
@@ -60,9 +61,13 @@ LeftoverDataPage::LeftoverDataPage(FlatpakBackend *backend, QWidget *parent) : Q
     m_tree->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
+    MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
     m_openButton = new QPushButton(AppIcons::folder(), tr("Open Folder"), this);
+    MaterialTheme::styleButton(m_openButton, QStringLiteral("tonal"), QStringLiteral("folder_open"));
     m_deleteButton = new QPushButton(AppIcons::uninstall(), tr("Delete Selected..."), this);
+    MaterialTheme::styleButton(m_deleteButton, QStringLiteral("danger"), QStringLiteral("delete"));
     m_deleteAllButton = new QPushButton(AppIcons::clean(), tr("Delete All Leftovers..."), this);
+    MaterialTheme::styleButton(m_deleteAllButton, QStringLiteral("danger"), QStringLiteral("delete_sweep"));
     m_openButton->setEnabled(false);
     m_deleteButton->setEnabled(false);
     m_deleteAllButton->setEnabled(false);

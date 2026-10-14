@@ -5,6 +5,178 @@ append new entries above as changes land.
 
 ## [Unreleased]
 
+### Added
+
+- **Material You redesign.** A navigation rail (Home, Discover, Installed,
+  Updates, Sources, Tools, Settings) replaces the top-right source dropdown
+  and the per-source tab bars, beside a rounded content pane with a title
+  bar (theme toggle and an overflow menu in place of the menu bar). The
+  color scheme is generated from a single accent ("seed") color in light and
+  dark, with Material Symbols icons bundled in the app.
+  - **Home**: pending updates broken down by source with "Update
+    everything", package-cache size and a left-behind-dependency cleanup,
+    installed totals, AUR updates waiting for review, and recent activity.
+  - **Discover**: one search across every source at once, results streaming
+    in source by source. Apps are shown as cards, with the same app from
+    different sources merged into one card (pacman's `gimp` and Flathub's
+    GIMP); a Packages view lists everything, and chips filter by source.
+  - **Installed** and **Updates**: everything installed, and every pending
+    update grouped by source, across all sources, with real app names and
+    icons from installed `.desktop` files.
+  - **Details side sheet**: pick which source to get an app from, then
+    install, remove, update, or open it; shows its description, version,
+    size, repository, homepage, and — for Flatpak apps — a summary of its
+    sandbox permissions, with risky ones (full filesystem, host commands,
+    all devices) highlighted. AUR installs and updates still go through
+    PKGBUILD review.
+  - **Sources** holds each source's existing tools until they're migrated
+    (repositories, groups, the classic package browser, advanced search,
+    history, Flatpak permissions/user data/leftover data/backup, the AUR
+    PKGBUILD viewer); **Tools** is the former User Management group. These
+    tabs now load on first open instead of at startup.
+- **Discover finds apps that aren't installed.** An index of every desktop
+  app the sources offer, built in the background from the AppStream
+  catalogs already on the system — Arch's `archlinux-appstream-data`,
+  Fedora's catalogs, Debian/Ubuntu DEP-11 data, and each Flatpak remote's
+  appstream (system and user installations); about 4,700 apps on a typical
+  Arch + Flathub setup, loaded in under two seconds. Searches answer from the
+  index instantly, then merge in each source's own search; with no search,
+  category chips (Audio & Video, Development, Education, Games, Graphics,
+  Internet, Office, Science, System, Utilities) browse it. Catalog icons and
+  full descriptions show on cards and in the details sheet. Arch's catalog
+  icons are JPEG XL and need `kimageformats`.
+- **Athena's own title bar**, matching the design: the page title row and
+  the navigation rail's empty space move the window (double-click to
+  maximize), with minimize / maximize / close buttons and resizing from the
+  window edges. Moving and resizing are handed to the compositor, so Wayland
+  and X11 snapping and tiling still work. Settings → General → Appearance
+  can switch back to the desktop's title bar.
+- **Motion throughout the app**: pages, source chips, and every tab widget
+  fade through when switched; the navigation rail's active indicator slides
+  between destinations; every push button (new pages, classic pages, and
+  dialogs) gets Material's state layer — a fading hover tint and a press
+  ripple; list rows and app cards fade their hover; lists crossfade when
+  they refresh; the snackbar slides up; the details sheet's scrim fades with
+  its slide; dialogs fade in. Durations follow the desktop's animation speed
+  (KDE's animation-speed slider, GNOME's "enable animations"), and
+  Settings → General → Appearance → Animations turns it all off.
+- **Material dialogs**: every dialog and message box — confirmations, the
+  terminal output window (now with a progress indicator and a clear
+  result), PKGBUILD review, Add Repository, errors and questions — is a
+  rounded, shadowed Material card with a headline, supporting text, and
+  right-aligned actions named after what they do ("Uninstall" rather than
+  "Yes"). Under the Breeze look they're native dialogs with the same layout.
+- **First-run setup is a five-step wizard** — Welcome, Look (Material You
+  or Breeze as selectable cards, accent color, theme), Sources (Flatpak/Snap
+  support, and on Arch the PKGBUILD review switch and AUR helper), a few
+  Preferences, and a summary — with Back/Next, page dots, page transitions,
+  and "Skip setup" at any step. Choices apply live, as in Settings.
+- **Batch selection** in Installed, Updates, and Discover: "Select" adds
+  check circles to rows and cards and a bar with Select all plus "Remove
+  selected" / "Update selected" / "Install selected" and "Download"
+  (with or without dependencies), across sources (AUR builds still go
+  through PKGBUILD review).
+- **Right-click menus** on every new list and card grid: Details, then
+  Install (or "Install from…" when several sources offer the app), Update,
+  Reinstall, Remove, and Select.
+- **Reinstall** in the details sheet.
+- **Advanced search in Discover**: Dependency Query (provides/requires) and
+  Repository/Architecture filters, with full package details fetched for
+  the filters while Advanced is open — the classic search's tools, across
+  every source at once.
+- "Start on page" can also open on Sources or Tools, and the ⋮ menu has a
+  Repositories shortcut again.
+- Settings → Layout: show architecture and size in package lists (also in
+  the new lists, where the source reports them); compact rows now apply to
+  the new lists too.
+- Settings → General → Appearance: **Look** (Material You or Breeze) and
+  **Accent color** (six seeds plus a custom hue). Breeze keeps the new
+  layout with native widgets.
+- **Arch news before updating.** Home shows a card for archlinux.org news
+  posted since your last system upgrade, and "Update everything" stops first
+  when there's unread news (Read first / Update anyway), so
+  manual-intervention notices aren't missed.
+- **PKGBUILD diffs for AUR updates.** Each build you approve is kept, and
+  the review dialog's "Changes since you approved" view shows a colored diff
+  of only what changed in each file since then, with changed/removed files
+  counted per package.
+- **Snapshots before transactions** (Settings → System): with Snapper or
+  Timeshift set up, Athena takes a snapshot before installs, removals,
+  reinstalls, downgrades, and updates (one per batch), and Home shows the
+  latest one. Without either tool the option is off, with a note saying why.
+- **Free up space**: Home's cleanup tile opens a dialog with the package
+  cache's size and the matching cleanup (`paccache` or `pacman -Sc`,
+  `apt autoclean`/`apt clean`, `dnf clean packages`), plus left-behind
+  dependencies.
+- **Export & Import** (Tools): saves the apps and packages you chose to
+  install — from every source, without the dependencies they pulled in — to
+  one JSON file, and on another machine lists what that file has that isn't
+  installed yet, to pick and install (AUR packages still go through PKGBUILD
+  review).
+- **Downgrade on Arch**: "Other versions…" in the details sheet lists the
+  versions in the local pacman cache and the Arch Linux Archive, newest
+  first, and installs the one you pick.
+- **Mirrors** (Sources → pacman/dnf): ranks pacman mirrors by speed with
+  `reflector` (or `rate-mirrors`), offering to install reflector when it's
+  missing, and shows the new list before it replaces the old one (which is
+  backed up); on DNF it turns on `fastestmirror`.
+- **Screenshots in the details sheet**, from the AppStream catalogs, fetched
+  once and cached.
+- **AppStream for installed apps and updates**: Installed and Updates use
+  the catalog's names, icons, and descriptions as well as installed
+  `.desktop` files.
+- **Package groups in Discover**: a "Package groups" chip with a group
+  picker (comps groups, tasksel tasks, pacman groups) beside the categories.
+- **"Edit permissions"** in a Flatpak app's details sheet, going straight to
+  that app in Sources → Flatpak → Permissions.
+- **Activity timeline**: Home's recent activity and the History tab's new
+  Timeline view (beside the raw log) read pacman's log, APT's history, DNF
+  history, and Flatpak history into one list of installs, removals, and
+  upgrades.
+- **Bottom navigation bar** in narrow windows (under 720px wide), as
+  Material 3 does; the window can now shrink to 420×520.
+
+### Changed
+
+- "Start on tab" is now "Start on page" (Home, Discover, Installed, or
+  Updates). The previous setting doesn't carry over, so Athena starts on
+  Home until you pick another page.
+- Material You with "Follow System" follows the desktop's light/dark
+  preference live.
+- Installed/Updates/Home share one background load of every source instead
+  of each page querying every backend separately.
+- The classic pages under Sources and Tools use the new design's buttons
+  (filled/tonal/destructive roles with Material icons), cards, and search
+  field; the Package Browser shows its listed/installed/to-install/to-remove
+  counts (the old status bar's) beside its actions.
+- Flatpak and Snap have their **Advanced Search** tabs again (Dependency
+  Query, and downloading without installing).
+- The unused Preferences dialog and the old per-source Updates tab were
+  removed (Settings is a page now; the cross-source Updates page covers the
+  tab, including updating a hand-picked selection).
+- Repositories are a card of rows with on/off switches instead of a table
+  with checkboxes.
+- Open in the details sheet starts native apps from their `.desktop` file
+  directly, so it no longer needs `gio`.
+- Dialogs scale in as well as fading in, on Wayland too (the animation is
+  drawn inside the dialog rather than relying on window opacity).
+- Discover's category chips scroll sideways when the window is too narrow
+  for them, instead of squeezing their labels.
+
+### Fixed
+
+- **AUR packages were invisible in the new pages.** Discover's Apps view
+  dropped every AUR search result (the AUR has no app catalog to mark them
+  as apps), and Installed's "Apps only" hid installed AUR packages without a
+  `.desktop` file. AUR packages you installed now always count as apps
+  (except `-debug` symbol packages); AUR search results whose name is, or
+  starts with, the search show as cards, and all of them do with the AUR
+  chip selected; AUR names merge with the same app from other sources
+  (`brave-bin` with Flathub's Brave, `visual-studio-code-bin` with Visual
+  Studio Code). Installed also says how many packages "Apps only" is hiding,
+  with a "Show all" button.
+- "Backup & Restore" tab labels showed as "Backup _Restore".
+
 ## [2.2.0] - 2026-10-09
 
 ### Added

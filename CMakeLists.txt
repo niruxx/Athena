@@ -37,6 +37,10 @@ add_executable(athena
     src/core/DirSizeScanner.cpp
     src/core/UserCleanupUtils.h
     src/core/UserCleanupUtils.cpp
+    src/core/AppStreamIndex.h
+    src/core/AppStreamIndex.cpp
+    src/core/SystemTools.h
+    src/core/SystemTools.cpp
 
     src/core/backends/DnfBackend.h
     src/core/backends/DnfBackend.cpp
@@ -59,6 +63,34 @@ add_executable(athena
     src/ui/AppIcons.h
     src/ui/AthenaStyle.h
     src/ui/AthenaStyle.cpp
+    src/ui/AppCatalog.h
+    src/ui/AppCatalog.cpp
+    src/ui/Catalog.h
+    src/ui/Catalog.cpp
+    src/ui/CatalogActions.h
+    src/ui/CatalogActions.cpp
+    src/ui/CatalogHub.h
+    src/ui/CatalogHub.cpp
+    src/ui/DetailsSheet.h
+    src/ui/DetailsSheet.cpp
+    src/ui/FramelessHelper.h
+    src/ui/FramelessHelper.cpp
+    src/ui/M3Dialog.h
+    src/ui/M3Dialog.cpp
+    src/ui/M3Widgets.h
+    src/ui/M3Widgets.cpp
+    src/ui/Motion.h
+    src/ui/Motion.cpp
+    src/ui/MaterialTheme.h
+    src/ui/MaterialTheme.cpp
+    src/ui/NavigationRail.h
+    src/ui/NavigationRail.cpp
+    src/ui/RedesignPages.h
+    src/ui/RedesignPages.cpp
+    src/ui/ToolsDialogs.h
+    src/ui/ToolsDialogs.cpp
+    src/ui/ToolsPages.h
+    src/ui/ToolsPages.cpp
     src/ui/AurPkgbuildPage.h
     src/ui/AurPkgbuildPage.cpp
     src/ui/AurHelperInstallWidget.h
@@ -89,8 +121,6 @@ add_executable(athena
     src/ui/UserDataPage.cpp
     src/ui/LeftoverDataPage.h
     src/ui/LeftoverDataPage.cpp
-    src/ui/PreferencesDialog.h
-    src/ui/PreferencesDialog.cpp
     src/ui/RepositoriesPage.h
     src/ui/RepositoriesPage.cpp
     src/ui/SettingsPage.h
@@ -101,12 +131,12 @@ add_executable(athena
     src/ui/TransactionConfirmDialog.cpp
     src/ui/UpdateBannerWidget.h
     src/ui/UpdateBannerWidget.cpp
-    src/ui/UpdatesPage.h
-    src/ui/UpdatesPage.cpp
     src/ui/UserCleanupPage.h
     src/ui/UserCleanupPage.cpp
     src/ui/UserBackupRestorePage.h
     src/ui/UserBackupRestorePage.cpp
+
+    assets/athena.qrc
 )
 
 target_link_libraries(athena PRIVATE Qt6::Widgets Qt6::Concurrent Qt6::Network)

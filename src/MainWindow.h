@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <utility>
 
 #include <QMainWindow>
 #include <QMap>
@@ -14,107 +13,102 @@
 #include "core/backends/AurBackend.h"
 #include "core/backends/FlatpakBackend.h"
 
-class QTabWidget;
-class QStackedWidget;
-class QComboBox;
-class QTimer;
 class QAction;
-class PackageBrowser;
-class GroupsPage;
+class QLabel;
+class QMenu;
+class QPushButton;
+class QStackedWidget;
+class QTabWidget;
+class QTimer;
+class CatalogHub;
+class DetailsSheet;
+class FramelessHelper;
+class DiscoverPage;
+class HomePage;
+class NavigationRail;
+class Snackbar;
+class SourcesPage;
 
+// The Material You shell: a navigation rail (Home, Discover, Installed,
+// Updates, Sources, Tools, Settings) beside a rounded content pane, with
+// the details side sheet and snackbar layered over both. Pages work
+// across every source through one CatalogHub.
 class MainWindow : public QMainWindow {
     Q_OBJECT
 
 public:
     explicit MainWindow(QWidget *parent = nullptr);
 
-private slots:
-    // Recomputes the bottom-bar package counts from whichever
-    // package-listing page (Installed/Updates/Search/Groups) is currently
-    // visible, or clears them if the active group isn't showing a package
-    // list (Repositories, History).
-    void updateStatusBarStats();
-    // Moves m_groupCombo into the corner of whichever group's QTabWidget
-    // is currently visible, so it shares the tab bar's row instead of
-    // sitting in a row of its own.
-    void placeGroupComboInCornerWidget();
+protected:
+    void changeEvent(QEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
-    // Background poll (on the interval from AppSettings) of every active
-    // backend's listUpdates(), feeding the tray icon's visibility/tooltip
-    // and the "Update" tray action's target package list.
-    void pollForTrayUpdates();
+private slots:
+    void onUpdatesChanged();
     void updateTrayIconState(int totalUpdates);
-    // Installs every update found by the last pollForTrayUpdates(), across
-    // all backends, in one confirm-then-run transaction.
-    void updateAllFromTray();
+    // Installs every pending update across all sources in one
+    // confirm-then-run transaction; AUR updates (with PKGBUILD review on)
+    // open for review once the rest finish.
+    void updateAll();
     void applyDisableGroupView(bool disabled);
 
 private:
-    void setupMenuBar();
-
-    // Which backend/group (System, Flatpak, or Snap) the top-right
-    // dropdown is currently showing, so menu actions (Reload, Clean
-    // Unused Dependencies, Find, ...) apply to whatever the user is
-    // actually looking at rather than a fixed backend. Deliberately
-    // returns nullptr while User Management is showing (not backed by a
-    // PackageBackend), which is what keeps those package-only actions
-    // disabled for it rather than enabled-but-inert.
-    QTabWidget *currentGroupTabs() const;
-    PackageBackend *currentGroupBackend() const;
-    // Switches the current group's sub-tab widget to the tab named
-    // `tabText` (e.g. "Search", "Updates"), if it has one.
-    void focusGroupTab(const QString &tabText);
-    // The PackageBrowser behind whichever sub-tab is currently showing
-    // (Installed/Updates/Search/Groups), or nullptr for sub-tabs that
-    // aren't a package list (Repositories, History) or when no group is
-    // active at all.
-    PackageBrowser *currentPackageBrowser() const;
-
+    void buildSources();
+    QWidget *buildSourceTabs();
+    void buildShell();
+    void setupActions();
+    void setupTray();
+    void goToPage(const QString &key);
+    void reviewAurUpdates();
     void reloadAllPackageInformation();
     void checkForApplicationUpdates();
     void showAboutDialog();
+    void showMessage(const QString &text);
+    // Switches between Athena's own title bar and the desktop's.
+    void applyTitleBarMode(bool custom);
+    // The 1px outline a frameless window needs (no desktop decoration to
+    // separate it from what's behind), dropped when maximized.
+    void updateWindowFrame();
+    QVector<PackageBackend *> allBackends() const;
 
     std::unique_ptr<PackageBackend> m_backend;
-    // Kept as the concrete type (not PackageBackend, unlike the other two)
-    // since PermissionsPage needs Flatpak-only methods that aren't part of
-    // the shared PackageBackend interface.
+    // Concrete types: PermissionsPage and the details sheet need
+    // Flatpak-only methods, AurPkgbuildPage needs fetchPkgbuild().
     std::unique_ptr<FlatpakBackend> m_flatpakBackend;
     std::unique_ptr<PackageBackend> m_snapBackend;
-    // Concrete type for the same reason as m_flatpakBackend:
-    // AurPkgbuildPage needs fetchPkgbuild(). Only created when the native
-    // backend is pacman, since the AUR is meaningless anywhere else.
     std::unique_ptr<AurBackend> m_aurBackend;
+
+    CatalogHub *m_hub = nullptr;
+    NavigationRail *m_rail = nullptr;
+    // Narrow windows: Material's bottom navigation bar instead of the rail,
+    // with the first kBottomDestinations pages (Tools and Settings move to
+    // the ⋮ menu).
+    NavigationRail *m_bottomBar = nullptr;
+    static constexpr int kBottomDestinations = 5;
+    QStackedWidget *m_pages = nullptr;
+    QLabel *m_pageTitle = nullptr;
+    QMenu *m_overflowMenu = nullptr;
+    FramelessHelper *m_frameless = nullptr;
+    QWidget *m_windowFrame = nullptr;
+    QWidget *m_titleBar = nullptr;
+    QWidget *m_windowControls = nullptr;
+    QPushButton *m_maximizeButton = nullptr;
+    QStringList m_pageKeys;
+    QStringList m_pageTitles;
+    DetailsSheet *m_sheet = nullptr;
+    Snackbar *m_snackbar = nullptr;
+    DiscoverPage *m_discover = nullptr;
+    HomePage *m_home = nullptr;
+    SourcesPage *m_sourcesPage = nullptr;
     class UpdateBannerWidget *m_updateBanner = nullptr;
 
-    // The System/AUR/Flatpak/Snap groups, switched via m_groupCombo (top-right
-    // of the window) instead of a top-level tab bar. Settings lives in its
-    // own PreferencesDialog (Settings > Preferences) rather than a tab.
-    QStackedWidget *m_groupStack = nullptr;
-    QComboBox *m_groupCombo = nullptr;
+    // The system source's classic tabs, and its Groups tab — kept alive
+    // while AppSettings::disableGroupView() has it removed from the tab bar.
     QTabWidget *m_systemTabs = nullptr;
-    QTabWidget *m_flatpakTabs = nullptr;
-    QTabWidget *m_snapTabs = nullptr;
-    QTabWidget *m_aurTabs = nullptr;
-    QTabWidget *m_userMgmtTabs = nullptr;
-    class QLabel *m_statsLabel = nullptr;
-
-    // Whichever QTabWidget m_groupCombo is currently a corner widget of, so
-    // placeGroupComboInCornerWidget() can explicitly detach it from there
-    // before attaching it elsewhere. QTabWidget::setCornerWidget() is a
-    // no-op when asked to set the same widget it already believes is its
-    // corner widget — without this, a tab widget that hosted the combo
-    // once (e.g. at startup) keeps thinking it still does, so handing the
-    // combo back to it later silently fails and the combo is left an
-    // invisible child of whichever tab widget last actually held it.
-    QTabWidget *m_groupComboHost = nullptr;
-
-    // Kept alive (and parented to m_systemTabs) even while
-    // AppSettings::disableGroupView() has it removed from the tab bar, so
-    // toggling the setting back on doesn't need to recreate the page.
-    GroupsPage *m_systemGroupsPage = nullptr;
+    QWidget *m_systemGroupsTab = nullptr;
 
     QSystemTrayIcon *m_trayIcon = nullptr;
     QAction *m_trayUpdateAction = nullptr;
     QTimer *m_updateCheckTimer = nullptr;
-    QMap<PackageBackend *, QVector<PackageInfo>> m_pendingUpdatesByBackend;
+    QMap<PackageBackend *, QStringList> m_pendingUpdatesByBackend;
 };

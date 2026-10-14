@@ -13,6 +13,7 @@
 
 #include "../core/DirSizeScanner.h"
 #include "AppIcons.h"
+#include "MaterialTheme.h"
 #include "PackageActions.h"
 
 namespace {
@@ -49,8 +50,11 @@ UserDataPage::UserDataPage(FlatpakBackend *backend, QWidget *parent) : QWidget(p
     m_tree->header()->setSectionResizeMode(2, QHeaderView::Stretch);
 
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
+    MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
     m_openButton = new QPushButton(AppIcons::folder(), tr("Open Folder"), this);
+    MaterialTheme::styleButton(m_openButton, QStringLiteral("tonal"), QStringLiteral("folder_open"));
     m_clearButton = new QPushButton(AppIcons::uninstall(), tr("Clear Data..."), this);
+    MaterialTheme::styleButton(m_clearButton, QStringLiteral("danger"), QStringLiteral("delete"));
     m_openButton->setEnabled(false);
     m_clearButton->setEnabled(false);
     m_totalLabel = new QLabel(this);

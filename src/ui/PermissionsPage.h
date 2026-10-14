@@ -28,6 +28,9 @@ class PermissionsPage : public QWidget {
 public:
     explicit PermissionsPage(FlatpakBackend *backend, QWidget *parent = nullptr);
 
+    // Shows `appId`'s permissions — now, or once the app list has loaded.
+    void selectApp(const QString &appId);
+
 public slots:
     void refresh();
 
@@ -44,6 +47,7 @@ private:
     void rebuildEnvironmentTable(const QVector<QPair<QString, QString>> &envVars);
     void setDetailEnabled(bool enabled);
     QString currentAppId() const;
+    QString m_pendingAppId;
     QCheckBox *addToggle(QGridLayout *grid, int row, int column, const QString &label);
 
     // Runs a mutating override call (checkbox toggle, filesystem add/

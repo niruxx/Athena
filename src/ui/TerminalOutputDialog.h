@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QDialog>
+#include "M3Dialog.h"
 #include <QVector>
 
 #include "../core/ProcessRunner.h"
@@ -8,6 +8,7 @@
 class QPlainTextEdit;
 class QLabel;
 class QPushButton;
+class QProgressBar;
 class QProcess;
 
 // A small terminal-style window shown while install/remove/reinstall
@@ -17,7 +18,7 @@ class QProcess;
 // the GUI thread — QProcess is asynchronous by nature, so no worker
 // thread is needed, and this dialog's own exec() call pumps the event
 // loop that delivers its signals.
-class TerminalOutputDialog : public QDialog {
+class TerminalOutputDialog : public M3Dialog {
     Q_OBJECT
 
 public:
@@ -40,7 +41,9 @@ private:
     void appendLine(const QString &line);
 
     QPlainTextEdit *m_output;
+    QLabel *m_statusIcon;
     QLabel *m_statusLabel;
+    QProgressBar *m_progress;
     QPushButton *m_closeButton;
 
     QVector<ProcessRunner::Command> m_commands;

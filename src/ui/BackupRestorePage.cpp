@@ -24,6 +24,8 @@
 
 #include "../core/ProcessRunner.h"
 #include "AppIcons.h"
+#include "M3Dialog.h"
+#include "MaterialTheme.h"
 #include "PackageActions.h"
 
 using ProcessRunner::Result;
@@ -47,6 +49,7 @@ BackupRestorePage::BackupRestorePage(FlatpakBackend *backend, QWidget *parent) :
     m_backupDestEdit = new QLineEdit(backupGroup);
     m_backupDestEdit->setPlaceholderText(tr("Destination folder..."));
     auto *browseDestButton = new QPushButton(tr("Browse..."), backupGroup);
+    MaterialTheme::styleButton(browseDestButton, QStringLiteral("text"), QStringLiteral("folder_open"));
     destRow->addWidget(m_backupDestEdit, 1);
     destRow->addWidget(browseDestButton);
     backupLayout->addLayout(destRow);
@@ -55,6 +58,7 @@ BackupRestorePage::BackupRestorePage(FlatpakBackend *backend, QWidget *parent) :
     backupLayout->addWidget(m_includeCacheCheck);
 
     m_backupButton = new QPushButton(AppIcons::download(), tr("Back Up Now"), backupGroup);
+    MaterialTheme::styleButton(m_backupButton, QStringLiteral("filled"), QStringLiteral("backup"));
     backupLayout->addWidget(m_backupButton, 0, Qt::AlignLeft);
 
     outer->addWidget(backupGroup);
@@ -70,7 +74,9 @@ BackupRestorePage::BackupRestorePage(FlatpakBackend *backend, QWidget *parent) :
     m_restoreSourceEdit = new QLineEdit(restoreGroup);
     m_restoreSourceEdit->setPlaceholderText(tr("Backup file (.tar.gz)..."));
     auto *browseSourceButton = new QPushButton(tr("Browse..."), restoreGroup);
+    MaterialTheme::styleButton(browseSourceButton, QStringLiteral("text"), QStringLiteral("folder_open"));
     m_loadManifestButton = new QPushButton(tr("Load Backup Contents"), restoreGroup);
+    MaterialTheme::styleButton(m_loadManifestButton, QStringLiteral("tonal"), QStringLiteral("list"));
     sourceRow->addWidget(m_restoreSourceEdit, 1);
     sourceRow->addWidget(browseSourceButton);
     sourceRow->addWidget(m_loadManifestButton);
@@ -88,7 +94,9 @@ BackupRestorePage::BackupRestorePage(FlatpakBackend *backend, QWidget *parent) :
     m_selectAllCheck = new QCheckBox(tr("Select All"), restoreGroup);
     m_selectAllCheck->setChecked(true);
     m_restoreDataButton = new QPushButton(AppIcons::download(), tr("Restore User Data..."), restoreGroup);
+    MaterialTheme::styleButton(m_restoreDataButton, QStringLiteral("filled"), QStringLiteral("restore"));
     m_installSelectedButton = new QPushButton(AppIcons::install(), tr("Install Selected Applications"), restoreGroup);
+    MaterialTheme::styleButton(m_installSelectedButton, QStringLiteral("tonal"), QStringLiteral("download"));
     m_restoreDataButton->setEnabled(false);
     m_installSelectedButton->setEnabled(false);
     restoreButtonRow->addWidget(m_selectAllCheck);
@@ -157,7 +165,7 @@ void BackupRestorePage::onCreateBackup()
 {
     const QString destDir = m_backupDestEdit->text().trimmed();
     if (destDir.isEmpty() || !QDir(destDir).exists()) {
-        QMessageBox::warning(this, tr("Backup"), tr("Choose a valid destination folder first."));
+        M3Message::warning(this, tr("Backup"), tr("Choose a valid destination folder first."));
         return;
     }
 
@@ -228,10 +236,10 @@ void BackupRestorePage::onBackupFinished()
     setBusy(false, QString());
     if (result.success) {
         m_statusLabel->setText(tr("Backup saved to %1").arg(result.output));
-        QMessageBox::information(this, tr("Backup Complete"), tr("Backup saved successfully."));
+        M3Message::information(this, tr("Backup Complete"), tr("Backup saved successfully."));
     } else {
         m_statusLabel->clear();
-        QMessageBox::critical(this, tr("Backup Failed"),
+        M3Message::critical(this, tr("Backup Failed"),
                                tr("The backup process failed.\n\n%1").arg(result.output.trimmed()));
     }
 }
@@ -248,7 +256,7 @@ void BackupRestorePage::onLoadManifest()
 {
     const QString archivePath = m_restoreSourceEdit->text().trimmed();
     if (archivePath.isEmpty() || !QFile::exists(archivePath)) {
-        QMessageBox::warning(this, tr("Restore"), tr("Choose a valid backup file first."));
+        M3Message::warning(this, tr("Restore"), tr("Choose a valid backup file first."));
         return;
     }
     m_currentArchivePath = archivePath;
@@ -299,7 +307,7 @@ void BackupRestorePage::onManifestLoaded()
 
     if (!result.error.isEmpty()) {
         populateManifestTable({});
-        QMessageBox::warning(this, tr("Restore"), result.error);
+        M3Message::warning(this, tr("Restore"), result.error);
         return;
     }
 
@@ -342,7 +350,7 @@ void BackupRestorePage::onInstallSelected()
             selected << m_manifestApps.at(row);
     }
     if (selected.isEmpty()) {
-        QMessageBox::information(this, tr("Install"), tr("No applications selected."));
+        M3Message::information(this, tr("Install"), tr("No applications selected."));
         return;
     }
 
@@ -386,7 +394,7 @@ void BackupRestorePage::onInstallFinished()
         m_statusLabel->setText(tr("Selected applications installed."));
     } else {
         m_statusLabel->clear();
-        QMessageBox::warning(this, tr("Install"), result.output);
+        M3Message::warning(this, tr("Install"), result.output);
     }
 }
 

@@ -1,5 +1,7 @@
 #include "AppSettings.h"
 
+#include <algorithm>
+
 #include <QApplication>
 #include <QGuiApplication>
 #include <QIcon>
@@ -11,6 +13,7 @@
 #include <QStyleHints>
 
 #include "../ui/AthenaStyle.h"
+#include "../ui/MaterialTheme.h"
 
 namespace {
 const QString kThemeModeKey = QStringLiteral("appearance/themeMode");
@@ -22,7 +25,15 @@ const QString kThemeModeKey = QStringLiteral("appearance/themeMode");
 // QSettings reading the file back gets a differently-cased group it
 // doesn't recognize. Discovered via an actual cross-process round-trip
 // test while wiring up the first-run flag below.
-const QString kStartupTabKey = QStringLiteral("app/startupTab");
+// A new key (not app/startupTab): the old one stored a backend tab, which
+// doesn't map onto the navigation-rail pages.
+const QString kStartupTabKey = QStringLiteral("app/startupPage");
+const QString kLookStyleKey = QStringLiteral("appearance/look");
+const QString kSeedHueKey = QStringLiteral("appearance/seedHue");
+const QString kCustomTitleBarKey = QStringLiteral("appearance/customTitleBar");
+const QString kAnimationsKey = QStringLiteral("appearance/animations");
+const QString kSnapshotKey = QStringLiteral("system/snapshotBeforeTransactions");
+const QString kLastSeenNewsKey = QStringLiteral("news/lastSeen");
 const QString kAutoCloseTerminalKey = QStringLiteral("app/autoCloseTerminalOnSuccess");
 const QString kCheckForAppUpdatesKey = QStringLiteral("app/checkForAppUpdatesOnStartup");
 const QString kCompactListsKey = QStringLiteral("appearance/compactPackageLists");
@@ -71,20 +82,121 @@ void AppSettings::setThemeMode(ThemeMode mode)
 
 void AppSettings::applyCurrentTheme() const
 {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+    // Material's "Follow System" picks light or dark itself, so it has to
+    // re-run when the desktop switches. applyTheme() also sets the color
+    // scheme hint, which emits this same signal — hence the guard.
+    static bool connected = false;
+    if (!connected) {
+        connected = true;
+        QObject::connect(QGuiApplication::styleHints(), &QStyleHints::colorSchemeChanged, qApp, []() {
+            static bool applying = false;
+            if (applying || instance().themeMode() != ThemeMode::System)
+                return;
+            applying = true;
+            applyTheme(ThemeMode::System);
+            applying = false;
+        });
+    }
+#endif
     applyTheme(themeMode());
 }
 
 StartupTab AppSettings::startupTab() const
 {
     QSettings settings;
-    const int value = settings.value(kStartupTabKey, static_cast<int>(StartupTab::System)).toInt();
-    if (value == static_cast<int>(StartupTab::Flatpak))
-        return StartupTab::Flatpak;
-    if (value == static_cast<int>(StartupTab::Snap))
-        return StartupTab::Snap;
-    if (value == static_cast<int>(StartupTab::Aur))
-        return StartupTab::Aur;
-    return StartupTab::System;
+    const int value = settings.value(kStartupTabKey, static_cast<int>(StartupTab::Home)).toInt();
+    if (value == static_cast<int>(StartupTab::Discover))
+        return StartupTab::Discover;
+    if (value == static_cast<int>(StartupTab::Installed))
+        return StartupTab::Installed;
+    if (value == static_cast<int>(StartupTab::Updates))
+        return StartupTab::Updates;
+    if (value == static_cast<int>(StartupTab::Sources))
+        return StartupTab::Sources;
+    if (value == static_cast<int>(StartupTab::Tools))
+        return StartupTab::Tools;
+    return StartupTab::Home;
+}
+
+LookStyle AppSettings::lookStyle() const
+{
+    QSettings settings;
+    return settings.value(kLookStyleKey, static_cast<int>(LookStyle::Material)).toInt() == static_cast<int>(LookStyle::Breeze)
+        ? LookStyle::Breeze
+        : LookStyle::Material;
+}
+
+void AppSettings::setLookStyle(LookStyle look)
+{
+    QSettings settings;
+    settings.setValue(kLookStyleKey, static_cast<int>(look));
+    applyTheme(themeMode());
+    emit lookStyleChanged(look);
+}
+
+bool AppSettings::useCustomTitleBar() const
+{
+    QSettings settings;
+    return settings.value(kCustomTitleBarKey, true).toBool();
+}
+
+void AppSettings::setUseCustomTitleBar(bool custom)
+{
+    QSettings settings;
+    settings.setValue(kCustomTitleBarKey, custom);
+    emit useCustomTitleBarChanged(custom);
+}
+
+bool AppSettings::animationsEnabled() const
+{
+    QSettings settings;
+    return settings.value(kAnimationsKey, true).toBool();
+}
+
+void AppSettings::setAnimationsEnabled(bool enabled)
+{
+    QSettings settings;
+    settings.setValue(kAnimationsKey, enabled);
+}
+
+bool AppSettings::snapshotBeforeTransactions() const
+{
+    QSettings settings;
+    return settings.value(kSnapshotKey, false).toBool();
+}
+
+void AppSettings::setSnapshotBeforeTransactions(bool enabled)
+{
+    QSettings settings;
+    settings.setValue(kSnapshotKey, enabled);
+}
+
+QDateTime AppSettings::lastSeenNews() const
+{
+    QSettings settings;
+    return settings.value(kLastSeenNewsKey).toDateTime();
+}
+
+void AppSettings::setLastSeenNews(const QDateTime &published)
+{
+    QSettings settings;
+    settings.setValue(kLastSeenNewsKey, published);
+}
+
+int AppSettings::seedHue() const
+{
+    QSettings settings;
+    return std::clamp(settings.value(kSeedHueKey, 128).toInt(), 0, 359);
+}
+
+void AppSettings::setSeedHue(int hue)
+{
+    QSettings settings;
+    settings.setValue(kSeedHueKey, std::clamp(hue, 0, 359));
+    if (lookStyle() == LookStyle::Material)
+        applyTheme(themeMode());
+    emit seedHueChanged(hue);
 }
 
 void AppSettings::setStartupTab(StartupTab tab)
@@ -152,6 +264,7 @@ void AppSettings::setShowArchitectureColumn(bool show)
 {
     QSettings settings;
     settings.setValue(kShowArchitectureColumnKey, show);
+    emit packageListColumnsChanged();
 }
 
 bool AppSettings::showSizeColumn() const
@@ -164,6 +277,7 @@ void AppSettings::setShowSizeColumn(bool show)
 {
     QSettings settings;
     settings.setValue(kShowSizeColumnKey, show);
+    emit packageListColumnsChanged();
 }
 
 bool AppSettings::autoConfirmTransactions() const
@@ -328,6 +442,22 @@ void AppSettings::applyTheme(ThemeMode mode)
         : mode == ThemeMode::Dark ? Qt::ColorScheme::Dark
                                    : Qt::ColorScheme::Unknown);
 
+    if (instance().lookStyle() == LookStyle::Material) {
+        bool dark = mode == ThemeMode::Dark;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 5, 0)
+        // Reset to Unknown just above, so this is the desktop's own preference.
+        if (mode == ThemeMode::System)
+            dark = QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
+#endif
+        setKdeColorScheme(QString());
+        if (mode == ThemeMode::System && !dark)
+            QIcon::setThemeName(systemIconTheme);
+        else
+            setBreezeIconVariant(dark);
+        MaterialTheme::applyMaterial(instance().seedHue(), dark);
+        return;
+    }
+
     if (mode == ThemeMode::System) {
         // Qt's bare "Windows" style is what you get with no platform theme
         // at all (no desktop integration plugin) — not a real choice
@@ -341,6 +471,7 @@ void AppSettings::applyTheme(ThemeMode mode)
         // An empty palette resets to the platform theme's own (e.g. the
         // user's KDE color scheme) instead of pinning the style's default.
         QApplication::setPalette(QPalette());
+        MaterialTheme::applyPaletteDerived();
         return;
     }
 
@@ -353,4 +484,5 @@ void AppSettings::applyTheme(ThemeMode mode)
     QApplication::setStyle(new AthenaStyle(QStyleFactory::create(AthenaStyle::preferredStyleName())));
     QApplication::setPalette(mode == ThemeMode::Dark ? AthenaStyle::breezeDarkPalette()
                                                        : AthenaStyle::breezeLightPalette());
+    MaterialTheme::applyPaletteDerived();
 }

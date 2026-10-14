@@ -16,7 +16,9 @@ depends=('qt6-base' 'polkit')
 makedepends=('cmake')
 optdepends=('git: AUR support'
             'base-devel: building AUR packages'
-            'paru: preferred AUR helper (yay also works; makepkg is used otherwise)')
+            'paru: preferred AUR helper (yay also works; makepkg is used otherwise)'
+            'archlinux-appstream-data: find apps that are not installed yet in Discover'
+            'kimageformats: app icons from the Arch app catalog (JPEG XL)')
 source=()
 sha256sums=()
 

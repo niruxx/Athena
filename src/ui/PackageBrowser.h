@@ -15,9 +15,11 @@ class QPoint;
 // Synaptic-style package list: a checkbox-selectable table (Name /
 // Installed Version / Latest Version / Description) with a details panel
 // below showing the highlighted row's full description, plus action
-// buttons and a matching right-click menu. Shared by InstalledPage,
-// SearchPage, GroupsPage, and UpdatesPage so the checkbox multi-select and
-// action wiring isn't duplicated across all of them.
+// buttons and a matching right-click menu. Shared by the classic
+// InstalledPage, SearchPage, and GroupsPage (under Sources) so the checkbox
+// multi-select and action wiring isn't duplicated across them. Mode::Updates
+// served the old per-source Updates tab, which the cross-source Updates page
+// replaced; it's unused for now.
 class PackageBrowser : public QWidget {
     Q_OBJECT
 
@@ -94,5 +96,6 @@ private:
     QLabel *m_detailMeta;
     QLabel *m_detailDescription;
     QLabel *m_detailUrl;
+    QLabel *m_statsLabel;
     bool m_busy = false;
 };

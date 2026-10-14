@@ -1,41 +1,51 @@
 #include "RepositoriesPage.h"
 
 #include <QHBoxLayout>
-#include <QHeaderView>
+#include <QFrame>
 #include <QInputDialog>
 #include <QLabel>
 #include <QMessageBox>
 #include <QPushButton>
-#include <QTableWidget>
+#include <QScrollArea>
 #include <QVBoxLayout>
 #include <QtConcurrent/QtConcurrent>
 
 #include "AddRepositoryDialog.h"
 #include "AppIcons.h"
+#include "M3Dialog.h"
+#include "M3Widgets.h"
+#include "MaterialTheme.h"
 #include "PackageActions.h"
 
-namespace {
-enum Column { EnabledColumn = 0, NameColumn, SourceColumn, UrlColumn, ColumnCount };
-}
 
 RepositoriesPage::RepositoriesPage(const QVector<RepositorySource> &sources, QWidget *parent)
     : QWidget(parent), m_sources(sources)
 {
-    m_table = new QTableWidget(this);
-    m_table->setColumnCount(ColumnCount);
-    m_table->setHorizontalHeaderLabels({tr("Enabled"), tr("Name"), tr("Source"), tr("URL")});
-    m_table->horizontalHeader()->setSectionResizeMode(NameColumn, QHeaderView::Stretch);
-    m_table->horizontalHeader()->setSectionResizeMode(UrlColumn, QHeaderView::Stretch);
-    m_table->verticalHeader()->setVisible(false);
-    m_table->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_table->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    auto *card = new QFrame(this);
+    card->setProperty("m3", QStringLiteral("card"));
+    m_rowsLayout = new QVBoxLayout(card);
+    m_rowsLayout->setContentsMargins(20, 8, 20, 8);
+    m_rowsLayout->setSpacing(0);
+    auto *scroll = new QScrollArea(this);
+    scroll->setProperty("m3", QStringLiteral("page"));
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setWidgetResizable(true);
+    auto *scrollContent = new QWidget(scroll);
+    auto *scrollLayout = new QVBoxLayout(scrollContent);
+    scrollLayout->setContentsMargins(0, 0, 0, 0);
+    scrollLayout->addWidget(card);
+    scrollLayout->addStretch(1);
+    scroll->setWidget(scrollContent);
 
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
+    MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
     m_addButton = new QPushButton(AppIcons::addItem(), tr("Add Repository..."), this);
+    MaterialTheme::styleButton(m_addButton, QStringLiteral("filled"), QStringLiteral("add"));
     m_updateListsButton = new QPushButton(AppIcons::update(), tr("Update Package Lists"), this);
+    MaterialTheme::styleButton(m_updateListsButton, QStringLiteral("tonal"), QStringLiteral("sync"));
 
     m_statusLabel = new QLabel(tr("Loading repositories..."), this);
+    m_statusLabel->setProperty("m3", QStringLiteral("muted"));
 
     auto *topRow = new QHBoxLayout;
     topRow->addWidget(m_statusLabel, 1);
@@ -45,12 +55,11 @@ RepositoriesPage::RepositoriesPage(const QVector<RepositorySource> &sources, QWi
 
     auto *layout = new QVBoxLayout(this);
     layout->addLayout(topRow);
-    layout->addWidget(m_table, 1);
+    layout->addWidget(scroll, 1);
 
     connect(m_refreshButton, &QPushButton::clicked, this, &RepositoriesPage::refresh);
     connect(m_addButton, &QPushButton::clicked, this, &RepositoriesPage::onAddRepositoryClicked);
     connect(m_updateListsButton, &QPushButton::clicked, this, &RepositoriesPage::onUpdateListsClicked);
-    connect(m_table, &QTableWidget::itemChanged, this, &RepositoriesPage::onItemChanged);
     connect(&m_listWatcher, &QFutureWatcher<QVector<RepositoryRow>>::finished, this,
             &RepositoriesPage::onLoaded);
     connect(&m_toggleWatcher, &QFutureWatcher<OperationResult>::finished, this,
@@ -84,59 +93,66 @@ void RepositoriesPage::onLoaded()
 {
     m_rows = m_listWatcher.result();
 
-    m_updatingTable = true;
-    m_table->setRowCount(m_rows.size());
-    for (int i = 0; i < m_rows.size(); ++i) {
-        const RepositoryRow &row = m_rows.at(i);
-
-        auto *checkItem = new QTableWidgetItem();
-        checkItem->setFlags((checkItem->flags() | Qt::ItemIsUserCheckable) & ~Qt::ItemIsEditable);
-        checkItem->setCheckState(row.info.enabled ? Qt::Checked : Qt::Unchecked);
-        m_table->setItem(i, EnabledColumn, checkItem);
-
-        auto *nameItem = new QTableWidgetItem(row.info.name);
-        nameItem->setFlags(nameItem->flags() & ~Qt::ItemIsEditable);
-        m_table->setItem(i, NameColumn, nameItem);
-
-        auto *sourceItem = new QTableWidgetItem(row.sourceLabel);
-        sourceItem->setFlags(sourceItem->flags() & ~Qt::ItemIsEditable);
-        m_table->setItem(i, SourceColumn, sourceItem);
-
-        auto *urlItem = new QTableWidgetItem(row.info.url);
-        urlItem->setFlags(urlItem->flags() & ~Qt::ItemIsEditable);
-        m_table->setItem(i, UrlColumn, urlItem);
+    while (QLayoutItem *item = m_rowsLayout->takeAt(0)) {
+        if (QWidget *widget = item->widget())
+            widget->deleteLater();
+        delete item;
     }
-    m_updatingTable = false;
+    m_switches.clear();
 
-    m_statusLabel->setText(tr("%1 repositories").arg(m_rows.size()));
+    const QColor divider = MaterialTheme::current().outlineVariant;
+    for (int i = 0; i < m_rows.size(); ++i) {
+        const RepositoryRow &repo = m_rows.at(i);
+        if (i > 0) {
+            auto *line = new QFrame(this);
+            line->setFixedHeight(1);
+            line->setStyleSheet(QStringLiteral("background: %1;").arg(divider.name()));
+            m_rowsLayout->addWidget(line);
+        }
+        auto *row = new QWidget(this);
+        auto *rowLayout = new QHBoxLayout(row);
+        rowLayout->setContentsMargins(0, 12, 0, 12);
+        rowLayout->setSpacing(16);
+        auto *text = new QVBoxLayout;
+        text->setSpacing(2);
+        auto *name = new QLabel(repo.info.name, row);
+        QFont bold = name->font();
+        bold.setWeight(QFont::DemiBold);
+        name->setFont(bold);
+        auto *detail = new QLabel(repo.info.url.isEmpty() ? repo.sourceLabel : QStringLiteral("%1 · %2").arg(repo.sourceLabel, repo.info.url), row);
+        detail->setProperty("m3", QStringLiteral("muted"));
+        detail->setWordWrap(true);
+        detail->setTextInteractionFlags(Qt::TextSelectableByMouse);
+        text->addWidget(name);
+        text->addWidget(detail);
+        auto *toggle = new M3Switch(row);
+        toggle->setCheckedQuietly(repo.info.enabled);
+        toggle->setAccessibleName(tr("Enable %1").arg(repo.info.name));
+        connect(toggle, &M3Switch::toggled, this, [this, i](bool on) { onSwitchToggled(i, on); });
+        rowLayout->addLayout(text, 1);
+        rowLayout->addWidget(toggle, 0, Qt::AlignVCenter);
+        m_rowsLayout->addWidget(row);
+        m_switches.append(toggle);
+    }
+
+    m_statusLabel->setText(tr("%n repositor(ies)", "", m_rows.size()));
     setBusy(false);
 }
 
-void RepositoriesPage::onItemChanged(QTableWidgetItem *item)
+void RepositoriesPage::onSwitchToggled(int row, bool wantEnabled)
 {
-    if (m_updatingTable || item->column() != EnabledColumn)
-        return;
-
-    const int row = item->row();
     if (row < 0 || row >= m_rows.size())
         return;
-
     const RepositoryRow &repoRow = m_rows.at(row);
-    const bool wantEnabled = (item->checkState() == Qt::Checked);
-
     const QString verb = wantEnabled ? tr("Enable") : tr("Disable");
-    const auto reply = QMessageBox::question(
-        this, verb,
-        tr("%1 repository \"%2\"?\n\nThis requires administrator privileges.").arg(verb, repoRow.info.name),
+    const auto reply = M3Message::question(
+        this, tr("%1 %2?").arg(verb, repoRow.info.name),
+        tr("This changes your system's package sources and needs administrator privileges."),
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
-
     if (reply != QMessageBox::Yes) {
-        m_updatingTable = true;
-        item->setCheckState(repoRow.info.enabled ? Qt::Checked : Qt::Unchecked);
-        m_updatingTable = false;
+        m_switches[row]->setCheckedQuietly(repoRow.info.enabled);
         return;
     }
-
     applyToggle(row, wantEnabled);
 }
 
@@ -156,7 +172,7 @@ void RepositoriesPage::onToggleFinished()
 {
     const OperationResult result = m_toggleWatcher.result();
     if (!result.success) {
-        QMessageBox::critical(this, tr("Repository Update Failed"),
+        M3Message::critical(this, tr("Repository Update Failed"),
                                tr("Failed to update repository.\n\n%1").arg(result.output.trimmed()));
     }
     refresh(); // reload so the table reflects the real on-disk state either way
@@ -210,7 +226,7 @@ void RepositoriesPage::onAddFinished()
 {
     const OperationResult result = m_addWatcher.result();
     if (!result.success) {
-        QMessageBox::critical(this, tr("Add Repository Failed"),
+        M3Message::critical(this, tr("Add Repository Failed"),
                                tr("Failed to add repository.\n\n%1").arg(result.output.trimmed()));
     }
     refresh();
@@ -256,5 +272,6 @@ void RepositoriesPage::setBusy(bool busy)
     m_refreshButton->setEnabled(!busy);
     m_addButton->setEnabled(!busy);
     m_updateListsButton->setEnabled(!busy);
-    m_table->setEnabled(!busy);
+    for (M3Switch *toggle : m_switches)
+        toggle->setEnabled(!busy);
 }

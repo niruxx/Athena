@@ -4,6 +4,7 @@
 
 #include <QAction>
 #include <QFont>
+#include <QFrame>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
@@ -16,10 +17,9 @@
 #include <QVBoxLayout>
 
 #include "../core/AppSettings.h"
-#include "../core/backends/AurBackend.h"
 #include "../models/PackageTableModel.h"
 #include "AppIcons.h"
-#include "AurReviewDialog.h"
+#include "MaterialTheme.h"
 #include "PackageActions.h"
 
 namespace {
@@ -76,15 +76,21 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
             });
 
     m_selectAllButton = new QPushButton(AppIcons::selectAll(), tr("Select All"), this);
+    MaterialTheme::styleButton(m_selectAllButton, QStringLiteral("text"), QStringLiteral("select_all"));
     m_selectNoneButton = new QPushButton(AppIcons::selectNone(), tr("Select None"), this);
+    MaterialTheme::styleButton(m_selectNoneButton, QStringLiteral("text"), QStringLiteral("deselect"));
 
     m_installButton = new QPushButton(AppIcons::install(), tr("Install Selected"), this);
+    MaterialTheme::styleButton(m_installButton, QStringLiteral("filled"), QStringLiteral("download"));
     m_installButton->setEnabled(false);
     m_uninstallButton = new QPushButton(AppIcons::uninstall(), tr("Uninstall Selected"), this);
+    MaterialTheme::styleButton(m_uninstallButton, QStringLiteral("danger"), QStringLiteral("delete"));
     m_uninstallButton->setEnabled(false);
     m_reinstallButton = new QPushButton(AppIcons::reinstall(), tr("Reinstall Selected"), this);
+    MaterialTheme::styleButton(m_reinstallButton, QStringLiteral("tonal"), QStringLiteral("restart_alt"));
     m_reinstallButton->setEnabled(false);
     m_updateButton = new QPushButton(AppIcons::update(), tr("Update Selected"), this);
+    MaterialTheme::styleButton(m_updateButton, QStringLiteral("filled"), QStringLiteral("system_update_alt"));
     m_updateButton->setEnabled(false);
 
     const bool updatesMode = (m_mode == Mode::Updates);
@@ -96,6 +102,12 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     auto *actionRow = new QHBoxLayout;
     actionRow->addWidget(m_selectAllButton);
     actionRow->addWidget(m_selectNoneButton);
+    // The counts the old window status bar showed, now beside the actions
+    // they describe.
+    m_statsLabel = new QLabel(this);
+    m_statsLabel->setProperty("m3", QStringLiteral("muted"));
+    actionRow->addSpacing(8);
+    actionRow->addWidget(m_statsLabel);
     actionRow->addStretch(1);
     actionRow->addWidget(m_installButton);
     actionRow->addWidget(m_reinstallButton);
@@ -129,7 +141,9 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     detailLayout->addWidget(m_detailDescription, 1);
     detailLayout->addWidget(m_detailUrl);
     detailLayout->addStretch(1);
-    auto *detailPanel = new QWidget(this);
+    auto *detailPanel = new QFrame(this);
+    detailPanel->setProperty("m3", QStringLiteral("card"));
+    detailLayout->setContentsMargins(20, 16, 20, 16);
     detailPanel->setLayout(detailLayout);
 
     auto *splitter = new QSplitter(Qt::Vertical, this);
@@ -215,6 +229,14 @@ void PackageBrowser::setBusy(bool busy)
 
 void PackageBrowser::onCheckedChanged()
 {
+    const Stats counts = stats();
+    m_statsLabel->setText(m_mode == Mode::Updates
+                              ? tr("%1 listed · %2 to upgrade").arg(counts.listed).arg(counts.toInstallOrUpgrade)
+                              : tr("%1 listed · %2 installed · %3 to install · %4 to remove")
+                                    .arg(counts.listed)
+                                    .arg(counts.installed)
+                                    .arg(counts.toInstallOrUpgrade)
+                                    .arg(counts.toRemove));
     if (m_busy)
         return;
 
@@ -468,24 +490,10 @@ void PackageBrowser::runUpgrade(const QStringList &names)
         return;
     setBusy(true);
 
-    auto onFinished = [this](bool success) {
+    PackageActions::upgradePackages(this, m_backend, names, [this](bool success) {
         if (success)
             emit refreshRequested();
         else
             setBusy(false);
-    };
-    // An AUR upgrade is a fresh build from new build files — reviewed
-    // like any other.
-    if (dynamic_cast<AurBackend *>(m_backend) && AurBackend::reviewRequired()) {
-        AurReviewDialog::reviewAndBuild(this, names, true, onFinished);
-        return;
-    }
-
-    PackageBackend *backend = m_backend;
-    const QString verb = names.size() == 1 ? tr("Update") : tr("Update packages");
-    const QString confirmText =
-        tr("Update %1?").arg(names.size() > 10 ? tr("%1 packages").arg(names.size()) : names.join(", "));
-
-    PackageActions::confirmAndRun(
-        this, verb, confirmText, [backend, names]() { return backend->upgradePackages(names); }, onFinished);
+    });
 }

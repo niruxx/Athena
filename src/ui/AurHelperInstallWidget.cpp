@@ -14,6 +14,8 @@
 #include "../core/backends/AurBackend.h"
 #include "AppIcons.h"
 #include "AurReviewDialog.h"
+#include "M3Dialog.h"
+#include "MaterialTheme.h"
 #include "TerminalOutputDialog.h"
 #include "TransactionConfirmDialog.h"
 
@@ -33,7 +35,9 @@ AurHelperInstallWidget::AurHelperInstallWidget(QWidget *parent) : QWidget(parent
     m_helperCombo->setItemData(1, tr("Written in Rust; takes a few minutes to compile."), Qt::ToolTipRole);
 
     m_installButton = new QPushButton(AppIcons::install(), QString(), this);
+    MaterialTheme::styleButton(m_installButton, QStringLiteral("tonal"), QStringLiteral("download"));
     m_uninstallButton = new QPushButton(AppIcons::uninstall(), QString(), this);
+    MaterialTheme::styleButton(m_uninstallButton, QStringLiteral("text"), QStringLiteral("delete"));
 
     auto *row = new QHBoxLayout;
     row->addWidget(new QLabel(tr("AUR helper:"), this));
@@ -53,7 +57,7 @@ AurHelperInstallWidget::AurHelperInstallWidget(QWidget *parent) : QWidget(parent
     connect(m_uninstallButton, &QPushButton::clicked, this, &AurHelperInstallWidget::runUninstall);
     connect(m_reviewCheck, &QCheckBox::toggled, this, [this](bool checked) {
         if (!checked) {
-            const auto reply = QMessageBox::warning(
+            const auto reply = M3Message::warning(
                 this, tr("Turn Off PKGBUILD Review?"),
                 tr("AUR packages will then be built and installed without you seeing their build scripts "
                    "first. Anyone who can push to an AUR package you install could run code on your "
@@ -159,7 +163,7 @@ void AurHelperInstallWidget::runInstall()
     refreshState();
 
     if (success) {
-        QMessageBox::information(this, title,
+        M3Message::information(this, title,
                                  tr("%1 is installed. The AUR tab will use it for builds from now on.").arg(helper));
     }
 }
@@ -187,7 +191,7 @@ void AurHelperInstallWidget::runReviewedInstall(const QString &helper)
                                     [this, title, helper](bool success) {
                                         refreshState();
                                         if (success) {
-                                            QMessageBox::information(
+                                            M3Message::information(
                                                 this, title,
                                                 tr("%1 is installed. It's used for AUR builds whenever PKGBUILD "
                                                    "review is turned off.")

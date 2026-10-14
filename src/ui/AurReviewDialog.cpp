@@ -3,10 +3,14 @@
 #include <algorithm>
 
 #include <QApplication>
+#include <QSet>
+#include <QTextBrowser>
+#include <QStandardPaths>
+#include <QStackedWidget>
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDateTime>
-#include <QDialogButtonBox>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -17,7 +21,7 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPlainTextEdit>
-#include <QProgressDialog>
+#include <QProgressBar>
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QSaveFile>
@@ -29,7 +33,11 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include "../core/AppSettings.h"
+#include "../core/ProcessRunner.h"
+#include "../core/SystemTools.h"
 #include "AthenaStyle.h"
+#include "M3Widgets.h"
+#include "MaterialTheme.h"
 #include "TerminalOutputDialog.h"
 
 namespace {
@@ -100,10 +108,11 @@ QIcon pendingIcon()
 
 } // namespace
 
-AurReviewDialog::AurReviewDialog(const AurBackend::PreparedBuild &build, QWidget *parent) : QDialog(parent)
+AurReviewDialog::AurReviewDialog(const AurBackend::PreparedBuild &build, QWidget *parent) : M3Dialog(parent)
 {
-    setWindowTitle(tr("Review AUR Build Files"));
-    resize(1150, 760);
+    setHeadline(tr("Review AUR Build Files"), QStringLiteral("verified_user"));
+    setResizable(true);
+    resize(1180, 800);
 
     // Load every reviewable file up front; anything that can't be shown
     // (symlinks, binaries, oversized files, subdirectories) becomes a
@@ -145,6 +154,32 @@ AurReviewDialog::AurReviewDialog(const AurBackend::PreparedBuild &build, QWidget
         std::stable_sort(pkg.files.begin(), pkg.files.end(), [](const ReviewFile &a, const ReviewFile &b) {
             return fileRank(QFileInfo(a.path).fileName()) < fileRank(QFileInfo(b.path).fileName());
         });
+
+        // Compare with what was approved last time, if anything was.
+        const QString approvedDir = approvedRoot() + '/' + source.info.packageBase;
+        QFile versionFile(approvedDir + QStringLiteral("/.athena-version"));
+        if (versionFile.open(QIODevice::ReadOnly)) {
+            pkg.hasApprovedCopy = true;
+            pkg.approvedVersion = QString::fromUtf8(versionFile.readAll()).trimmed();
+            QSet<QString> names;
+            for (ReviewFile &file : pkg.files) {
+                const QString name = QFileInfo(file.path).fileName();
+                names.insert(name);
+                QFile approved(approvedDir + '/' + name);
+                if (approved.open(QIODevice::ReadOnly)) {
+                    file.approved = QString::fromUtf8(approved.readAll());
+                    file.hadApproved = true;
+                }
+                if (file.changedSinceApproved())
+                    ++pkg.changedFiles;
+            }
+            for (const QString &name : QDir(approvedDir).entryList(QDir::Files | QDir::Hidden)) {
+                if (name != QLatin1String(".athena-version") && !names.contains(name)) {
+                    pkg.removedFiles << name;
+                    ++pkg.changedFiles;
+                }
+            }
+        }
         m_packages.append(pkg);
     }
 
@@ -188,6 +223,15 @@ AurReviewDialog::AurReviewDialog(const AurBackend::PreparedBuild &build, QWidget
     auto *fileRow = new QHBoxLayout;
     fileRow->addWidget(new QLabel(tr("File:"), this));
     fileRow->addWidget(m_fileCombo, 1);
+    // For packages approved before: the file as it is now, or only what
+    // changed since then.
+    m_viewModeBox = new QWidget(this);
+    auto *viewModeLayout = new QHBoxLayout(m_viewModeBox);
+    viewModeLayout->setContentsMargins(0, 0, 0, 0);
+    m_viewMode = M3::segmented({{tr("File"), QStringLiteral("description")}, {tr("Changes since you approved"), QStringLiteral("difference")}},
+                               m_viewModeBox, viewModeLayout);
+    m_viewModeBox->hide();
+    fileRow->addWidget(m_viewModeBox);
     fileRow->addWidget(m_revertButton);
 
     m_editor = new QPlainTextEdit(this);
@@ -203,7 +247,13 @@ AurReviewDialog::AurReviewDialog(const AurBackend::PreparedBuild &build, QWidget
     rightLayout->setContentsMargins(AthenaStyle::kSidebarGap, 0, 0, 0);
     rightLayout->addWidget(m_packageInfo);
     rightLayout->addLayout(fileRow);
-    rightLayout->addWidget(m_editor, 1);
+    m_diffView = new QTextBrowser(this);
+    m_diffView->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+    m_diffView->setLineWrapMode(QTextEdit::NoWrap);
+    m_editorStack = new QStackedWidget(this);
+    m_editorStack->addWidget(m_editor);
+    m_editorStack->addWidget(m_diffView);
+    rightLayout->addWidget(m_editorStack, 1);
     rightLayout->addWidget(warningsLabel);
     rightLayout->addWidget(m_warningList);
     auto *rightPanel = new QWidget(this);
@@ -219,19 +269,13 @@ AurReviewDialog::AurReviewDialog(const AurBackend::PreparedBuild &build, QWidget
 
     m_confirmCheck = new QCheckBox(tr("I have reviewed these build files and trust what they do"), this);
 
-    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Cancel, this);
-    m_buildButton = buttons->addButton(tr("Build && Install"), QDialogButtonBox::AcceptRole);
+    body()->addWidget(noticeLabel);
+    body()->addWidget(planLabel);
+    body()->addWidget(splitter, 1);
+    actionRow()->insertWidget(0, m_confirmCheck);
+    QPushButton *cancelButton = addAction(tr("Cancel"), QStringLiteral("text"));
+    m_buildButton = addAction(tr("Build && Install"), QStringLiteral("filled"), QStringLiteral("construction"));
     m_buildButton->setEnabled(false);
-
-    auto *bottomRow = new QHBoxLayout;
-    bottomRow->addWidget(m_confirmCheck, 1);
-    bottomRow->addWidget(buttons);
-
-    auto *layout = new QVBoxLayout(this);
-    layout->addWidget(noticeLabel);
-    layout->addWidget(planLabel);
-    layout->addWidget(splitter, 1);
-    layout->addLayout(bottomRow);
 
     connect(m_packageList, &QListWidget::currentRowChanged, this, &AurReviewDialog::onPackageSelected);
     connect(m_fileCombo, &QComboBox::currentIndexChanged, this, &AurReviewDialog::onFileSelected);
@@ -239,8 +283,13 @@ AurReviewDialog::AurReviewDialog(const AurBackend::PreparedBuild &build, QWidget
     connect(m_revertButton, &QPushButton::clicked, this, &AurReviewDialog::revertCurrentFile);
     connect(m_warningList, &QListWidget::currentRowChanged, this, &AurReviewDialog::jumpToWarning);
     connect(m_confirmCheck, &QCheckBox::toggled, this, &AurReviewDialog::updateBuildEnabled);
-    connect(buttons, &QDialogButtonBox::accepted, this, &AurReviewDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, this, &AurReviewDialog::reject);
+    connect(m_viewMode, &QButtonGroup::idClicked, this, [this](int id) {
+        m_editorStack->setCurrentIndex(id);
+        if (id == 1)
+            showDiff();
+    });
+    connect(m_buildButton, &QPushButton::clicked, this, &AurReviewDialog::accept);
+    connect(cancelButton, &QPushButton::clicked, this, &AurReviewDialog::reject);
 
     if (!m_packages.isEmpty())
         m_packageList->setCurrentRow(0);
@@ -280,13 +329,35 @@ void AurReviewDialog::onPackageSelected(int row)
                                     pkg.source.asDependency ? tr(" — dependency") : QString(),
                                     info.description.toHtmlEscaped(), facts.join(QStringLiteral(" · ")), aurUrl));
 
+    if (pkg.hasApprovedCopy) {
+        // An approval saved without its version just says "since you approved it".
+        const QString approved = pkg.approvedVersion.isEmpty() ? tr("it") : pkg.approvedVersion.toHtmlEscaped();
+        m_packageInfo->setText(m_packageInfo->text() + QStringLiteral("<br>")
+                               + (pkg.changedFiles == 0 ? tr("<b>Unchanged</b> since you approved %1.").arg(approved)
+                                                        : tr("<b>%n file(s) changed</b> since you approved %1.", "", pkg.changedFiles)
+                                                              .arg(approved)));
+    }
+
+    // With an earlier approval, open on what changed rather than everything.
+    m_viewModeBox->setVisible(pkg.hasApprovedCopy);
+    const bool reviewChanges = pkg.hasApprovedCopy && pkg.changedFiles > 0;
+    m_viewMode->button(reviewChanges ? 1 : 0)->setChecked(true);
+    m_editorStack->setCurrentIndex(reviewChanges ? 1 : 0);
+
     const QSignalBlocker blocker(m_fileCombo);
     m_fileCombo->clear();
-    for (const ReviewFile &file : pkg.files)
-        m_fileCombo->addItem(QFileInfo(file.path).fileName());
+    int firstChanged = -1;
+    for (int i = 0; i < pkg.files.size(); ++i) {
+        const ReviewFile &file = pkg.files[i];
+        const bool changed = pkg.hasApprovedCopy && file.changedSinceApproved();
+        if (changed && firstChanged < 0)
+            firstChanged = i;
+        m_fileCombo->addItem(changed ? tr("%1 • changed").arg(QFileInfo(file.path).fileName()) : QFileInfo(file.path).fileName());
+    }
     if (!pkg.files.isEmpty()) {
-        m_fileCombo->setCurrentIndex(0);
-        onFileSelected(0);
+        const int start = reviewChanges && firstChanged >= 0 ? firstChanged : 0;
+        m_fileCombo->setCurrentIndex(start);
+        onFileSelected(start);
     } else {
         m_loadingEditor = true;
         m_editor->setPlainText(tr("(no reviewable files)"));
@@ -309,6 +380,55 @@ void AurReviewDialog::onFileSelected(int index)
     m_loadingEditor = false;
     m_revertButton->setEnabled(file.current != file.original);
     refreshWarnings();
+    if (m_editorStack->currentIndex() == 1)
+        showDiff();
+}
+
+QString AurReviewDialog::approvedRoot()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/aur-approved");
+}
+
+void AurReviewDialog::showDiff()
+{
+    const ReviewFile *file = currentFile();
+    if (!file)
+        return;
+    const ReviewPackage &pkg = m_packages[m_currentPackage];
+    const bool dark = MaterialTheme::current().dark;
+    const QString added = (dark ? MaterialTheme::oklch(0.32, 0.06, 150) : MaterialTheme::oklch(0.93, 0.06, 150)).name();
+    const QString removed = (dark ? MaterialTheme::oklch(0.32, 0.06, 25) : MaterialTheme::oklch(0.93, 0.05, 25)).name();
+    const QString muted = MaterialTheme::current().onSurfaceVariant.name();
+
+    QString html;
+    if (!pkg.removedFiles.isEmpty())
+        html += QStringLiteral("<p><b>%1</b></p>").arg(tr("Removed since you approved it: %1").arg(pkg.removedFiles.join(QStringLiteral(", "))).toHtmlEscaped());
+
+    const QString name = QFileInfo(file->path).fileName();
+    const QString approvedPath = approvedRoot() + '/' + pkg.source.info.packageBase + '/' + name;
+    const ProcessRunner::Result diff = ProcessRunner::runWithStdin(
+        "diff", {"-u", "--label", tr("approved"), "--label", tr("now"), file->hadApproved ? approvedPath : QStringLiteral("/dev/null"), "-"},
+        file->current.toUtf8(), 10000);
+    if (diff.stdOut.trimmed().isEmpty()) {
+        html += QStringLiteral("<p style=\"color:%1\">%2</p>").arg(muted, tr("No changes in %1 since you approved it.").arg(name).toHtmlEscaped());
+    } else {
+        html += QStringLiteral("<pre style=\"margin:0\">");
+        for (const QString &line : diff.stdOut.split('\n')) {
+            const QString escaped = line.toHtmlEscaped();
+            if (line.startsWith(QLatin1String("+++")) || line.startsWith(QLatin1String("---")))
+                html += QStringLiteral("<span style=\"color:%1\">%2</span>\n").arg(muted, escaped);
+            else if (line.startsWith('+'))
+                html += QStringLiteral("<span style=\"background:%1\">%2</span>\n").arg(added, escaped);
+            else if (line.startsWith('-'))
+                html += QStringLiteral("<span style=\"background:%1\">%2</span>\n").arg(removed, escaped);
+            else if (line.startsWith(QLatin1String("@@")))
+                html += QStringLiteral("<span style=\"color:%1\"><b>%2</b></span>\n").arg(muted, escaped);
+            else
+                html += escaped + '\n';
+        }
+        html += QStringLiteral("</pre>");
+    }
+    m_diffView->setHtml(html);
 }
 
 void AurReviewDialog::onEditorChanged()
@@ -395,6 +515,8 @@ void AurReviewDialog::updatePackageItem(int row)
         text += tr(" (dependency)");
     if (edited)
         text += tr(" — edited");
+    if (pkg.hasApprovedCopy)
+        text += pkg.changedFiles == 0 ? tr(" — unchanged") : tr(" — %n changed", "", pkg.changedFiles);
     item->setText(text);
     item->setIcon(pkg.viewed ? viewedIcon() : pendingIcon());
     item->setToolTip(pkg.viewed ? tr("Opened for review") : tr("Not opened yet"));
@@ -419,10 +541,29 @@ void AurReviewDialog::accept()
                 continue;
             QSaveFile out(file.path);
             if (!out.open(QIODevice::WriteOnly) || out.write(file.current.toUtf8()) < 0 || !out.commit()) {
-                QMessageBox::critical(this, windowTitle(),
+                M3Message::critical(this, windowTitle(),
                                       tr("Couldn't save your changes to %1:\n%2").arg(file.path, out.errorString()));
                 return;
             }
+        }
+    }
+    // Keep exactly what was approved, so the next update of each package
+    // can be reviewed as a diff against it.
+    for (const ReviewPackage &pkg : m_packages) {
+        const QString dir = approvedRoot() + '/' + pkg.source.info.packageBase;
+        QDir(dir).removeRecursively();
+        QDir().mkpath(dir);
+        for (const ReviewFile &file : pkg.files) {
+            QSaveFile out(dir + '/' + QFileInfo(file.path).fileName());
+            if (out.open(QIODevice::WriteOnly)) {
+                out.write(file.current.toUtf8());
+                out.commit();
+            }
+        }
+        QSaveFile version(dir + QStringLiteral("/.athena-version"));
+        if (version.open(QIODevice::WriteOnly)) {
+            version.write(pkg.source.info.version.toUtf8());
+            version.commit();
         }
     }
     QDialog::accept();
@@ -436,11 +577,15 @@ void AurReviewDialog::reviewAndBuild(QWidget *parent, const QStringList &package
         return;
     }
 
-    auto *progress = new QProgressDialog(tr("Downloading build files for review..."), QString(), 0, 0, parent);
-    progress->setWindowTitle(tr("Review AUR Build Files"));
+    auto *progress = new M3Dialog(parent);
+    progress->setHeadline(tr("Review AUR Build Files"), QStringLiteral("verified_user"));
+    progress->setSupportingText(tr("Downloading each package's build files so you can review them…"));
+    auto *bar = new QProgressBar(progress);
+    bar->setRange(0, 0);
+    bar->setTextVisible(false);
+    bar->setFixedHeight(6);
+    progress->body()->addWidget(bar);
     progress->setWindowModality(Qt::WindowModal);
-    progress->setCancelButton(nullptr);
-    progress->setMinimumDuration(0);
     progress->show();
 
     auto *watcher = new QFutureWatcher<AurBackend::PreparedBuild>();
@@ -452,7 +597,7 @@ void AurReviewDialog::reviewAndBuild(QWidget *parent, const QStringList &package
             progress->deleteLater();
 
             if (!build.error.isEmpty()) {
-                QMessageBox::critical(parent, tr("Review AUR Build Files"), build.error);
+                M3Message::critical(parent, tr("Review AUR Build Files"), build.error);
                 onFinished(false);
                 return;
             }
@@ -466,7 +611,11 @@ void AurReviewDialog::reviewAndBuild(QWidget *parent, const QStringList &package
             }
 
             TerminalOutputDialog terminal(tr("Build AUR packages"), parent);
-            onFinished(terminal.runCommandsModal(AurBackend::reviewedBuildCommands(build, reinstall),
+            QVector<ProcessRunner::Command> commands;
+            if (AppSettings::instance().snapshotBeforeTransactions())
+                commands += SystemTools::snapshotCommands(QStringLiteral("Athena: before building AUR packages"));
+            commands += AurBackend::reviewedBuildCommands(build, reinstall);
+            onFinished(terminal.runCommandsModal(commands,
                                                  AppSettings::instance().autoCloseTerminalOnSuccess()));
         });
     watcher->setFuture(QtConcurrent::run([packageNames]() { return AurBackend::prepareReviewedBuild(packageNames); }));

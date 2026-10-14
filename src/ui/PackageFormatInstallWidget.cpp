@@ -9,6 +9,8 @@
 #include <QVBoxLayout>
 
 #include "../core/DistroSupport.h"
+#include "M3Dialog.h"
+#include "MaterialTheme.h"
 #include "TerminalOutputDialog.h"
 #include "TransactionConfirmDialog.h"
 
@@ -16,10 +18,14 @@ PackageFormatInstallWidget::PackageFormatInstallWidget(QWidget *parent) : QWidge
 {
     m_flatpakStatusLabel = new QLabel(this);
     m_flatpakInstallButton = new QPushButton(tr("Install Flatpak Support"), this);
+    MaterialTheme::styleButton(m_flatpakInstallButton, QStringLiteral("tonal"), QStringLiteral("download"));
     m_flatpakRemoveButton = new QPushButton(tr("Remove Flatpak Support"), this);
+    MaterialTheme::styleButton(m_flatpakRemoveButton, QStringLiteral("text"), QStringLiteral("delete"));
     m_snapStatusLabel = new QLabel(this);
     m_snapInstallButton = new QPushButton(tr("Install Snap Support"), this);
+    MaterialTheme::styleButton(m_snapInstallButton, QStringLiteral("tonal"), QStringLiteral("download"));
     m_snapRemoveButton = new QPushButton(tr("Remove Snap Support"), this);
+    MaterialTheme::styleButton(m_snapRemoveButton, QStringLiteral("text"), QStringLiteral("delete"));
 
     auto *flatpakRow = new QHBoxLayout;
     flatpakRow->addWidget(m_flatpakStatusLabel, 1);
@@ -78,7 +84,7 @@ void PackageFormatInstallWidget::runInstall(const QString &formatName,
                                              const QVector<ProcessRunner::Command> &commands)
 {
     if (commands.isEmpty()) {
-        QMessageBox::information(
+        M3Message::information(
             this, tr("Not Available"),
             tr("No known installation method for %1 on this distribution.").arg(formatName));
         return;
@@ -102,7 +108,7 @@ void PackageFormatInstallWidget::runRemove(const QString &formatName,
                                             const QVector<ProcessRunner::Command> &commands)
 {
     if (commands.isEmpty()) {
-        QMessageBox::information(
+        M3Message::information(
             this, tr("Not Available"),
             tr("No known removal method for %1 on this distribution.").arg(formatName));
         return;
@@ -139,7 +145,7 @@ void PackageFormatInstallWidget::runCommandsAndOfferRestart(const QString &title
     refreshState();
 
     if (success) {
-        const auto reply = QMessageBox::question(this, tr("Restart Required"), successMessage,
+        const auto reply = M3Message::question(this, tr("Restart Required"), successMessage,
                                                    QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
         if (reply == QMessageBox::Yes) {
             // arguments() includes the program path itself as element 0;

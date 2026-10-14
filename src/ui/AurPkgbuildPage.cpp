@@ -13,6 +13,7 @@
 
 #include "../core/backends/AurBackend.h"
 #include "AppIcons.h"
+#include "MaterialTheme.h"
 
 AurPkgbuildPage::AurPkgbuildPage(AurBackend *backend, QWidget *parent) : QWidget(parent), m_backend(backend)
 {
@@ -32,7 +33,9 @@ AurPkgbuildPage::AurPkgbuildPage(AurBackend *backend, QWidget *parent) : QWidget
     m_nameEdit = new QLineEdit(this);
     m_nameEdit->setPlaceholderText(tr("AUR package name (e.g. paru-bin)"));
     m_loadButton = new QPushButton(AppIcons::search(), tr("Show PKGBUILD"), this);
+    MaterialTheme::styleButton(m_loadButton, QStringLiteral("filled"), QStringLiteral("description"));
     m_openPageButton = new QPushButton(tr("Open AUR Page"), this);
+    MaterialTheme::styleButton(m_openPageButton, QStringLiteral("text"), QStringLiteral("open_in_new"));
     m_openPageButton->setEnabled(false);
 
     auto *topRow = new QHBoxLayout;

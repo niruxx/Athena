@@ -56,6 +56,12 @@ void removePackages(QWidget *parentWidget, PackageBackend *backend, const QStrin
                      std::function<void(bool success)> onFinished);
 void reinstallPackages(QWidget *parentWidget, PackageBackend *backend, const QStringList &packageNames,
                         std::function<void(bool success)> onFinished);
+// Upgrades already-installed packages to their newer version: a plain
+// confirm, then the backend's upgrade in the background — except AUR
+// packages with PKGBUILD review on, which go through the review dialog
+// like any other AUR build.
+void upgradePackages(QWidget *parentWidget, PackageBackend *backend, const QStringList &packageNames,
+                     std::function<void(bool success)> onFinished);
 void cleanUnusedDependencies(QWidget *parentWidget, PackageBackend *backend,
                               std::function<void(bool success)> onFinished);
 
@@ -63,6 +69,11 @@ void cleanUnusedDependencies(QWidget *parentWidget, PackageBackend *backend,
 // destinationDir, optionally including their not-yet-installed
 // dependencies. Same confirm-then-live-terminal treatment as the other
 // wrappers above.
+// The snapshot step (Snapper/Timeshift) to run before a transaction on
+// `backend`, when Settings asks for one and the backend changes the system
+// itself (native packages, AUR builds — not Flatpak or Snap). Empty otherwise.
+QVector<ProcessRunner::Command> snapshotSteps(PackageBackend *backend, const QString &what);
+
 void downloadPackages(QWidget *parentWidget, PackageBackend *backend, const QStringList &packageNames,
                        const QString &destinationDir, bool includeDependencies,
                        std::function<void(bool success)> onFinished);

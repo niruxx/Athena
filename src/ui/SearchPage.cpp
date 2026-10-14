@@ -16,6 +16,7 @@
 
 #include "../models/PackageTableModel.h"
 #include "AppIcons.h"
+#include "MaterialTheme.h"
 #include "PackageActions.h"
 #include "PackageBrowser.h"
 
@@ -23,7 +24,9 @@ SearchPage::SearchPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
 {
     m_queryEdit = new QLineEdit(this);
     m_queryEdit->setPlaceholderText(tr("Search for a package..."));
+    m_queryEdit->setProperty("m3", QStringLiteral("search"));
     m_searchButton = new QPushButton(AppIcons::search(), tr("Search"), this);
+    MaterialTheme::styleButton(m_searchButton, QStringLiteral("filled"), QStringLiteral("search"));
 
     auto *topRow = new QHBoxLayout;
     topRow->addWidget(m_queryEdit, 1);
@@ -59,9 +62,11 @@ SearchPage::SearchPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
     m_statusLabel = new QLabel(tr("Enter a search term."), this);
 
     m_downloadButton = new QPushButton(AppIcons::download(), tr("Download Selected"), this);
+    MaterialTheme::styleButton(m_downloadButton, QStringLiteral("tonal"), QStringLiteral("download"));
     m_downloadButton->setToolTip(tr("Download a copy of the checked packages without installing them."));
     m_downloadButton->setEnabled(false);
     m_downloadWithDepsButton = new QPushButton(AppIcons::download(), tr("Download Selected + Dependencies"), this);
+    MaterialTheme::styleButton(m_downloadWithDepsButton, QStringLiteral("tonal"), QStringLiteral("download"));
     m_downloadWithDepsButton->setToolTip(
         tr("Download the checked packages plus any not-yet-installed packages they require."));
     m_downloadWithDepsButton->setEnabled(false);

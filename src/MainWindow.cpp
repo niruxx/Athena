@@ -1,50 +1,60 @@
 #include "MainWindow.h"
 
+#include <algorithm>
+#include <functional>
+
 #include <QAction>
-#include <QComboBox>
+#include <QApplication>
 #include <QDesktopServices>
-#include <QFutureWatcher>
+#include <QEvent>
 #include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QKeySequence>
 #include <QLabel>
 #include <QMenu>
-#include <QMenuBar>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QScreen>
+#include <QScrollArea>
 #include <QStackedWidget>
-#include <QStatusBar>
-#include <QStringList>
+#include <QStyle>
 #include <QTabWidget>
 #include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
-#include <QtConcurrent/QtConcurrent>
 
 #include "core/AppSettings.h"
 #include "core/BackendFactory.h"
 #include "core/GitHubReleaseChecker.h"
+#include "core/SystemTools.h"
 #include "core/Version.h"
-#include "core/backends/FlatpakBackend.h"
 #include "core/backends/PacmanBackend.h"
 #include "core/backends/SnapBackend.h"
-#include "models/PackageTableModel.h"
-#include "ui/AppIcons.h"
 #include "ui/AurPkgbuildPage.h"
 #include "ui/AurReviewDialog.h"
 #include "ui/BackupRestorePage.h"
+#include "ui/CatalogHub.h"
+#include "ui/DetailsSheet.h"
 #include "ui/FirstRunDialog.h"
+#include "ui/FramelessHelper.h"
 #include "ui/GroupsPage.h"
 #include "ui/HistoryPage.h"
 #include "ui/InstalledPage.h"
 #include "ui/LeftoverDataPage.h"
+#include "ui/M3Dialog.h"
+#include "ui/M3Widgets.h"
+#include "ui/MaterialTheme.h"
+#include "ui/Motion.h"
+#include "ui/NavigationRail.h"
 #include "ui/PackageActions.h"
-#include "ui/PackageBrowser.h"
 #include "ui/PermissionsPage.h"
-#include "ui/PreferencesDialog.h"
+#include "ui/RedesignPages.h"
 #include "ui/RepositoriesPage.h"
 #include "ui/SearchPage.h"
+#include "ui/SettingsPage.h"
+#include "ui/ToolsDialogs.h"
+#include "ui/ToolsPages.h"
 #include "ui/UpdateBannerWidget.h"
-#include "ui/UpdatesPage.h"
 #include "ui/UserBackupRestorePage.h"
 #include "ui/UserCleanupPage.h"
 #include "ui/UserDataPage.h"
@@ -54,269 +64,114 @@ const char *kProjectUrl = "https://github.com/niruxx/Athena";
 const char *kIssuesUrl = "https://github.com/niruxx/Athena/issues";
 
 // backendName() returns a descriptive label like "DNF (Fedora / RHEL)";
-// the group dropdown just wants the bare tool name ("dnf") to fit
-// "Repository (dnf)".
+// source chips just want the bare tool name ("dnf").
 QString shortBackendName(const QString &backendName)
 {
     const int parenIndex = backendName.indexOf(" (");
     return (parenIndex >= 0 ? backendName.left(parenIndex) : backendName).toLower();
 }
+
+// A tab whose real page is only built the first time it's shown, so the
+// classic per-source pages (several of which load package lists in their
+// constructors) don't all query their backends at startup.
+class LazyPage : public QWidget {
+public:
+    LazyPage(std::function<QWidget *(QWidget *)> factory, QWidget *parent) : QWidget(parent), m_factory(std::move(factory))
+    {
+        auto *layout = new QVBoxLayout(this);
+        layout->setContentsMargins(0, 8, 0, 0);
+    }
+
+protected:
+    void showEvent(QShowEvent *event) override
+    {
+        if (m_factory) {
+            layout()->addWidget(m_factory(this));
+            m_factory = nullptr;
+        }
+        QWidget::showEvent(event);
+    }
+
+private:
+    std::function<QWidget *(QWidget *)> m_factory;
+};
+
+QTabWidget *sourceTabs(QWidget *parent)
+{
+    auto *tabs = new QTabWidget(parent);
+    tabs->setDocumentMode(true);
+    return tabs;
+}
+
+template <typename Page, typename Backend>
+LazyPage *lazy(Backend *backend, QWidget *parent)
+{
+    return new LazyPage([backend](QWidget *host) { return new Page(backend, host); }, parent);
+}
+
+LazyPage *lazyRepositories(PackageBackend *backend, const QString &label, QWidget *parent)
+{
+    return new LazyPage([backend, label](QWidget *host) { return new RepositoriesPage({{backend, label}}, host); }, parent);
+}
+
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     setWindowTitle(tr("Athena"));
-    resize(1150, 750);
-
+    resize(1260, 820);
+    setMinimumSize(420, 520);
     if (const QScreen *screen = QGuiApplication::primaryScreen()) {
         const QRect available = screen->availableGeometry();
-        move(available.x() + (available.width() - width()) / 2,
-             available.y() + (available.height() - height()) / 2);
+        move(available.x() + (available.width() - width()) / 2, available.y() + (available.height() - height()) / 2);
     }
 
-    m_backend = BackendFactory::createForHostSystem();
+    buildSources();
+    buildShell();
+    setupActions();
+    setupTray();
 
-    m_groupStack = new QStackedWidget(this);
-    m_groupCombo = new QComboBox(this);
-    int systemGroupIndex = -1;
-    int aurGroupIndex = -1;
-    int flatpakGroupIndex = -1;
-    int snapGroupIndex = -1;
+    // The title row and the rail's empty space are the window's drag areas.
+    m_frameless = new FramelessHelper(this);
+    m_frameless->addDragArea(m_titleBar);
+    m_frameless->addDragArea(m_rail);
+    applyTitleBarMode(AppSettings::instance().useCustomTitleBar());
+    connect(&AppSettings::instance(), &AppSettings::useCustomTitleBarChanged, this, &MainWindow::applyTitleBarMode);
 
-    // Every PackageBrowser's counts feed the bottom-bar stats summary, so
-    // whichever page/group is currently visible keeps it live as data
-    // loads or checkboxes are toggled.
-    auto watchBrowserStats = [this](PackageBrowser *browser) {
-        connect(browser->model(), &QAbstractItemModel::modelReset, this, &MainWindow::updateStatusBarStats);
-        connect(browser->model(), &PackageTableModel::checkedChanged, this, &MainWindow::updateStatusBarStats);
-    };
+    connect(m_hub, &CatalogHub::updatesChanged, this, &MainWindow::onUpdatesChanged);
+    m_hub->refreshAll();
 
-    // m_groupCombo's entries are added in the same order as m_groupStack's
-    // pages, so a combo index always matches the stack page it should show.
-    if (m_backend) {
-        m_systemTabs = new QTabWidget(m_groupStack);
-        auto *installedPage = new InstalledPage(m_backend.get(), m_systemTabs);
-        auto *updatesPage = new UpdatesPage(m_backend.get(), m_systemTabs);
-        auto *searchPage = new SearchPage(m_backend.get(), m_systemTabs);
-        m_systemGroupsPage = new GroupsPage(m_backend.get(), m_systemTabs);
-        m_systemTabs->addTab(installedPage, tr("Installed"));
-        m_systemTabs->addTab(updatesPage, tr("Updates"));
-        m_systemTabs->addTab(searchPage, tr("Search"));
-        if (!AppSettings::instance().disableGroupView())
-            m_systemTabs->addTab(m_systemGroupsPage, tr("Groups"));
-        m_systemTabs->addTab(
-            new RepositoriesPage({{m_backend.get(), tr("System")}}, m_systemTabs), tr("Repositories"));
-        m_systemTabs->addTab(new HistoryPage(m_backend.get(), m_systemTabs), tr("History"));
-        systemGroupIndex = m_groupStack->addWidget(m_systemTabs);
-        m_groupCombo->addItem(tr("Repository (%1)").arg(shortBackendName(m_backend->backendName())));
-        statusBar()->showMessage(tr("Backend: %1").arg(m_backend->backendName()));
-
-        watchBrowserStats(installedPage->browser());
-        watchBrowserStats(updatesPage->browser());
-        watchBrowserStats(searchPage->browser());
-        watchBrowserStats(m_systemGroupsPage->browser());
-        connect(m_systemTabs, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
-        connect(&AppSettings::instance(), &AppSettings::disableGroupViewChanged, this,
-                &MainWindow::applyDisableGroupView);
-    } else {
-        // Wrapped in a QTabWidget (with a single tab) rather than added to
-        // the stack directly, so this page has a tab bar to host
-        // m_groupCombo's corner widget too, same as every other group.
-        m_systemTabs = new QTabWidget(m_groupStack);
-        auto *label = new QLabel(
-            tr("No supported package manager (dnf, apt, or pacman) was found on this system."), m_systemTabs);
-        label->setAlignment(Qt::AlignCenter);
-        label->setWordWrap(true);
-        m_systemTabs->addTab(label, tr("System"));
-        systemGroupIndex = m_groupStack->addWidget(m_systemTabs);
-        m_groupCombo->addItem(tr("Repository"));
+    switch (AppSettings::instance().startupTab()) {
+    case StartupTab::Discover:
+        goToPage(QStringLiteral("discover"));
+        break;
+    case StartupTab::Installed:
+        goToPage(QStringLiteral("installed"));
+        break;
+    case StartupTab::Updates:
+        goToPage(QStringLiteral("updates"));
+        break;
+    case StartupTab::Sources:
+        goToPage(QStringLiteral("sources"));
+        break;
+    case StartupTab::Tools:
+        goToPage(QStringLiteral("tools"));
+        break;
+    case StartupTab::Home:
+        goToPage(QStringLiteral("home"));
+        break;
     }
-
-    // Right after the system group it extends: AUR packages are installed
-    // into, and removed from, the same pacman database.
-    if (dynamic_cast<PacmanBackend *>(m_backend.get())) {
-        auto aurBackend = std::make_unique<AurBackend>();
-        if (aurBackend->isAvailable()) {
-            m_aurBackend = std::move(aurBackend);
-
-            m_aurTabs = new QTabWidget(m_groupStack);
-            auto *installedPage = new InstalledPage(m_aurBackend.get(), m_aurTabs);
-            auto *updatesPage = new UpdatesPage(m_aurBackend.get(), m_aurTabs);
-            auto *searchPage = new SearchPage(m_aurBackend.get(), m_aurTabs);
-            m_aurTabs->addTab(installedPage, tr("Installed"));
-            m_aurTabs->addTab(updatesPage, tr("Updates"));
-            m_aurTabs->addTab(searchPage, tr("Search"));
-            m_aurTabs->addTab(new AurPkgbuildPage(m_aurBackend.get(), m_aurTabs), tr("PKGBUILD"));
-            m_aurTabs->addTab(new HistoryPage(m_aurBackend.get(), m_aurTabs), tr("History"));
-            aurGroupIndex = m_groupStack->addWidget(m_aurTabs);
-            m_groupCombo->addItem(tr("AUR"));
-
-            watchBrowserStats(installedPage->browser());
-            watchBrowserStats(updatesPage->browser());
-            watchBrowserStats(searchPage->browser());
-            connect(m_aurTabs, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
-        }
-    }
-
-    auto flatpakBackend = std::make_unique<FlatpakBackend>();
-    if (flatpakBackend->isAvailable()) {
-        m_flatpakBackend = std::move(flatpakBackend);
-
-        m_flatpakTabs = new QTabWidget(m_groupStack);
-        auto *installedPage = new InstalledPage(m_flatpakBackend.get(), m_flatpakTabs);
-        auto *updatesPage = new UpdatesPage(m_flatpakBackend.get(), m_flatpakTabs);
-        auto *searchPage = new SearchPage(m_flatpakBackend.get(), m_flatpakTabs);
-        m_flatpakTabs->addTab(installedPage, tr("Installed"));
-        m_flatpakTabs->addTab(updatesPage, tr("Updates"));
-        m_flatpakTabs->addTab(searchPage, tr("Search"));
-        m_flatpakTabs->addTab(
-            new RepositoriesPage({{m_flatpakBackend.get(), tr("Flatpak")}}, m_flatpakTabs), tr("Repositories"));
-        m_flatpakTabs->addTab(new PermissionsPage(m_flatpakBackend.get(), m_flatpakTabs), tr("Permissions"));
-        m_flatpakTabs->addTab(new UserDataPage(m_flatpakBackend.get(), m_flatpakTabs), tr("User Data"));
-        m_flatpakTabs->addTab(new LeftoverDataPage(m_flatpakBackend.get(), m_flatpakTabs), tr("Leftover Data"));
-        m_flatpakTabs->addTab(new BackupRestorePage(m_flatpakBackend.get(), m_flatpakTabs), tr("Backup & Restore"));
-        m_flatpakTabs->addTab(new HistoryPage(m_flatpakBackend.get(), m_flatpakTabs), tr("History"));
-        flatpakGroupIndex = m_groupStack->addWidget(m_flatpakTabs);
-        m_groupCombo->addItem(tr("Flatpak"));
-
-        watchBrowserStats(installedPage->browser());
-        watchBrowserStats(updatesPage->browser());
-        watchBrowserStats(searchPage->browser());
-        connect(m_flatpakTabs, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
-    }
-
-    auto snapBackend = std::make_unique<SnapBackend>();
-    if (snapBackend->isAvailable()) {
-        m_snapBackend = std::move(snapBackend);
-
-        m_snapTabs = new QTabWidget(m_groupStack);
-        auto *installedPage = new InstalledPage(m_snapBackend.get(), m_snapTabs);
-        auto *updatesPage = new UpdatesPage(m_snapBackend.get(), m_snapTabs);
-        auto *searchPage = new SearchPage(m_snapBackend.get(), m_snapTabs);
-        m_snapTabs->addTab(installedPage, tr("Installed"));
-        m_snapTabs->addTab(updatesPage, tr("Updates"));
-        m_snapTabs->addTab(searchPage, tr("Search"));
-        m_snapTabs->addTab(new HistoryPage(m_snapBackend.get(), m_snapTabs), tr("History"));
-        snapGroupIndex = m_groupStack->addWidget(m_snapTabs);
-        m_groupCombo->addItem(tr("Snap"));
-
-        watchBrowserStats(installedPage->browser());
-        watchBrowserStats(updatesPage->browser());
-        watchBrowserStats(searchPage->browser());
-        connect(m_snapTabs, &QTabWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
-    }
-
-    m_userMgmtTabs = new QTabWidget(m_groupStack);
-    m_userMgmtTabs->addTab(new UserCleanupPage(tr("Everyday cleanup — temporary files and cache that are always "
-                                                   "safe to clear and get regenerated automatically as needed."),
-                                                UserCleanupTargets::general(), m_userMgmtTabs),
-                            tr("General"));
-    m_userMgmtTabs->addTab(new UserCleanupPage(tr("Less-common cleanup targets — still your own data, but worth a "
-                                                   "second look (history, recently-used lists, trash) before "
-                                                   "clearing them."),
-                                                UserCleanupTargets::advanced(), m_userMgmtTabs),
-                            tr("Advanced"));
-    m_userMgmtTabs->addTab(new UserBackupRestorePage(m_userMgmtTabs), tr("Backup & Restore"));
-    m_groupStack->addWidget(m_userMgmtTabs);
-    m_groupCombo->addItem(tr("User Management"));
-
-    // Document mode: flat, frameless tab bars like KDE apps (Discover,
-    // Dolphin) use, instead of a boxed notebook around every page.
-    for (int i = 0; i < m_groupStack->count(); ++i) {
-        if (auto *tabs = qobject_cast<QTabWidget *>(m_groupStack->widget(i)))
-            tabs->setDocumentMode(true);
-    }
-
-    connect(m_groupCombo, &QComboBox::currentIndexChanged, m_groupStack, &QStackedWidget::setCurrentIndex);
-
-    setupMenuBar();
-
-    m_statsLabel = new QLabel(this);
-    statusBar()->addPermanentWidget(m_statsLabel);
-    connect(m_groupStack, &QStackedWidget::currentChanged, this, &MainWindow::updateStatusBarStats);
-    updateStatusBarStats();
-
-    // Every group page is a QTabWidget, so rather than giving m_groupCombo
-    // its own row above them, it rides in the tab bar's corner — sharing
-    // that row instead of adding a second one. Since it's one shared combo
-    // (not one per group), it has to move to whichever group's tab bar is
-    // currently visible.
-    connect(m_groupStack, &QStackedWidget::currentChanged, this, &MainWindow::placeGroupComboInCornerWidget);
-    placeGroupComboInCornerWidget();
-
-    m_updateBanner = new UpdateBannerWidget(this);
-
-    auto *central = new QWidget(this);
-    auto *centralLayout = new QVBoxLayout(central);
-    centralLayout->setContentsMargins(0, 0, 0, 0);
-    centralLayout->setSpacing(0);
-    centralLayout->addWidget(m_updateBanner);
-    centralLayout->addWidget(m_groupStack, 1);
-    setCentralWidget(central);
-
-    const StartupTab requestedStartupTab = AppSettings::instance().startupTab();
-    int startupIndex = systemGroupIndex;
-    if (requestedStartupTab == StartupTab::Flatpak && flatpakGroupIndex >= 0)
-        startupIndex = flatpakGroupIndex;
-    else if (requestedStartupTab == StartupTab::Snap && snapGroupIndex >= 0)
-        startupIndex = snapGroupIndex;
-    else if (requestedStartupTab == StartupTab::Aur && aurGroupIndex >= 0)
-        startupIndex = aurGroupIndex;
-    if (startupIndex >= 0)
-        m_groupCombo->setCurrentIndex(startupIndex);
 
     if (AppSettings::instance().checkForAppUpdatesOnStartup()) {
         auto *checker = new GitHubReleaseChecker(this);
         connect(checker, &GitHubReleaseChecker::updateAvailable, this,
-                [this](const QString &version, const QString &htmlUrl) {
-                    m_updateBanner->showUpdate(version, htmlUrl);
-                });
+                [this](const QString &version, const QString &htmlUrl) { m_updateBanner->showUpdate(version, htmlUrl); });
         checker->checkForUpdate();
-    }
-
-    if (QSystemTrayIcon::isSystemTrayAvailable()) {
-        m_trayIcon = new QSystemTrayIcon(AppIcons::update(), this);
-        m_trayIcon->setToolTip(tr("Athena"));
-
-        auto *trayMenu = new QMenu(this);
-        QAction *traySettingsAction = trayMenu->addAction(tr("Settings"));
-        connect(traySettingsAction, &QAction::triggered, this, [this]() {
-            PreferencesDialog dialog(this);
-            dialog.exec();
-        });
-        m_trayUpdateAction = trayMenu->addAction(tr("Update"));
-        m_trayUpdateAction->setEnabled(false);
-        connect(m_trayUpdateAction, &QAction::triggered, this, &MainWindow::updateAllFromTray);
-        trayMenu->addSeparator();
-        QAction *trayQuitAction = trayMenu->addAction(tr("Quit"));
-        connect(trayQuitAction, &QAction::triggered, qApp, &QApplication::quit);
-        m_trayIcon->setContextMenu(trayMenu);
-
-        connect(m_trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
-            if (reason != QSystemTrayIcon::Trigger)
-                return;
-            setVisible(!isVisible());
-            if (isVisible()) {
-                raise();
-                activateWindow();
-            }
-        });
-
-        m_trayIcon->setVisible(!AppSettings::instance().hideTrayWhenNoUpdates());
-
-        m_updateCheckTimer = new QTimer(this);
-        connect(m_updateCheckTimer, &QTimer::timeout, this, &MainWindow::pollForTrayUpdates);
-        auto applyUpdateInterval = [this](int minutes) { m_updateCheckTimer->start(minutes * 60000); };
-        applyUpdateInterval(AppSettings::instance().updateCheckIntervalMinutes());
-        connect(&AppSettings::instance(), &AppSettings::updateCheckIntervalMinutesChanged, this, applyUpdateInterval);
-
-        pollForTrayUpdates();
     }
 
     if (!AppSettings::instance().hasCompletedFirstRun()) {
         const QString backendName = m_backend ? m_backend->backendName() : QString();
-        // Deferred so the main window is already visible behind it, rather
-        // than the dialog appearing to launch before anything else does.
+        // Deferred so the main window is already visible behind it.
         QTimer::singleShot(0, this, [this, backendName]() {
             FirstRunDialog dialog(backendName, this);
             dialog.exec();
@@ -324,123 +179,556 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     }
 }
 
-void MainWindow::placeGroupComboInCornerWidget()
+void MainWindow::buildSources()
 {
-    auto *tabs = qobject_cast<QTabWidget *>(m_groupStack->currentWidget());
-    if (!tabs || tabs == m_groupComboHost)
-        return;
+    m_backend = BackendFactory::createForHostSystem();
 
-    // Detach from the previous host first: QTabWidget::setCornerWidget()
-    // no-ops if the widget passed in is already what it thinks its corner
-    // widget is, so a tab widget visited earlier (its own corner already
-    // recorded as m_groupCombo) would otherwise refuse to take it back.
-    if (m_groupComboHost)
-        m_groupComboHost->setCornerWidget(nullptr, Qt::TopRightCorner);
+    QVector<CatalogSource> sources;
+    if (m_backend)
+        sources.append({m_backend.get(), shortBackendName(m_backend->backendName()), shortBackendName(m_backend->backendName()),
+                        QStringLiteral("inventory_2")});
 
-    tabs->setCornerWidget(m_groupCombo, Qt::TopRightCorner);
-    m_groupCombo->show();
-    m_groupComboHost = tabs;
+    // The AUR only makes sense on top of pacman.
+    if (dynamic_cast<PacmanBackend *>(m_backend.get())) {
+        auto aur = std::make_unique<AurBackend>();
+        if (aur->isAvailable()) {
+            m_aurBackend = std::move(aur);
+            sources.append({m_aurBackend.get(), QStringLiteral("aur"), tr("AUR"), QStringLiteral("construction")});
+        }
+    }
+    if (auto flatpak = std::make_unique<FlatpakBackend>(); flatpak->isAvailable()) {
+        m_flatpakBackend = std::move(flatpak);
+        sources.append({m_flatpakBackend.get(), QStringLiteral("flatpak"), tr("Flatpak"), QStringLiteral("deployed_code")});
+    }
+    if (auto snap = std::make_unique<SnapBackend>(); snap->isAvailable()) {
+        m_snapBackend = std::move(snap);
+        sources.append({m_snapBackend.get(), QStringLiteral("snap"), tr("Snap"), QStringLiteral("widgets")});
+    }
+
+    m_hub = new CatalogHub(sources, this);
 }
 
-void MainWindow::pollForTrayUpdates()
+QWidget *MainWindow::buildSourceTabs()
 {
-    QVector<PackageBackend *> backends;
-    if (m_backend)
-        backends.append(m_backend.get());
-    if (m_flatpakBackend)
-        backends.append(m_flatpakBackend.get());
-    if (m_snapBackend)
-        backends.append(m_snapBackend.get());
-    if (m_aurBackend)
-        backends.append(m_aurBackend.get());
-    if (backends.isEmpty())
+    m_sourcesPage = new SourcesPage(this);
+
+    if (m_backend) {
+        PackageBackend *native = m_backend.get();
+        m_systemTabs = sourceTabs(m_sourcesPage);
+        m_systemTabs->addTab(lazyRepositories(native, tr("System"), m_systemTabs), tr("Repositories"));
+        m_systemGroupsTab = lazy<GroupsPage>(native, m_systemTabs);
+        if (!AppSettings::instance().disableGroupView())
+            m_systemTabs->addTab(m_systemGroupsTab, tr("Groups"));
+        m_systemTabs->addTab(lazy<InstalledPage>(native, m_systemTabs), tr("Package Browser"));
+        m_systemTabs->addTab(lazy<SearchPage>(native, m_systemTabs), tr("Advanced Search"));
+        const QString nativeKey = shortBackendName(native->backendName());
+        m_systemTabs->addTab(new LazyPage([native, nativeKey](QWidget *host) { return new HistoryPage(native, host, nativeKey); },
+                                          m_systemTabs),
+                             tr("History"));
+        if (SystemTools::mirrorRankingAvailable(nativeKey))
+            m_systemTabs->addTab(new LazyPage([nativeKey](QWidget *host) { return new MirrorsPage(nativeKey, host); }, m_systemTabs),
+                                 tr("Mirrors"));
+        m_sourcesPage->addSource(shortBackendName(native->backendName()), QStringLiteral("inventory_2"), m_systemTabs);
+        connect(&AppSettings::instance(), &AppSettings::disableGroupViewChanged, this, &MainWindow::applyDisableGroupView);
+    }
+    if (m_aurBackend) {
+        AurBackend *aur = m_aurBackend.get();
+        QTabWidget *tabs = sourceTabs(m_sourcesPage);
+        tabs->addTab(lazy<AurPkgbuildPage>(aur, tabs), tr("PKGBUILD"));
+        tabs->addTab(lazy<InstalledPage>(static_cast<PackageBackend *>(aur), tabs), tr("Package Browser"));
+        tabs->addTab(lazy<SearchPage>(static_cast<PackageBackend *>(aur), tabs), tr("Advanced Search"));
+        tabs->addTab(lazy<HistoryPage>(static_cast<PackageBackend *>(aur), tabs), tr("History"));
+        m_sourcesPage->addSource(tr("AUR"), QStringLiteral("construction"), tabs);
+    }
+    if (m_flatpakBackend) {
+        FlatpakBackend *flatpak = m_flatpakBackend.get();
+        QTabWidget *tabs = sourceTabs(m_sourcesPage);
+        tabs->addTab(lazyRepositories(flatpak, tr("Flatpak"), tabs), tr("Remotes"));
+        tabs->addTab(lazy<PermissionsPage>(flatpak, tabs), tr("Permissions"));
+        tabs->addTab(lazy<UserDataPage>(flatpak, tabs), tr("User Data"));
+        tabs->addTab(lazy<LeftoverDataPage>(flatpak, tabs), tr("Leftover Data"));
+        tabs->addTab(lazy<BackupRestorePage>(flatpak, tabs), tr("Backup && Restore"));
+        tabs->addTab(lazy<InstalledPage>(static_cast<PackageBackend *>(flatpak), tabs), tr("Package Browser"));
+        tabs->addTab(lazy<SearchPage>(static_cast<PackageBackend *>(flatpak), tabs), tr("Advanced Search"));
+        tabs->addTab(new LazyPage([flatpak](QWidget *host) { return new HistoryPage(flatpak, host, QStringLiteral("flatpak")); }, tabs),
+                     tr("History"));
+        m_sourcesPage->addSource(tr("Flatpak"), QStringLiteral("deployed_code"), tabs);
+    }
+    if (m_snapBackend) {
+        PackageBackend *snap = m_snapBackend.get();
+        QTabWidget *tabs = sourceTabs(m_sourcesPage);
+        tabs->addTab(lazy<InstalledPage>(snap, tabs), tr("Package Browser"));
+        tabs->addTab(lazy<SearchPage>(snap, tabs), tr("Advanced Search"));
+        tabs->addTab(lazy<HistoryPage>(snap, tabs), tr("History"));
+        m_sourcesPage->addSource(tr("Snap"), QStringLiteral("widgets"), tabs);
+    }
+    return m_sourcesPage;
+}
+
+void MainWindow::buildShell()
+{
+    auto *central = new QWidget(this);
+    central->setObjectName(QStringLiteral("WindowFrame"));
+    central->setAttribute(Qt::WA_StyledBackground);
+    m_windowFrame = central;
+    setCentralWidget(central);
+
+    m_rail = new NavigationRail(central);
+    m_pages = new QStackedWidget(central);
+    m_sheet = new DetailsSheet(m_hub->sourcesPtr(), m_flatpakBackend.get(), central);
+    m_snackbar = new Snackbar(central);
+
+    m_bottomBar = new NavigationRail(central, Qt::Horizontal);
+    m_bottomBar->hide();
+    auto addPage = [this](const QString &key, const QString &title, const QString &icon, QWidget *page) {
+        m_pageKeys << key;
+        m_pageTitles << title;
+        m_pages->addWidget(page);
+        m_rail->addDestination(icon, title);
+        if (m_pageKeys.size() <= kBottomDestinations)
+            m_bottomBar->addDestination(icon, title);
+    };
+
+    const int nativeSource = m_hub->nativeSource();
+    auto *home = new HomePage(m_hub, m_backend.get(), nativeSource >= 0 ? m_hub->sources()[nativeSource].key : QString(), m_pages);
+    m_home = home;
+    m_discover = new DiscoverPage(m_hub, m_sheet, m_pages);
+    auto *installed = new LibraryPage(m_hub, m_sheet, m_pages);
+    auto *updates = new AllUpdatesPage(m_hub, m_sheet, m_pages);
+    addPage(QStringLiteral("home"), tr("Home"), QStringLiteral("home"), home);
+    addPage(QStringLiteral("discover"), tr("Discover"), QStringLiteral("explore"), m_discover);
+    addPage(QStringLiteral("installed"), tr("Installed"), QStringLiteral("apps"), installed);
+    addPage(QStringLiteral("updates"), tr("Updates"), QStringLiteral("update"), updates);
+    addPage(QStringLiteral("sources"), tr("Sources"), QStringLiteral("hub"), buildSourceTabs());
+
+    // Tools: housekeeping that isn't about packages (the former User
+    // Management group).
+    auto *tools = new QWidget(m_pages);
+    auto *toolsLayout = new QVBoxLayout(tools);
+    toolsLayout->setContentsMargins(24, 4, 18, 12);
+    QTabWidget *toolTabs = sourceTabs(tools);
+    toolTabs->addTab(new UserCleanupPage(tr("Everyday cleanup — temporary files and cache that are always safe to clear and get "
+                                            "regenerated automatically as needed."),
+                                         UserCleanupTargets::general(), toolTabs),
+                     tr("Cleanup"));
+    toolTabs->addTab(new UserCleanupPage(tr("Less-common cleanup targets — still your own data, but worth a second look "
+                                            "(history, recently-used lists, trash) before clearing them."),
+                                         UserCleanupTargets::advanced(), toolTabs),
+                     tr("Advanced Cleanup"));
+    toolTabs->addTab(new UserBackupRestorePage(toolTabs), tr("Backup && Restore"));
+    toolTabs->addTab(new ExportImportPage(m_hub, nativeSource >= 0 ? m_hub->sources()[nativeSource].key : QString(), toolTabs),
+                     tr("Export && Import"));
+    toolsLayout->addWidget(toolTabs);
+    addPage(QStringLiteral("tools"), tr("Tools"), QStringLiteral("build"), tools);
+
+    m_rail->addStretch();
+    auto *settingsScroll = new QScrollArea(m_pages);
+    settingsScroll->setProperty("m3", QStringLiteral("page"));
+    settingsScroll->setFrameShape(QFrame::NoFrame);
+    settingsScroll->setWidgetResizable(true);
+    auto *settingsHost = new QWidget(settingsScroll);
+    auto *settingsLayout = new QVBoxLayout(settingsHost);
+    settingsLayout->setContentsMargins(24, 4, 24, 24);
+    auto *settings = new SettingsPage(settingsHost);
+    settings->setMaximumWidth(860);
+    settingsLayout->addWidget(settings, 0, Qt::AlignTop | Qt::AlignLeft);
+    settingsScroll->setWidget(settingsHost);
+    addPage(QStringLiteral("settings"), tr("Settings"), QStringLiteral("settings"), settingsScroll);
+
+    // Content pane: title bar over the current page.
+    auto *pane = new QFrame(central);
+    pane->setObjectName(QStringLiteral("ContentPane"));
+    m_pageTitle = M3::label(QString(), QStringLiteral("title"), pane);
+    auto *themeButton = new QPushButton(pane);
+    MaterialTheme::styleButton(themeButton, QStringLiteral("icon"), QStringLiteral("contrast"));
+    themeButton->setToolTip(tr("Switch between following the system, light, and dark"));
+    connect(themeButton, &QPushButton::clicked, this, [this]() {
+        const ThemeMode next = AppSettings::instance().themeMode() == ThemeMode::System ? ThemeMode::Light
+            : AppSettings::instance().themeMode() == ThemeMode::Light                     ? ThemeMode::Dark
+                                                                                          : ThemeMode::System;
+        AppSettings::instance().setThemeMode(next);
+        showMessage(next == ThemeMode::System ? tr("Following the system theme")
+                    : next == ThemeMode::Light ? tr("Light theme")
+                                               : tr("Dark theme"));
+    });
+    auto *menuButton = new QPushButton(pane);
+    MaterialTheme::styleButton(menuButton, QStringLiteral("icon"), QStringLiteral("more_vert"));
+    menuButton->setToolTip(tr("More"));
+    m_overflowMenu = new QMenu(menuButton);
+    connect(menuButton, &QPushButton::clicked, this, [this, menuButton]() {
+        m_overflowMenu->popup(
+            menuButton->mapToGlobal(QPoint(menuButton->width() - m_overflowMenu->sizeHint().width(), menuButton->height())));
+    });
+
+    // Window controls, shown only with Athena's own title bar.
+    m_windowControls = new QWidget(pane);
+    auto *controlsLayout = new QHBoxLayout(m_windowControls);
+    controlsLayout->setContentsMargins(8, 0, 0, 0);
+    controlsLayout->setSpacing(2);
+    auto *minimizeButton = new QPushButton(m_windowControls);
+    MaterialTheme::styleButton(minimizeButton, QStringLiteral("window"), QStringLiteral("remove"));
+    minimizeButton->setToolTip(tr("Minimize"));
+    connect(minimizeButton, &QPushButton::clicked, this, &QWidget::showMinimized);
+    m_maximizeButton = new QPushButton(m_windowControls);
+    MaterialTheme::styleButton(m_maximizeButton, QStringLiteral("window"), QStringLiteral("crop_square"));
+    m_maximizeButton->setToolTip(tr("Maximize"));
+    connect(m_maximizeButton, &QPushButton::clicked, this, [this]() { m_frameless->toggleMaximized(); });
+    auto *closeButton = new QPushButton(m_windowControls);
+    MaterialTheme::styleButton(closeButton, QStringLiteral("windowClose"), QStringLiteral("close"));
+    closeButton->setToolTip(tr("Close"));
+    connect(closeButton, &QPushButton::clicked, this, &QWidget::close);
+    for (QPushButton *button : {minimizeButton, m_maximizeButton, closeButton})
+        controlsLayout->addWidget(button);
+
+    m_titleBar = new QWidget(pane);
+    auto *titleRow = new QHBoxLayout(m_titleBar);
+    titleRow->setContentsMargins(24, 12, 12, 8);
+    titleRow->addWidget(m_pageTitle, 1);
+    titleRow->addWidget(themeButton);
+    titleRow->addWidget(menuButton);
+    titleRow->addWidget(m_windowControls);
+    auto *paneLayout = new QVBoxLayout(pane);
+    paneLayout->setContentsMargins(0, 0, 0, 0);
+    paneLayout->setSpacing(0);
+    paneLayout->addWidget(m_titleBar);
+    paneLayout->addWidget(m_pages, 1);
+
+    m_updateBanner = new UpdateBannerWidget(central);
+    auto *row = new QHBoxLayout;
+    row->setContentsMargins(0, 0, 0, 0);
+    row->setSpacing(0);
+    row->addWidget(m_rail);
+    row->addWidget(pane, 1);
+    auto *centralLayout = new QVBoxLayout(central);
+    centralLayout->setContentsMargins(0, 0, 0, 0);
+    centralLayout->setSpacing(0);
+    centralLayout->addWidget(m_updateBanner);
+    centralLayout->addLayout(row, 1);
+    centralLayout->addWidget(m_bottomBar);
+
+    connect(m_rail, &NavigationRail::currentChanged, this, [this](int index) { goToPage(m_pageKeys.value(index)); });
+    connect(m_bottomBar, &NavigationRail::currentChanged, this, [this](int index) { goToPage(m_pageKeys.value(index)); });
+    connect(home, &HomePage::navigate, this, &MainWindow::goToPage);
+    connect(home, &HomePage::updateEverything, this, &MainWindow::updateAll);
+    connect(home, &HomePage::reviewAurUpdates, this, &MainWindow::reviewAurUpdates);
+    connect(updates, &AllUpdatesPage::updateEverything, this, &MainWindow::updateAll);
+    connect(m_sheet, &DetailsSheet::packagesChanged, m_hub, &CatalogHub::refreshAll);
+    connect(m_sheet, &DetailsSheet::message, this, &MainWindow::showMessage);
+    // The sheet's "Edit permissions": Sources → Flatpak → Permissions, on that app.
+    connect(m_sheet, &DetailsSheet::editPermissions, this, [this](const QString &appId) {
+        goToPage(QStringLiteral("sources"));
+        m_sourcesPage->showSource(m_sourcesPage->indexOfSource(tr("Flatpak")));
+        for (QTabWidget *tabs : m_sourcesPage->findChildren<QTabWidget *>()) {
+            for (int i = 0; i < tabs->count(); ++i) {
+                if (tabs->tabText(i) != tr("Permissions"))
+                    continue;
+                tabs->setCurrentIndex(i);
+                // The tab builds its page on first show.
+                QTimer::singleShot(0, this, [tabs, i, appId]() {
+                    if (auto *page = tabs->widget(i)->findChild<PermissionsPage *>())
+                        page->selectApp(appId);
+                });
+                return;
+            }
+        }
+    });
+}
+
+void MainWindow::setupActions()
+{
+    // No menu bar in the new layout: the window-wide shortcuts live on the
+    // window itself, and the rest is in the title bar's overflow menu.
+    auto *reload = new QAction(tr("Reload Package Information"), this);
+    reload->setShortcut(QKeySequence(tr("Ctrl+R")));
+    connect(reload, &QAction::triggered, this, &MainWindow::reloadAllPackageInformation);
+    auto *find = new QAction(tr("Find Package"), this);
+    find->setShortcut(QKeySequence::Find);
+    connect(find, &QAction::triggered, this, [this]() {
+        goToPage(QStringLiteral("discover"));
+        m_discover->focusSearch();
+    });
+    auto *clean = new QAction(tr("Clean Left-Behind Dependencies"), this);
+    clean->setEnabled(m_backend != nullptr);
+    connect(clean, &QAction::triggered, this, [this]() {
+        PackageActions::cleanUnusedDependencies(this, m_backend.get(), [this](bool success) {
+            if (success)
+                m_hub->refreshInstalled();
+        });
+    });
+    // The old Settings → Repositories shortcut: the system source's
+    // repositories under Sources.
+    auto *repositories = new QAction(tr("Repositories"), this);
+    connect(repositories, &QAction::triggered, this, [this]() {
+        goToPage(QStringLiteral("sources"));
+        m_sourcesPage->showSource(0);
+        if (m_systemTabs)
+            m_systemTabs->setCurrentIndex(0);
+    });
+    auto *checkUpdates = new QAction(tr("Check for Athena Updates"), this);
+    connect(checkUpdates, &QAction::triggered, this, &MainWindow::checkForApplicationUpdates);
+    auto *reportBug = new QAction(tr("Report a Bug…"), this);
+    connect(reportBug, &QAction::triggered, this, []() { QDesktopServices::openUrl(QUrl(QString::fromLatin1(kIssuesUrl))); });
+    auto *about = new QAction(tr("About Athena"), this);
+    connect(about, &QAction::triggered, this, &MainWindow::showAboutDialog);
+    auto *quit = new QAction(tr("Quit"), this);
+    quit->setShortcut(QKeySequence::Quit);
+    connect(quit, &QAction::triggered, qApp, &QApplication::quit);
+
+    for (QAction *action : {reload, find, quit})
+        addAction(action);
+
+    // Tools and Settings, for narrow windows where the bottom bar has no room.
+    QAction *toolsAction = m_overflowMenu->addAction(tr("Tools"));
+    connect(toolsAction, &QAction::triggered, this, [this]() { goToPage(QStringLiteral("tools")); });
+    QAction *settingsAction = m_overflowMenu->addAction(tr("Settings"));
+    connect(settingsAction, &QAction::triggered, this, [this]() { goToPage(QStringLiteral("settings")); });
+    m_overflowMenu->addSeparator();
+    m_overflowMenu->addAction(reload);
+    m_overflowMenu->addAction(clean);
+    m_overflowMenu->addAction(repositories);
+    m_overflowMenu->addSeparator();
+    m_overflowMenu->addAction(checkUpdates);
+    m_overflowMenu->addAction(reportBug);
+    m_overflowMenu->addAction(about);
+    m_overflowMenu->addSeparator();
+    m_overflowMenu->addAction(quit);
+}
+
+void MainWindow::setupTray()
+{
+    if (!QSystemTrayIcon::isSystemTrayAvailable())
         return;
 
-    using BackendUpdates = QVector<std::pair<PackageBackend *, QVector<PackageInfo>>>;
-    auto *watcher = new QFutureWatcher<BackendUpdates>(this);
-    QFuture<BackendUpdates> future = QtConcurrent::run([backends]() {
-        BackendUpdates results;
-        for (PackageBackend *backend : backends)
-            results.append({backend, backend->listUpdates()});
-        return results;
+    m_trayIcon = new QSystemTrayIcon(MaterialTheme::icon(QStringLiteral("system_update_alt"), MaterialTheme::current().primary, 64),
+                                     this);
+    m_trayIcon->setToolTip(tr("Athena"));
+    auto *trayMenu = new QMenu(this);
+    connect(trayMenu->addAction(tr("Settings")), &QAction::triggered, this, [this]() {
+        show();
+        raise();
+        goToPage(QStringLiteral("settings"));
     });
-
-    connect(watcher, &QFutureWatcher<BackendUpdates>::finished, this, [this, watcher]() {
-        const BackendUpdates results = watcher->result();
-        watcher->deleteLater();
-
-        m_pendingUpdatesByBackend.clear();
-        int total = 0;
-        for (const auto &entry : results) {
-            if (!entry.second.isEmpty())
-                m_pendingUpdatesByBackend.insert(entry.first, entry.second);
-            total += entry.second.size();
+    m_trayUpdateAction = trayMenu->addAction(tr("Update"));
+    m_trayUpdateAction->setEnabled(false);
+    connect(m_trayUpdateAction, &QAction::triggered, this, &MainWindow::updateAll);
+    trayMenu->addSeparator();
+    connect(trayMenu->addAction(tr("Quit")), &QAction::triggered, qApp, &QApplication::quit);
+    m_trayIcon->setContextMenu(trayMenu);
+    connect(m_trayIcon, &QSystemTrayIcon::activated, this, [this](QSystemTrayIcon::ActivationReason reason) {
+        if (reason != QSystemTrayIcon::Trigger)
+            return;
+        setVisible(!isVisible());
+        if (isVisible()) {
+            raise();
+            activateWindow();
         }
-        updateTrayIconState(total);
     });
-    watcher->setFuture(future);
+    m_trayIcon->setVisible(!AppSettings::instance().hideTrayWhenNoUpdates());
+
+    m_updateCheckTimer = new QTimer(this);
+    connect(m_updateCheckTimer, &QTimer::timeout, m_hub, &CatalogHub::refreshUpdates);
+    auto applyInterval = [this](int minutes) { m_updateCheckTimer->start(minutes * 60000); };
+    applyInterval(AppSettings::instance().updateCheckIntervalMinutes());
+    connect(&AppSettings::instance(), &AppSettings::updateCheckIntervalMinutesChanged, this, applyInterval);
+}
+
+void MainWindow::goToPage(const QString &key)
+{
+    const int index = m_pageKeys.indexOf(key);
+    if (index < 0)
+        return;
+    m_sheet->close();
+    Motion::switchStack(m_pages, index);
+    m_pageTitle->setText(m_pageTitles[index]);
+    if (index < kBottomDestinations) {
+        if (m_bottomBar->currentIndex() != index)
+            m_bottomBar->setCurrentIndex(index);
+    } else {
+        m_bottomBar->clearSelection();
+    }
+    if (m_rail->currentIndex() != index)
+        m_rail->setCurrentIndex(index);
+}
+
+void MainWindow::applyTitleBarMode(bool custom)
+{
+    m_frameless->setEnabled(custom);
+    m_windowControls->setVisible(custom);
+    updateWindowFrame();
+}
+
+void MainWindow::updateWindowFrame()
+{
+    const bool framed = m_frameless && m_frameless->isEnabled() && !isMaximized() && !isFullScreen();
+    if (m_windowFrame->property("framed").toBool() != framed) {
+        m_windowFrame->setProperty("framed", framed);
+        m_windowFrame->layout()->setContentsMargins(framed ? 1 : 0, framed ? 1 : 0, framed ? 1 : 0, framed ? 1 : 0);
+        m_windowFrame->style()->unpolish(m_windowFrame);
+        m_windowFrame->style()->polish(m_windowFrame);
+    }
+    if (m_maximizeButton) {
+        MaterialTheme::setButtonIcon(m_maximizeButton, isMaximized() ? QStringLiteral("filter_none") : QStringLiteral("crop_square"));
+        m_maximizeButton->setToolTip(isMaximized() ? tr("Restore") : tr("Maximize"));
+    }
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    QMainWindow::resizeEvent(event);
+    const bool narrow = width() < 720;
+    if (m_rail && m_rail->isVisible() == narrow) {
+        m_rail->setVisible(!narrow);
+        m_bottomBar->setVisible(narrow);
+    }
+}
+
+void MainWindow::changeEvent(QEvent *event)
+{
+    if (event->type() == QEvent::WindowStateChange)
+        updateWindowFrame();
+    QMainWindow::changeEvent(event);
+}
+
+void MainWindow::showMessage(const QString &text)
+{
+    m_snackbar->showMessage(text);
+}
+
+QVector<PackageBackend *> MainWindow::allBackends() const
+{
+    QVector<PackageBackend *> backends;
+    for (const CatalogSource &source : m_hub->sources())
+        backends.append(source.backend);
+    return backends;
+}
+
+void MainWindow::onUpdatesChanged()
+{
+    m_pendingUpdatesByBackend.clear();
+    for (const CatalogItem &item : m_hub->updates()) {
+        const CatalogVariant &variant = item.variants.first();
+        m_pendingUpdatesByBackend[m_hub->sources()[variant.source].backend].append(variant.info.name);
+    }
+    const int total = m_hub->updates().size();
+    m_rail->setBadge(m_pageKeys.indexOf(QStringLiteral("updates")), total);
+    m_bottomBar->setBadge(m_pageKeys.indexOf(QStringLiteral("updates")), total);
+    updateTrayIconState(total);
 }
 
 void MainWindow::updateTrayIconState(int totalUpdates)
 {
     if (!m_trayIcon)
         return;
-
-    const bool shouldShow = totalUpdates > 0 || !AppSettings::instance().hideTrayWhenNoUpdates();
-    m_trayIcon->setVisible(shouldShow);
-    m_trayIcon->setToolTip(totalUpdates > 0 ? tr("%n update(s) available", "", totalUpdates)
-                                             : tr("Athena — up to date"));
+    m_trayIcon->setVisible(totalUpdates > 0 || !AppSettings::instance().hideTrayWhenNoUpdates());
+    m_trayIcon->setToolTip(totalUpdates > 0 ? tr("%n update(s) available", "", totalUpdates) : tr("Athena — up to date"));
     if (m_trayUpdateAction)
         m_trayUpdateAction->setEnabled(totalUpdates > 0);
 }
 
-void MainWindow::updateAllFromTray()
+void MainWindow::reviewAurUpdates()
+{
+    if (!m_aurBackend)
+        return;
+    const QStringList names = m_pendingUpdatesByBackend.value(m_aurBackend.get());
+    if (names.isEmpty())
+        return;
+    PackageActions::upgradePackages(this, m_aurBackend.get(), names, [this](bool success) {
+        showMessage(success ? tr("AUR updates installed.") : tr("AUR updates were not installed."));
+        m_hub->refreshAll();
+    });
+}
+
+void MainWindow::updateAll()
 {
     if (m_pendingUpdatesByBackend.isEmpty())
         return;
 
-    QMap<PackageBackend *, QStringList> namesByBackend;
-    int total = 0;
-    for (auto it = m_pendingUpdatesByBackend.constBegin(); it != m_pendingUpdatesByBackend.constEnd(); ++it) {
-        QStringList names;
-        for (const PackageInfo &pkg : it.value())
-            names << pkg.name;
-        namesByBackend.insert(it.key(), names);
-        total += names.size();
+    // Arch news since the last system upgrade comes first: some posts say
+    // the upgrade needs a manual step.
+    if (m_home && m_backend && m_pendingUpdatesByBackend.contains(m_backend.get())) {
+        const QVector<SystemTools::NewsItem> unread = m_home->unreadNews();
+        if (!unread.isEmpty()) {
+            const bool intervention = std::any_of(unread.begin(), unread.end(), [](const SystemTools::NewsItem &n) { return n.manualIntervention; });
+            QStringList titles;
+            for (const SystemTools::NewsItem &item : unread)
+                titles << QStringLiteral("• ") + item.title.toHtmlEscaped();
+            M3Dialog dialog(this);
+            dialog.setHeadline(intervention ? tr("Read this before updating") : tr("Arch news since your last update"),
+                               intervention ? QStringLiteral("warning") : QStringLiteral("campaign"));
+            dialog.setSupportingText((intervention ? tr("Arch Linux posted a notice that needs manual action before or after "
+                                                        "upgrading:<br><br>%1")
+                                                   : tr("%1"))
+                                         .arg(titles.join(QStringLiteral("<br>"))));
+            enum { Cancel, Read, Proceed };
+            int choice = Cancel;
+            QPushButton *cancel = dialog.addAction(tr("Cancel"), QStringLiteral("text"));
+            QPushButton *read = dialog.addAction(tr("Read first"), intervention ? QStringLiteral("filled") : QStringLiteral("tonal"));
+            QPushButton *proceed = dialog.addAction(tr("Update anyway"), intervention ? QStringLiteral("text") : QStringLiteral("filled"));
+            connect(cancel, &QPushButton::clicked, &dialog, &QDialog::reject);
+            connect(read, &QPushButton::clicked, &dialog, [&]() { choice = Read; dialog.accept(); });
+            connect(proceed, &QPushButton::clicked, &dialog, [&]() { choice = Proceed; dialog.accept(); });
+            dialog.exec();
+            if (choice == Read) {
+                for (const SystemTools::NewsItem &item : unread) {
+                    NewsDialog news(item, this);
+                    news.exec();
+                }
+                m_home->markNewsRead();
+                return;
+            }
+            if (choice != Proceed)
+                return;
+        }
     }
 
+    QMap<PackageBackend *, QStringList> namesByBackend = m_pendingUpdatesByBackend;
     // AUR updates are new builds from new build files, so (with review on)
-    // they're pulled out of the unattended batch and go through the
-    // review dialog once everything else is done.
+    // they're pulled out of the unattended batch and go through the review
+    // dialog once everything else is done.
     QStringList aurNames;
-    if (m_aurBackend && AurBackend::reviewRequired() && namesByBackend.contains(m_aurBackend.get())) {
+    if (m_aurBackend && AurBackend::reviewRequired() && namesByBackend.contains(m_aurBackend.get()))
         aurNames = namesByBackend.take(m_aurBackend.get());
-        total -= aurNames.size();
-    }
-    auto reviewAurUpdates = [this, aurNames]() {
+    int total = 0;
+    for (const QStringList &names : namesByBackend)
+        total += names.size();
+
+    auto reviewAur = [this, aurNames]() {
         if (aurNames.isEmpty()) {
-            pollForTrayUpdates();
+            m_hub->refreshAll();
             return;
         }
         AurReviewDialog::reviewAndBuild(this, aurNames, true, [this](bool success) {
-            statusBar()->showMessage(success ? tr("AUR updates installed.") : tr("AUR updates were not installed."),
-                                     5000);
-            pollForTrayUpdates();
+            showMessage(success ? tr("AUR updates installed.") : tr("AUR updates were not installed."));
+            m_hub->refreshAll();
         });
     };
     if (namesByBackend.isEmpty()) {
-        reviewAurUpdates();
+        reviewAur();
         return;
     }
 
     const QString summary = tr("Install %1 available update(s) across all package managers?").arg(total)
         + (aurNames.isEmpty() ? QString()
-                              : tr("\n\n%n AUR update(s) will open for PKGBUILD review afterwards.", "",
-                                   aurNames.size()));
+                              : tr("\n\n%n AUR update(s) will open for PKGBUILD review afterwards.", "", aurNames.size()));
+    // One snapshot for the whole batch, if any of it touches the system.
+    QVector<ProcessRunner::Command> snapshot;
+    for (PackageBackend *backend : namesByBackend.keys()) {
+        snapshot = PackageActions::snapshotSteps(backend, QStringLiteral("updating everything"));
+        if (!snapshot.isEmpty())
+            break;
+    }
     PackageActions::confirmAndRun(
         this, tr("Update All"), summary,
-        [namesByBackend]() -> OperationResult {
+        [namesByBackend, snapshot]() -> OperationResult {
             OperationResult combined;
+            if (!snapshot.isEmpty()) {
+                const ProcessRunner::Result taken = ProcessRunner::runSequence(snapshot, 600000);
+                if (!taken.started || taken.exitCode != 0) {
+                    combined.output = tr("The snapshot before updating failed, so nothing was updated.\n\n%1")
+                                          .arg(taken.stdOut + taken.stdErr);
+                    return combined;
+                }
+            }
             combined.success = true;
             for (auto it = namesByBackend.constBegin(); it != namesByBackend.constEnd(); ++it) {
                 const OperationResult result = it.key()->upgradePackages(it.value());
@@ -450,142 +738,35 @@ void MainWindow::updateAllFromTray()
             }
             return combined;
         },
-        [this, reviewAurUpdates](bool success) {
-            statusBar()->showMessage(success ? tr("Updates installed.") : tr("Some updates failed to install."),
-                                      5000);
-            reviewAurUpdates();
+        [this, reviewAur](bool success) {
+            showMessage(success ? tr("Updates installed.") : tr("Some updates failed to install."));
+            reviewAur();
         });
 }
 
 void MainWindow::applyDisableGroupView(bool disabled)
 {
-    if (!m_systemTabs || !m_systemGroupsPage)
+    if (!m_systemTabs || !m_systemGroupsTab)
         return;
-
-    const int existingIndex = m_systemTabs->indexOf(m_systemGroupsPage);
+    const int existing = m_systemTabs->indexOf(m_systemGroupsTab);
     if (disabled) {
-        if (existingIndex >= 0)
-            m_systemTabs->removeTab(existingIndex);
+        if (existing >= 0)
+            m_systemTabs->removeTab(existing);
         return;
     }
-
-    if (existingIndex >= 0)
-        return;
-
-    // Re-insert right after "Search" (or at the end if that tab is somehow
-    // gone), keeping the same Installed/Updates/Search/Groups/... order it
-    // started in.
-    int insertIndex = m_systemTabs->count();
-    for (int i = 0; i < m_systemTabs->count(); ++i) {
-        if (m_systemTabs->tabText(i) == tr("Search")) {
-            insertIndex = i + 1;
-            break;
-        }
-    }
-    m_systemTabs->insertTab(insertIndex, m_systemGroupsPage, tr("Groups"));
-}
-
-QTabWidget *MainWindow::currentGroupTabs() const
-{
-    if (!m_groupStack)
-        return nullptr;
-
-    QWidget *current = m_groupStack->currentWidget();
-    if (current == m_systemTabs)
-        return m_systemTabs;
-    if (current == m_flatpakTabs)
-        return m_flatpakTabs;
-    if (current == m_snapTabs)
-        return m_snapTabs;
-    if (current == m_aurTabs)
-        return m_aurTabs;
-    return nullptr;
-}
-
-PackageBackend *MainWindow::currentGroupBackend() const
-{
-    if (!m_groupStack)
-        return nullptr;
-
-    QWidget *current = m_groupStack->currentWidget();
-    if (current == m_systemTabs)
-        return m_backend.get();
-    if (current == m_flatpakTabs)
-        return m_flatpakBackend.get();
-    if (current == m_snapTabs)
-        return m_snapBackend.get();
-    if (current == m_aurTabs)
-        return m_aurBackend.get();
-    return nullptr;
-}
-
-void MainWindow::focusGroupTab(const QString &tabText)
-{
-    QTabWidget *group = currentGroupTabs();
-    if (!group)
-        return;
-
-    for (int i = 0; i < group->count(); ++i) {
-        if (group->tabText(i) == tabText) {
-            group->setCurrentIndex(i);
-            return;
-        }
-    }
-}
-
-PackageBrowser *MainWindow::currentPackageBrowser() const
-{
-    QTabWidget *group = currentGroupTabs();
-    if (!group)
-        return nullptr;
-
-    QWidget *current = group->currentWidget();
-    if (auto *page = qobject_cast<InstalledPage *>(current))
-        return page->browser();
-    if (auto *page = qobject_cast<UpdatesPage *>(current))
-        return page->browser();
-    if (auto *page = qobject_cast<SearchPage *>(current))
-        return page->browser();
-    if (auto *page = qobject_cast<GroupsPage *>(current))
-        return page->browser();
-    return nullptr;
-}
-
-void MainWindow::updateStatusBarStats()
-{
-    if (!m_statsLabel)
-        return;
-
-    PackageBrowser *browser = currentPackageBrowser();
-    if (!browser) {
-        m_statsLabel->clear();
-        return;
-    }
-
-    const PackageBrowser::Stats stats = browser->stats();
-    m_statsLabel->setText(tr("%1 listed, %2 installed, %3 to install/upgrade, %4 to remove")
-                               .arg(stats.listed)
-                               .arg(stats.installed)
-                               .arg(stats.toInstallOrUpgrade)
-                               .arg(stats.toRemove));
+    if (existing < 0)
+        m_systemTabs->insertTab(1, m_systemGroupsTab, tr("Groups"));
 }
 
 void MainWindow::reloadAllPackageInformation()
 {
-    QVector<PackageBackend *> backends;
-    if (m_backend)
-        backends.append(m_backend.get());
-    if (m_flatpakBackend)
-        backends.append(m_flatpakBackend.get());
-    if (m_snapBackend)
-        backends.append(m_snapBackend.get());
+    const QVector<PackageBackend *> backends = allBackends();
     if (backends.isEmpty())
         return;
-
     PackageActions::confirmAndRun(
         this, tr("Reload Package Information"),
-        tr("Refresh package metadata for all available package managers now?\n\nThis may "
-           "require administrator privileges and can take a moment."),
+        tr("Refresh package metadata for all available package managers now?\n\nThis may require administrator "
+           "privileges and can take a moment."),
         [backends]() -> OperationResult {
             OperationResult combined;
             combined.success = true;
@@ -598,27 +779,27 @@ void MainWindow::reloadAllPackageInformation()
             return combined;
         },
         [this](bool success) {
-            statusBar()->showMessage(success ? tr("Package information reloaded.")
-                                              : tr("Failed to reload package information."),
-                                      5000);
+            showMessage(success ? tr("Package information reloaded.") : tr("Failed to reload package information."));
+            if (success) {
+                m_hub->refreshAll();
+                m_hub->appIndex()->load(); // pick up refreshed AppStream catalogs
+            }
         });
 }
 
 void MainWindow::checkForApplicationUpdates()
 {
     auto *checker = new GitHubReleaseChecker(this);
-    connect(checker, &GitHubReleaseChecker::updateAvailable, this,
-            [this, checker](const QString &version, const QString &htmlUrl) {
-                m_updateBanner->showUpdate(version, htmlUrl);
-                checker->deleteLater();
-            });
+    connect(checker, &GitHubReleaseChecker::updateAvailable, this, [this, checker](const QString &version, const QString &htmlUrl) {
+        m_updateBanner->showUpdate(version, htmlUrl);
+        checker->deleteLater();
+    });
     connect(checker, &GitHubReleaseChecker::upToDate, this, [this, checker]() {
-        QMessageBox::information(this, tr("Check for Updates"), tr("Athena is up to date."));
+        showMessage(tr("Athena is up to date."));
         checker->deleteLater();
     });
     connect(checker, &GitHubReleaseChecker::checkFailed, this, [this, checker](const QString &reason) {
-        QMessageBox::warning(this, tr("Check for Updates"),
-                              tr("Couldn't check for updates.\n\n%1").arg(reason));
+        M3Message::warning(this, tr("Check for Updates"), tr("Couldn't check for updates.\n\n%1").arg(reason));
         checker->deleteLater();
     });
     checker->checkForUpdate();
@@ -626,91 +807,10 @@ void MainWindow::checkForApplicationUpdates()
 
 void MainWindow::showAboutDialog()
 {
-    QMessageBox::about(
-        this, tr("About Athena"),
-        tr("<h3>Athena %1</h3>"
-           "<p>A cross-distro package manager for DNF, APT, Pacman (plus the AUR), Flatpak, and Snap.</p>"
-           "<p><a href=\"%2\">%2</a></p>")
-            .arg(QStringLiteral(ATHENA_VERSION), QString::fromLatin1(kProjectUrl)));
-}
-
-void MainWindow::setupMenuBar()
-{
-    auto *fileMenu = menuBar()->addMenu(tr("&File"));
-
-    QAction *reloadAction = fileMenu->addAction(AppIcons::refresh(), tr("&Reload Package Information"));
-    reloadAction->setShortcut(QKeySequence(tr("Ctrl+R")));
-    connect(reloadAction, &QAction::triggered, this, &MainWindow::reloadAllPackageInformation);
-
-    fileMenu->addSeparator();
-
-    QAction *quitAction = fileMenu->addAction(tr("&Quit"));
-    quitAction->setShortcut(QKeySequence::Quit);
-    connect(quitAction, &QAction::triggered, this, &QWidget::close);
-
-    auto *editMenu = menuBar()->addMenu(tr("&Edit"));
-
-    QAction *findAction = editMenu->addAction(AppIcons::search(), tr("&Find Package..."));
-    findAction->setShortcut(QKeySequence::Find);
-    connect(findAction, &QAction::triggered, this, [this]() { focusGroupTab(tr("Search")); });
-
-    auto *packageMenu = menuBar()->addMenu(tr("&Package"));
-
-    QAction *showUpdatesAction = packageMenu->addAction(AppIcons::update(), tr("View &Available Updates"));
-    connect(showUpdatesAction, &QAction::triggered, this, [this]() { focusGroupTab(tr("Updates")); });
-
-    QAction *cleanAction = packageMenu->addAction(AppIcons::clean(), tr("&Clean Unused Dependencies"));
-    connect(cleanAction, &QAction::triggered, this, [this]() {
-        if (PackageBackend *backend = currentGroupBackend())
-            PackageActions::cleanUnusedDependencies(this, backend, [](bool) {});
-    });
-
-    auto *settingsMenu = menuBar()->addMenu(tr("&Settings"));
-
-    QAction *preferencesAction = settingsMenu->addAction(tr("&Preferences"));
-    connect(preferencesAction, &QAction::triggered, this, [this]() {
-        PreferencesDialog dialog(this);
-        dialog.exec();
-    });
-
-    QAction *repositoriesAction = settingsMenu->addAction(tr("&Repositories"));
-    connect(repositoriesAction, &QAction::triggered, this, [this]() { focusGroupTab(tr("Repositories")); });
-
-    auto *helpMenu = menuBar()->addMenu(tr("&Help"));
-
-    QAction *checkUpdatesAction = helpMenu->addAction(tr("Check for &Application Updates"));
-    connect(checkUpdatesAction, &QAction::triggered, this, &MainWindow::checkForApplicationUpdates);
-
-    helpMenu->addSeparator();
-
-    QAction *reportBugAction = helpMenu->addAction(tr("&Report a Bug..."));
-    connect(reportBugAction, &QAction::triggered, this,
-            []() { QDesktopServices::openUrl(QUrl(QString::fromLatin1(kIssuesUrl))); });
-
-    QAction *aboutAction = helpMenu->addAction(tr("&About Athena"));
-    connect(aboutAction, &QAction::triggered, this, &MainWindow::showAboutDialog);
-
-    // Group-scoped actions (Find, View Updates, Clean, Repositories) only
-    // make sense while a System/AUR/Flatpak/Snap tab is active, and
-    // Repositories only exists as a sub-tab for some groups — keep them
-    // enabled/disabled to match whatever the user is currently looking at.
-    auto updateActionStates = [this, findAction, showUpdatesAction, cleanAction, repositoriesAction]() {
-        QTabWidget *group = currentGroupTabs();
-        findAction->setEnabled(group != nullptr);
-        showUpdatesAction->setEnabled(group != nullptr);
-        cleanAction->setEnabled(currentGroupBackend() != nullptr);
-
-        bool hasRepositories = false;
-        if (group) {
-            for (int i = 0; i < group->count(); ++i) {
-                if (group->tabText(i) == tr("Repositories")) {
-                    hasRepositories = true;
-                    break;
-                }
-            }
-        }
-        repositoriesAction->setEnabled(hasRepositories);
-    };
-    connect(m_groupStack, &QStackedWidget::currentChanged, this, updateActionStates);
-    updateActionStates();
+    M3Message::about(this, tr("About Athena"),
+                       tr("<h3>Athena %1</h3>"
+                          "<p>A cross-distro package manager for DNF, APT, Pacman (plus the AUR), Flatpak, and Snap.</p>"
+                          "<p><a href=\"%2\">%2</a></p>"
+                          "<p>Icons: Material Symbols, © Google, Apache License 2.0.</p>")
+                           .arg(QStringLiteral(ATHENA_VERSION), QString::fromLatin1(kProjectUrl)));
 }

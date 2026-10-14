@@ -2,11 +2,11 @@
 
 #include <functional>
 
-#include <QDialog>
 #include <QMap>
 #include <QStringList>
 
 #include "../core/backends/AurBackend.h"
+#include "M3Dialog.h"
 
 class QCheckBox;
 class QComboBox;
@@ -21,7 +21,7 @@ class QPushButton;
 // a closer look, and only enables "Build & Install" once every package has
 // been opened and the user confirms. Edits are written back into the
 // cloned directories that are then built as-is.
-class AurReviewDialog : public QDialog {
+class AurReviewDialog : public M3Dialog {
     Q_OBJECT
 
 public:
@@ -42,12 +42,25 @@ private:
         QString path;
         QString original;
         QString current;
+        // The same file as of the last build you approved, if any.
+        QString approved;
+        bool hadApproved = false;
+        bool changedSinceApproved() const { return !hadApproved || approved != original; }
     };
     struct ReviewPackage {
         AurBackend::PreparedBuild::Package source;
         QVector<ReviewFile> files;
         bool viewed = false;
+        // A copy of what you approved last time exists: review the changes.
+        bool hasApprovedCopy = false;
+        QString approvedVersion;
+        QStringList removedFiles;
+        int changedFiles = 0;
     };
+
+    // Where approved build files are kept, one folder per package base.
+    static QString approvedRoot();
+    void showDiff();
 
     void onPackageSelected(int row);
     void onFileSelected(int index);
@@ -69,6 +82,10 @@ private:
     QComboBox *m_fileCombo;
     QPushButton *m_revertButton;
     QPlainTextEdit *m_editor;
+    class QStackedWidget *m_editorStack;
+    class QTextBrowser *m_diffView;
+    QWidget *m_viewModeBox;
+    class QButtonGroup *m_viewMode;
     QListWidget *m_warningList;
     QCheckBox *m_confirmCheck;
     QPushButton *m_buildButton;

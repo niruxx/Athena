@@ -1,12 +1,12 @@
 #pragma once
 
-#include <QDialog>
+#include "M3Dialog.h"
 
 // Clean, structured replacement for a plain QMessageBox::question when
 // confirming an install/remove/reinstall: a short bold summary line, then
 // (if the backend produced one) the dependency-resolved plan in its own
 // scrollable panel rather than jammed into a message box's body text.
-class TransactionConfirmDialog : public QDialog {
+class TransactionConfirmDialog : public M3Dialog {
     Q_OBJECT
 
 public:

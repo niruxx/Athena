@@ -6,13 +6,13 @@
 
 #include "../core/PackageBackend.h"
 
-class QTableWidget;
-class QTableWidgetItem;
+class M3Switch;
 class QLabel;
 class QPushButton;
+class QVBoxLayout;
 
 // One backend to pull repositories from, tagged with a short label shown
-// in the Source column (e.g. "System", "Flatpak").
+// beside each repository (e.g. "System", "Flatpak").
 struct RepositorySource {
     PackageBackend *backend = nullptr;
     QString label;
@@ -35,7 +35,7 @@ public slots:
 
 private slots:
     void onLoaded();
-    void onItemChanged(QTableWidgetItem *item);
+    void onSwitchToggled(int row, bool enabled);
     void onToggleFinished();
     void onAddRepositoryClicked();
     void onAddFinished();
@@ -49,12 +49,13 @@ private:
 
     QVector<RepositorySource> m_sources;
     QVector<RepositoryRow> m_rows;
-    QTableWidget *m_table;
+    // One row per repository: name, URL and source, and an on/off switch.
+    QVBoxLayout *m_rowsLayout;
+    QVector<M3Switch *> m_switches;
     QLabel *m_statusLabel;
     QPushButton *m_refreshButton;
     QPushButton *m_addButton;
     QPushButton *m_updateListsButton;
-    bool m_updatingTable = false;
 
     QFutureWatcher<QVector<RepositoryRow>> m_listWatcher;
     QFutureWatcher<OperationResult> m_toggleWatcher;

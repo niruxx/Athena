@@ -7,8 +7,12 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include "../core/AppSettings.h"
+#include "../core/SystemTools.h"
+#include "../core/backends/FlatpakBackend.h"
+#include "../core/backends/SnapBackend.h"
 #include "../core/backends/AurBackend.h"
 #include "AurReviewDialog.h"
+#include "M3Dialog.h"
 #include "TerminalOutputDialog.h"
 #include "TransactionConfirmDialog.h"
 
@@ -45,6 +49,14 @@ bool runTerminalDialog(QWidget *parentWidget, const QString &actionVerb,
 
 namespace PackageActions {
 
+QVector<ProcessRunner::Command> snapshotSteps(PackageBackend *backend, const QString &what)
+{
+    if (!AppSettings::instance().snapshotBeforeTransactions() || !backend || dynamic_cast<FlatpakBackend *>(backend)
+        || dynamic_cast<SnapBackend *>(backend))
+        return {};
+    return SystemTools::snapshotCommands(QStringLiteral("Athena: before %1").arg(what));
+}
+
 void confirmAndRun(QWidget *parentWidget, const QString &actionVerb, const QString &confirmText,
                     std::function<OperationResult()> operation, std::function<void(bool)> onFinished,
                     bool requiresPrivileges)
@@ -68,7 +80,7 @@ void confirmAndRun(QWidget *parentWidget, const QString &actionVerb, const QStri
                           watcher->deleteLater();
 
                           if (!result.success) {
-                              QMessageBox::critical(
+                              M3Message::critical(
                                   parentWidget, actionVerb,
                                   QObject::tr("%1 failed.\n\n%2")
                                       .arg(actionVerb, result.output.trimmed()));
@@ -107,7 +119,7 @@ void previewConfirmAndRun(QWidget *parentWidget, const QString &actionVerb, cons
                                   applyWatcher->deleteLater();
 
                                   if (!result.success) {
-                                      QMessageBox::critical(
+                                      M3Message::critical(
                                           parentWidget, actionVerb,
                                           QObject::tr("%1 failed.\n\n%2")
                                               .arg(actionVerb, result.output.trimmed()));
@@ -194,10 +206,10 @@ void installPackages(QWidget *parentWidget, PackageBackend *backend, const QStri
 
     previewConfirmAndRunWithTerminal(
         parentWidget, verb, summary,
-        [backend, packageNames]() {
+        [backend, packageNames, verb]() {
             PreviewAndCommands data;
             data.preview = backend->previewInstall(packageNames);
-            data.commands = backend->installCommands(packageNames);
+            data.commands = snapshotSteps(backend, verb.toLower()) + backend->installCommands(packageNames);
             return data;
         },
         std::move(onFinished));
@@ -214,10 +226,10 @@ void removePackages(QWidget *parentWidget, PackageBackend *backend, const QStrin
 
     previewConfirmAndRunWithTerminal(
         parentWidget, verb, summary,
-        [backend, packageNames]() {
+        [backend, packageNames, verb]() {
             PreviewAndCommands data;
             data.preview = backend->previewRemove(packageNames);
-            data.commands = backend->removeCommands(packageNames);
+            data.commands = snapshotSteps(backend, verb.toLower()) + backend->removeCommands(packageNames);
             return data;
         },
         std::move(onFinished));
@@ -238,7 +250,38 @@ void reinstallPackages(QWidget *parentWidget, PackageBackend *backend, const QSt
 
     confirmAndRunCommandsWithTerminal(
         parentWidget, verb, summary,
-        [backend, packageNames]() { return backend->reinstallCommands(packageNames); }, std::move(onFinished));
+        [backend, packageNames, verb]() { return snapshotSteps(backend, verb.toLower()) + backend->reinstallCommands(packageNames); },
+        std::move(onFinished));
+}
+
+void upgradePackages(QWidget *parentWidget, PackageBackend *backend, const QStringList &packageNames,
+                     std::function<void(bool)> onFinished)
+{
+    if (!backend || packageNames.isEmpty())
+        return;
+    if (dynamic_cast<AurBackend *>(backend) && AurBackend::reviewRequired()) {
+        AurReviewDialog::reviewAndBuild(parentWidget, packageNames, true, std::move(onFinished));
+        return;
+    }
+
+    const QString verb = packageNames.size() == 1 ? QObject::tr("Update") : QObject::tr("Update packages");
+    const QString summary = QObject::tr("Update %1?").arg(summarizeNames(packageNames));
+    confirmAndRun(
+        parentWidget, verb, summary,
+        [backend, packageNames, verb]() {
+            const QVector<ProcessRunner::Command> snapshot = snapshotSteps(backend, verb.toLower());
+            if (!snapshot.isEmpty()) {
+                const ProcessRunner::Result taken = ProcessRunner::runSequence(snapshot, 600000);
+                if (!taken.started || taken.exitCode != 0) {
+                    OperationResult failed;
+                    failed.output = QObject::tr("The snapshot before updating failed, so nothing was updated.\n\n%1")
+                                        .arg(taken.stdOut + taken.stdErr);
+                    return failed;
+                }
+            }
+            return backend->upgradePackages(packageNames);
+        },
+        std::move(onFinished));
 }
 
 void cleanUnusedDependencies(QWidget *parentWidget, PackageBackend *backend,

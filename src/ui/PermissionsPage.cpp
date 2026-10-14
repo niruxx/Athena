@@ -27,6 +27,8 @@
 
 #include "AppIcons.h"
 #include "AthenaStyle.h"
+#include "M3Dialog.h"
+#include "MaterialTheme.h"
 
 namespace {
 constexpr int AppIdRole = Qt::UserRole;
@@ -54,6 +56,7 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     m_appList = new QListWidget(this);
     AthenaStyle::makeSidebar(m_appList);
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
+    MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
     m_statusLabel = new QLabel(tr("Loading apps..."), this);
 
     auto *leftLayout = new QVBoxLayout;
@@ -110,7 +113,9 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     m_filesystemList = new QListWidget(this);
     m_filesystemList->setSelectionMode(QAbstractItemView::SingleSelection);
     m_addFilesystemButton = new QPushButton(AppIcons::addItem(), tr("Add Access..."), this);
+    MaterialTheme::styleButton(m_addFilesystemButton, QStringLiteral("tonal"), QStringLiteral("add"));
     m_removeFilesystemButton = new QPushButton(AppIcons::uninstall(), tr("Remove Selected"), this);
+    MaterialTheme::styleButton(m_removeFilesystemButton, QStringLiteral("text"), QStringLiteral("delete"));
     m_removeFilesystemButton->setEnabled(false);
 
     auto *filesystemButtonRow = new QHBoxLayout;
@@ -126,7 +131,9 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     m_dbusList = new QListWidget(this);
     m_dbusList->setSelectionMode(QAbstractItemView::SingleSelection);
     m_addDBusButton = new QPushButton(AppIcons::addItem(), tr("Add..."), this);
+    MaterialTheme::styleButton(m_addDBusButton, QStringLiteral("tonal"), QStringLiteral("add"));
     m_removeDBusButton = new QPushButton(AppIcons::uninstall(), tr("Remove Selected"), this);
+    MaterialTheme::styleButton(m_removeDBusButton, QStringLiteral("text"), QStringLiteral("delete"));
     m_removeDBusButton->setEnabled(false);
 
     auto *dbusButtonRow = new QHBoxLayout;
@@ -147,7 +154,9 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     m_envTable->setSelectionMode(QAbstractItemView::SingleSelection);
     m_envTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_addEnvButton = new QPushButton(AppIcons::addItem(), tr("Add..."), this);
+    MaterialTheme::styleButton(m_addEnvButton, QStringLiteral("tonal"), QStringLiteral("add"));
     m_removeEnvButton = new QPushButton(AppIcons::uninstall(), tr("Remove Selected"), this);
+    MaterialTheme::styleButton(m_removeEnvButton, QStringLiteral("text"), QStringLiteral("delete"));
     m_removeEnvButton->setEnabled(false);
 
     auto *envButtonRow = new QHBoxLayout;
@@ -160,6 +169,7 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     envLayout->addLayout(envButtonRow);
 
     m_resetButton = new QPushButton(AppIcons::clean(), tr("Reset to Defaults"), this);
+    MaterialTheme::styleButton(m_resetButton, QStringLiteral("danger"), QStringLiteral("restart_alt"));
     m_resetButton->setToolTip(tr("Remove every override for this app, reverting it to its default permissions."));
 
     auto *resetRow = new QHBoxLayout;
@@ -289,6 +299,7 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
         pathEdit->setPlaceholderText(tr("/path/to/folder"));
         pathEdit->setEnabled(false);
         auto *browseButton = new QPushButton(tr("Browse..."), &dialog);
+        MaterialTheme::styleButton(browseButton, QStringLiteral("text"), QStringLiteral("folder_open"));
         browseButton->setEnabled(false);
 
         connect(presetCombo, &QComboBox::currentIndexChanged, &dialog, [presetCombo, pathEdit, browseButton](int) {
@@ -460,7 +471,7 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
         const QString appId = currentAppId();
         if (appId.isEmpty())
             return;
-        const auto reply = QMessageBox::question(
+        const auto reply = M3Message::question(
             this, tr("Reset to Defaults"),
             tr("Remove every permission override for \"%1\"?\n\nIt will revert to its default sandbox "
                "permissions.")
@@ -527,10 +538,12 @@ void PermissionsPage::onAppListLoaded()
     });
 
     m_appList->clear();
+    const QString wanted = !m_pendingAppId.isEmpty() ? m_pendingAppId : previouslySelected;
+    m_pendingAppId.clear();
     for (const auto &[label, appId] : entries) {
         auto *item = new QListWidgetItem(label, m_appList);
         item->setData(AppIdRole, appId);
-        if (appId == previouslySelected)
+        if (appId == wanted)
             m_appList->setCurrentItem(item);
     }
 
@@ -539,6 +552,18 @@ void PermissionsPage::onAppListLoaded()
 
     if (apps.isEmpty())
         setDetailEnabled(false);
+}
+
+void PermissionsPage::selectApp(const QString &appId)
+{
+    for (int i = 0; i < m_appList->count(); ++i) {
+        if (m_appList->item(i)->data(AppIdRole).toString() == appId) {
+            m_appList->setCurrentRow(i);
+            m_appList->scrollToItem(m_appList->item(i));
+            return;
+        }
+    }
+    m_pendingAppId = appId; // list not loaded yet
 }
 
 void PermissionsPage::loadPermissionsForCurrentApp()
@@ -663,7 +688,7 @@ void PermissionsPage::onActionFinished()
 {
     const OperationResult result = m_actionWatcher.result();
     if (!result.success) {
-        QMessageBox::critical(this, tr("Permission Change Failed"),
+        M3Message::critical(this, tr("Permission Change Failed"),
                                tr("Failed to update permissions.\n\n%1").arg(result.output.trimmed()));
     }
     // Reload regardless of success so the UI reflects the real state

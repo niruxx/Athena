@@ -23,6 +23,8 @@
 #include "../core/DirSizeScanner.h"
 #include "../core/ProcessRunner.h"
 #include "AppIcons.h"
+#include "M3Dialog.h"
+#include "MaterialTheme.h"
 #include "PackageActions.h"
 
 using ProcessRunner::Result;
@@ -91,6 +93,7 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
     m_backupDestEdit = new QLineEdit(backupGroup);
     m_backupDestEdit->setPlaceholderText(tr("Destination folder..."));
     auto *browseDestButton = new QPushButton(AppIcons::folder(), tr("Browse..."), backupGroup);
+    MaterialTheme::styleButton(browseDestButton, QStringLiteral("text"), QStringLiteral("folder_open"));
     destRow->addWidget(m_backupDestEdit, 1);
     destRow->addWidget(browseDestButton);
     backupLayout->addLayout(destRow);
@@ -123,12 +126,14 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
     m_selectAllCheck = new QCheckBox(tr("Select All"), backupGroup);
     m_selectAllCheck->setChecked(true);
     m_rescanButton = new QPushButton(AppIcons::refresh(), tr("Rescan"), backupGroup);
+    MaterialTheme::styleButton(m_rescanButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
     m_selectedSummaryLabel = new QLabel(backupGroup);
     m_selectedSummaryLabel->setWordWrap(true);
     QFont summaryFont = m_selectedSummaryLabel->font();
     summaryFont.setBold(true);
     m_selectedSummaryLabel->setFont(summaryFont);
     m_backupButton = new QPushButton(AppIcons::archive(), tr("Back Up Now"), backupGroup);
+    MaterialTheme::styleButton(m_backupButton, QStringLiteral("filled"), QStringLiteral("backup"));
     backupSideLayout->addWidget(m_selectAllCheck);
     backupSideLayout->addWidget(m_rescanButton);
     backupSideLayout->addSpacing(8);
@@ -156,7 +161,9 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
     m_restoreSourceEdit = new QLineEdit(restoreGroup);
     m_restoreSourceEdit->setPlaceholderText(tr("Backup archive or folder..."));
     auto *browseArchiveButton = new QPushButton(AppIcons::archive(), tr("Browse Archive..."), restoreGroup);
+    MaterialTheme::styleButton(browseArchiveButton, QStringLiteral("text"), QStringLiteral("folder_open"));
     auto *browseFolderButton = new QPushButton(AppIcons::folder(), tr("Browse Folder..."), restoreGroup);
+    MaterialTheme::styleButton(browseFolderButton, QStringLiteral("text"), QStringLiteral("folder_open"));
     sourceRow->addWidget(m_restoreSourceEdit, 1);
     sourceRow->addWidget(browseArchiveButton);
     sourceRow->addWidget(browseFolderButton);
@@ -179,6 +186,7 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
         tr("Files already in your home directory with the same name will be overwritten."), restoreGroup);
     restoreWarning->setWordWrap(true);
     m_restoreButton = new QPushButton(AppIcons::download(), tr("Restore Now..."), restoreGroup);
+    MaterialTheme::styleButton(m_restoreButton, QStringLiteral("filled"), QStringLiteral("restore"));
     restoreSideLayout->addWidget(restoreWarning);
     restoreSideLayout->addStretch(1);
     restoreSideLayout->addWidget(m_restoreButton);
@@ -321,7 +329,7 @@ void UserBackupRestorePage::onCreateBackup()
 {
     const QString destDir = m_backupDestEdit->text().trimmed();
     if (destDir.isEmpty() || !QDir(destDir).exists()) {
-        QMessageBox::warning(this, tr("Backup"), tr("Choose a valid destination folder first."));
+        M3Message::warning(this, tr("Backup"), tr("Choose a valid destination folder first."));
         return;
     }
 
@@ -332,7 +340,7 @@ void UserBackupRestorePage::onCreateBackup()
             selected << item->text(0);
     }
     if (selected.isEmpty()) {
-        QMessageBox::information(this, tr("Backup"), tr("No dotfiles/folders selected."));
+        M3Message::information(this, tr("Backup"), tr("No dotfiles/folders selected."));
         return;
     }
 
@@ -381,10 +389,10 @@ void UserBackupRestorePage::onBackupFinished()
     setBusy(false, QString());
     if (result.success) {
         m_statusLabel->setText(tr("Backup saved to %1").arg(result.output));
-        QMessageBox::information(this, tr("Backup Complete"), tr("Backup saved successfully."));
+        M3Message::information(this, tr("Backup Complete"), tr("Backup saved successfully."));
     } else {
         m_statusLabel->clear();
-        QMessageBox::critical(this, tr("Backup Failed"),
+        M3Message::critical(this, tr("Backup Failed"),
                                tr("The backup process failed.\n\n%1").arg(result.output.trimmed()));
     }
 }
@@ -442,7 +450,7 @@ void UserBackupRestorePage::onRestore()
 {
     const QString source = m_restoreSourceEdit->text().trimmed();
     if (source.isEmpty() || !QFileInfo::exists(source)) {
-        QMessageBox::warning(this, tr("Restore"), tr("Choose a valid backup archive or folder first."));
+        M3Message::warning(this, tr("Restore"), tr("Choose a valid backup archive or folder first."));
         return;
     }
 

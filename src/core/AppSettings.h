@@ -1,10 +1,15 @@
 #pragma once
 
+#include <QDateTime>
 #include <QObject>
 
 enum class ThemeMode { System, Light, Dark };
-// Values are persisted as ints, so new entries only ever go on the end.
-enum class StartupTab { System, Flatpak, Snap, Aur };
+// Which navigation-rail page opens at startup. Values are persisted as
+// ints, so new entries only ever go on the end.
+enum class StartupTab { Home, Discover, Installed, Updates, Sources, Tools };
+// Breeze: the native KDE look. Material: Material You, generated from
+// seedHue(). Persisted as ints.
+enum class LookStyle { Breeze, Material };
 enum class LogLevel { Error, Warning, Info, Debug };
 
 // Thin QSettings wrapper for the app's persisted preferences. Singleton
@@ -23,9 +28,36 @@ public:
     // Call once at startup, before showing any windows.
     void applyCurrentTheme() const;
 
-    // Which top-level tab (System/Flatpak/Snap/AUR) is active when the app opens.
+    // Which navigation-rail page is active when the app opens.
     StartupTab startupTab() const;
     void setStartupTab(StartupTab tab);
+
+    // The overall look, and (for Material) the hue (0-359) its whole color
+    // scheme is generated from. Changing either re-applies the theme.
+    LookStyle lookStyle() const;
+    void setLookStyle(LookStyle look);
+    int seedHue() const;
+    void setSeedHue(int hue);
+
+    // Whether Athena draws its own title bar (matching the app) instead of
+    // the desktop's window decoration.
+    bool useCustomTitleBar() const;
+    void setUseCustomTitleBar(bool custom);
+
+    // Whether Athena animates (page/tab transitions, hover fades, ripples,
+    // sliding sheets). Also off when the desktop disables animations.
+    bool animationsEnabled() const;
+    void setAnimationsEnabled(bool enabled);
+
+    // Whether system-level transactions (native packages, AUR builds) take
+    // a Snapper/Timeshift snapshot first. Off by default: it adds a step
+    // (and a password prompt) to every transaction.
+    bool snapshotBeforeTransactions() const;
+    void setSnapshotBeforeTransactions(bool enabled);
+
+    // The newest Arch news post the user has read or dismissed.
+    QDateTime lastSeenNews() const;
+    void setLastSeenNews(const QDateTime &published);
 
     // Whether the install/uninstall/reinstall terminal output window
     // closes itself automatically once the operation succeeds, instead of
@@ -106,7 +138,11 @@ public:
 
 signals:
     void themeModeChanged(ThemeMode mode);
+    void lookStyleChanged(LookStyle look);
+    void seedHueChanged(int hue);
+    void useCustomTitleBarChanged(bool custom);
     void compactPackageListsChanged(bool compact);
+    void packageListColumnsChanged();
     void disableGroupViewChanged(bool disabled);
     void updateCheckIntervalMinutesChanged(int minutes);
 

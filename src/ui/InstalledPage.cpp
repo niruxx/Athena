@@ -13,6 +13,7 @@
 
 #include "AppIcons.h"
 #include "AthenaStyle.h"
+#include "MaterialTheme.h"
 #include "PackageActions.h"
 #include "PackageBrowser.h"
 
@@ -36,7 +37,9 @@ InstalledPage::InstalledPage(PackageBackend *backend, QWidget *parent)
     m_filterEdit->setPlaceholderText(tr("Filter installed packages..."));
 
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
+    MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
     m_cleanButton = new QPushButton(AppIcons::clean(), tr("Clean Left Behind Dependencies"), this);
+    MaterialTheme::styleButton(m_cleanButton, QStringLiteral("tonal"), QStringLiteral("cleaning_services"));
 
     m_browser = new PackageBrowser(backend, PackageBrowser::Mode::InstallRemove, this);
 

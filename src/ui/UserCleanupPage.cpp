@@ -13,6 +13,7 @@
 
 #include "../core/UserCleanupUtils.h"
 #include "AppIcons.h"
+#include "MaterialTheme.h"
 #include "PackageActions.h"
 
 namespace {
@@ -143,8 +144,11 @@ UserCleanupPage::UserCleanupPage(const QString &introText, const QVector<Cleanup
     detailsLayout->addLayout(detailsTextLayout, 1);
 
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
+    MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
     m_deleteButton = new QPushButton(AppIcons::uninstall(), tr("Delete Selected..."), this);
+    MaterialTheme::styleButton(m_deleteButton, QStringLiteral("danger"), QStringLiteral("delete"));
     m_deleteAllButton = new QPushButton(AppIcons::clean(), tr("Delete All..."), this);
+    MaterialTheme::styleButton(m_deleteAllButton, QStringLiteral("danger"), QStringLiteral("delete_sweep"));
     m_deleteButton->setEnabled(false);
     m_totalLabel = new QLabel(this);
     QFont totalFont = m_totalLabel->font();
