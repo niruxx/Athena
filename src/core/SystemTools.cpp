@@ -1,5 +1,7 @@
 #include "SystemTools.h"
 
+#include "SnapTools.h"
+
 #include <algorithm>
 
 #include <QDir>
@@ -146,24 +148,109 @@ QVector<ProcessRunner::Command> snapshotCommands(const QString &description)
     return {};
 }
 
-QVector<Snapshot> listSnapshots(int limit)
+QVector<Snapshot> parseSnapperJson(const QString &json)
 {
+    // {"root": [{"number": 12, "type": "pre", "pre-number": null, "date": "2026-10-14 10:00:01",
+    //            "user": "root", "description": "...", ...}, ...]}
     QVector<Snapshot> snapshots;
-    if (snapshotTool() != SnapshotTool::Snapper)
-        return snapshots;
-    const Result result = ProcessRunner::run("snapper", {"--jsonout", "-c", "root", "list"}, 10000);
-    const QJsonArray entries = QJsonDocument::fromJson(result.stdOut.toUtf8()).object().value("root").toArray();
+    const QJsonArray entries = QJsonDocument::fromJson(json.toUtf8()).object().value("root").toArray();
     for (const QJsonValue &entry : entries) {
         const QJsonObject o = entry.toObject();
-        if (o.value("number").toInt() == 0)
+        const int number = o.value("number").toInt();
+        if (number == 0)
             continue; // "current"
-        snapshots.append({QString::number(o.value("number").toInt()), QDateTime::fromString(o.value("date").toString(), Qt::ISODate),
-                          o.value("description").toString()});
+        Snapshot snapshot;
+        snapshot.id = QString::number(number);
+        const QString date = o.value("date").toString();
+        snapshot.time = QDateTime::fromString(date, QStringLiteral("yyyy-MM-dd HH:mm:ss"));
+        if (!snapshot.time.isValid())
+            snapshot.time = QDateTime::fromString(date, Qt::ISODate);
+        snapshot.description = o.value("description").toString();
+        snapshot.kind = o.value("type").toString();
+        if (o.value("pre-number").isDouble())
+            snapshot.pairedWith = QString::number(o.value("pre-number").toInt());
+        snapshot.user = o.value("user").toString();
+        snapshots.append(snapshot);
     }
     std::reverse(snapshots.begin(), snapshots.end());
-    if (snapshots.size() > limit)
+    return snapshots;
+}
+
+QVector<Snapshot> parseTimeshiftList(const QString &output)
+{
+    // Num     Name                 Tags  Description
+    // ------------------------------------------------------------------------------
+    // 0    >  2026-10-12_10-00-01  O     before update
+    static const QRegularExpression row(
+        QStringLiteral(R"(^\s*\d+\s+>?\s*(\d{4}-\d\d-\d\d_\d\d-\d\d-\d\d)\s*([OBHDWM]*)\s*(.*?)\s*$)"));
+    QVector<Snapshot> snapshots;
+    for (const QString &line : output.split('\n')) {
+        const QRegularExpressionMatch m = row.match(line);
+        if (!m.hasMatch())
+            continue;
+        Snapshot snapshot;
+        snapshot.id = m.captured(1);
+        snapshot.time = QDateTime::fromString(snapshot.id, QStringLiteral("yyyy-MM-dd_HH-mm-ss"));
+        snapshot.kind = m.captured(2);
+        snapshot.description = m.captured(3);
+        snapshots.append(snapshot);
+    }
+    std::reverse(snapshots.begin(), snapshots.end());
+    return snapshots;
+}
+
+QVector<Snapshot> listSnapshots(int limit, bool asAdmin, QString *error)
+{
+    QVector<Snapshot> snapshots;
+    const SnapshotTool tool = snapshotTool();
+    Result result;
+    if (tool == SnapshotTool::Snapper) {
+        const QStringList args = {"--jsonout", "-c", "root", "list"};
+        result = asAdmin ? ProcessRunner::run("pkexec", QStringList{"snapper"} + args, 120000)
+                         : ProcessRunner::run("snapper", args, 10000);
+        if (result.started && result.exitCode == 0)
+            snapshots = parseSnapperJson(result.stdOut);
+    } else if (tool == SnapshotTool::Timeshift && asAdmin) {
+        result = ProcessRunner::run("pkexec", {"timeshift", "--list", "--scripted"}, 120000);
+        if (result.started && result.exitCode == 0)
+            snapshots = parseTimeshiftList(result.stdOut);
+    } else {
+        return snapshots;
+    }
+    if (error && !(result.started && result.exitCode == 0))
+        *error = (result.stdErr + result.stdOut).trimmed();
+    if (limit > 0 && snapshots.size() > limit)
         snapshots.resize(limit);
     return snapshots;
+}
+
+QVector<ProcessRunner::Command> deleteSnapshotCommands(const Snapshot &snapshot)
+{
+    switch (snapshotTool()) {
+    case SnapshotTool::Snapper:
+        return {{"pkexec", {"snapper", "-c", "root", "delete", snapshot.id}}};
+    case SnapshotTool::Timeshift:
+        return {{"pkexec", {"timeshift", "--delete", "--snapshot", snapshot.id, "--scripted"}}};
+    case SnapshotTool::None:
+        break;
+    }
+    return {};
+}
+
+QVector<ProcessRunner::Command> restoreSnapshotCommands(const Snapshot &snapshot, RestoreMode mode)
+{
+    switch (snapshotTool()) {
+    case SnapshotTool::Snapper:
+        if (mode == RestoreMode::UndoChanges)
+            return {{"pkexec", {"snapper", "-c", "root", "undochange", QStringLiteral("%1..0").arg(snapshot.id)}}};
+        return {{"pkexec", {"snapper", "-c", "root", "rollback", snapshot.id}}};
+    case SnapshotTool::Timeshift:
+        // Leaves the bootloader alone; Timeshift restarts the computer when done.
+        return {{"pkexec", {"timeshift", "--restore", "--snapshot", snapshot.id, "--skip-grub", "--scripted", "--yes"}}};
+    case SnapshotTool::None:
+        break;
+    }
+    return {};
 }
 
 // ---- Package cache ----------------------------------------------------------------
@@ -358,7 +445,7 @@ QDateTime lastSystemUpgrade()
 
 // ---- Activity timeline --------------------------------------------------------------------------
 
-QVector<Activity> recentActivity(const QString &nativeKey, bool includeFlatpak, int limit)
+QVector<Activity> recentActivity(const QString &nativeKey, const QStringList &extraSources, int limit)
 {
     QVector<Activity> activity;
 
@@ -417,7 +504,14 @@ QVector<Activity> recentActivity(const QString &nativeKey, bool includeFlatpak, 
         }
     }
 
-    if (includeFlatpak && ProcessRunner::executableExists("flatpak")) {
+    if (extraSources.contains(QStringLiteral("snap")) && ProcessRunner::executableExists("snap")) {
+        for (const SnapTools::Change &change : SnapTools::recentChanges()) {
+            for (const QString &snap : change.snaps)
+                activity.append({change.time.toLocalTime(), change.action, snap, QString(), QStringLiteral("snap")});
+        }
+    }
+
+    if (extraSources.contains(QStringLiteral("flatpak")) && ProcessRunner::executableExists("flatpak")) {
         const Result result = ProcessRunner::run("flatpak", {"history", "--columns=time,change,application,branch"}, 20000);
         const QDate today = QDate::currentDate();
         for (const QString &raw : result.stdOut.split('\n', Qt::SkipEmptyParts)) {

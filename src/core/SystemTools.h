@@ -24,13 +24,28 @@ QString snapshotToolName(SnapshotTool tool);
 // The command that takes a snapshot labeled with `description`, or none.
 QVector<ProcessRunner::Command> snapshotCommands(const QString &description);
 struct Snapshot {
-    QString id;
+    QString id;          // Snapper's number, or Timeshift's snapshot name
     QDateTime time;
     QString description;
+    QString kind;        // Snapper: "single", "pre", "post"; Timeshift: its tags ("O", "B", "D", ...)
+    QString pairedWith;  // Snapper: a post snapshot's pre number
+    QString user;        // Snapper: who took it
 };
-// Most recent first. Snapper lists unprivileged; Timeshift needs root to
-// list, so this is empty for it.
-QVector<Snapshot> listSnapshots(int limit = 5);
+// Most recent first, at most `limit` (none for no limit). Snapper lists
+// unprivileged when its config allows the user; Timeshift needs root to
+// list at all, so this is empty for it unless asAdmin (which prompts).
+QVector<Snapshot> listSnapshots(int limit = 5, bool asAdmin = false, QString *error = nullptr);
+QVector<Snapshot> parseSnapperJson(const QString &json);
+QVector<Snapshot> parseTimeshiftList(const QString &output);
+
+// Deleting a snapshot, and restoring one. Snapper can restore two ways:
+// rolling back (the next boot starts from a writable copy of the
+// snapshot — needs a Btrfs root that boots its default subvolume) or
+// undoing every file change made since the snapshot, in place. Timeshift
+// restores the files and then restarts the computer.
+enum class RestoreMode { Rollback, UndoChanges };
+QVector<ProcessRunner::Command> deleteSnapshotCommands(const Snapshot &snapshot);
+QVector<ProcessRunner::Command> restoreSnapshotCommands(const Snapshot &snapshot, RestoreMode mode = RestoreMode::Rollback);
 
 // ---- Package cache --------------------------------------------------------
 
@@ -94,8 +109,9 @@ struct Activity {
     QString sourceKey;
 };
 // Recent install/upgrade/remove activity from the native package manager's
-// log and Flatpak's history, newest first.
-QVector<Activity> recentActivity(const QString &nativeKey, bool includeFlatpak, int limit = 40);
+// log, plus Flatpak's and Snap's history when `extraSources` lists
+// "flatpak" / "snap", newest first.
+QVector<Activity> recentActivity(const QString &nativeKey, const QStringList &extraSources, int limit = 40);
 
 // ---- Export / import ----------------------------------------------------------------
 

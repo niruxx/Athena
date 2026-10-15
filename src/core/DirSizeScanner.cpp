@@ -11,6 +11,13 @@ DirSizeScanner::DirSizeScanner(const QStringList &paths, QObject *parent) : QThr
 void DirSizeScanner::run()
 {
     for (const QString &path : m_paths) {
+        // A plain file (a dotfile like .bashrc) is its own size; iterating
+        // it as a directory finds nothing.
+        const QFileInfo info(path);
+        if (info.isFile()) {
+            emit sizeComputed(path, info.size());
+            continue;
+        }
         qint64 total = 0;
         QDirIterator it(path, QDir::Files | QDir::Hidden | QDir::System, QDirIterator::Subdirectories);
         while (it.hasNext()) {

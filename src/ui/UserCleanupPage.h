@@ -20,6 +20,7 @@ struct CleanupTarget {
     QIcon icon;
     QStringList paths;
     QString description;
+    QString symbol; // Material Symbols name for its list row
 };
 
 // Predefined target lists for the User Management group's General and

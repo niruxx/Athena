@@ -83,10 +83,10 @@ void HistoryPage::refresh()
     m_watcher.setFuture(QtConcurrent::run([backend, key]() {
         Loaded loaded;
         loaded.raw = backend->recentHistory();
-        if (key == QLatin1String("flatpak"))
-            loaded.activity = SystemTools::recentActivity(QString(), true, 200);
+        if (key == QLatin1String("flatpak") || key == QLatin1String("snap"))
+            loaded.activity = SystemTools::recentActivity(QString(), {key}, 200);
         else if (!key.isEmpty())
-            loaded.activity = SystemTools::recentActivity(key, false, 200);
+            loaded.activity = SystemTools::recentActivity(key, {}, 200);
         return loaded;
     }));
 }

@@ -36,27 +36,7 @@ constexpr int kSourceKeyRole = Qt::UserRole;
 constexpr int kPackageRole = Qt::UserRole + 1;
 const QString kFormat = QStringLiteral("athena-setup");
 
-QFrame *section(QWidget *parent, const QString &icon, const QString &title, const QString &text, QVBoxLayout *&content)
-{
-    QFrame *card = M3::card(QStringLiteral("card"), parent);
-    content = new QVBoxLayout(card);
-    content->setContentsMargins(20, 18, 20, 18);
-    content->setSpacing(10);
-    auto *head = new QHBoxLayout;
-    auto *iconLabel = new QLabel(card);
-    auto paint = [iconLabel, icon]() {
-        iconLabel->setPixmap(MaterialTheme::icon(icon, MaterialTheme::current().primary, 22).pixmap(22, 22));
-    };
-    paint();
-    QObject::connect(MaterialTheme::notifier(), &MaterialTheme::Notifier::changed, iconLabel, paint);
-    head->addWidget(iconLabel);
-    head->addWidget(M3::label(title, QStringLiteral("titleM"), card), 1);
-    content->addLayout(head);
-    auto *body = M3::label(text, QStringLiteral("muted"), card);
-    body->setWordWrap(true);
-    content->addWidget(body);
-    return card;
-}
+using M3::section;
 
 } // namespace
 

@@ -24,6 +24,8 @@
 
 #include "../core/ProcessRunner.h"
 #include "AppIcons.h"
+#include "M3List.h"
+#include "M3Widgets.h"
 #include "M3Dialog.h"
 #include "MaterialTheme.h"
 #include "PackageActions.h"
@@ -37,13 +39,14 @@ constexpr const char *kManifestFileName = "athena-manifest.json";
 BackupRestorePage::BackupRestorePage(FlatpakBackend *backend, QWidget *parent) : QWidget(parent), m_backend(backend)
 {
     auto *outer = new QVBoxLayout(this);
+    outer->setSpacing(16);
 
-    auto *backupGroup = new QGroupBox(tr("Backup"), this);
-    auto *backupLayout = new QVBoxLayout(backupGroup);
-    backupLayout->addWidget(new QLabel(tr("Save all Flatpak application user data (~/.var/app) and the "
-                                           "list of installed applications to an archive at a "
-                                           "destination you choose."),
-                                        backupGroup));
+    QVBoxLayout *backupLayout = nullptr;
+    QFrame *backupGroup = M3::section(this, QStringLiteral("backup"), tr("Back up"),
+                                      tr("Save all Flatpak application user data (~/.var/app) and the "
+                                         "list of installed applications to an archive at a "
+                                         "destination you choose."),
+                                      backupLayout);
 
     auto *destRow = new QHBoxLayout;
     m_backupDestEdit = new QLineEdit(backupGroup);
@@ -63,12 +66,12 @@ BackupRestorePage::BackupRestorePage(FlatpakBackend *backend, QWidget *parent) :
 
     outer->addWidget(backupGroup);
 
-    auto *restoreGroup = new QGroupBox(tr("Restore"), this);
-    auto *restoreLayout = new QVBoxLayout(restoreGroup);
-    restoreLayout->addWidget(new QLabel(tr("Restore user data from a backup, or reinstall the "
-                                            "applications it lists — handy when moving to a new machine "
-                                            "or a fresh OS install."),
-                                         restoreGroup));
+    QVBoxLayout *restoreLayout = nullptr;
+    QFrame *restoreGroup = M3::section(this, QStringLiteral("restore"), tr("Restore"),
+                                       tr("Restore user data from a backup, or reinstall the "
+                                          "applications it lists — handy when moving to a new machine "
+                                          "or a fresh OS install."),
+                                       restoreLayout);
 
     auto *sourceRow = new QHBoxLayout;
     m_restoreSourceEdit = new QLineEdit(restoreGroup);
@@ -88,6 +91,8 @@ BackupRestorePage::BackupRestorePage(FlatpakBackend *backend, QWidget *parent) :
     m_appsTable->verticalHeader()->setVisible(false);
     m_appsTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     m_appsTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    M3List::apply(m_appsTable, {/*subtitle=*/1, /*trailing=*/2});
+    m_appsTable->setProperty("m3", QStringLiteral("listPlain"));
     restoreLayout->addWidget(m_appsTable, 1);
 
     auto *restoreButtonRow = new QHBoxLayout;
@@ -325,6 +330,7 @@ void BackupRestorePage::populateManifestTable(const QVector<ManifestApp> &apps)
         auto *nameItem = new QTableWidgetItem(app.name.isEmpty() ? app.appId : app.name);
         nameItem->setFlags(nameItem->flags() | Qt::ItemIsUserCheckable);
         nameItem->setCheckState(m_selectAllCheck->isChecked() ? Qt::Checked : Qt::Unchecked);
+        nameItem->setData(M3List::SymbolRole, QStringLiteral("deployed_code"));
         m_appsTable->setItem(i, 0, nameItem);
         m_appsTable->setItem(i, 1, new QTableWidgetItem(app.appId));
         m_appsTable->setItem(i, 2, new QTableWidgetItem(app.origin));

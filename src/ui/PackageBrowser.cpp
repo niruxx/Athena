@@ -56,7 +56,16 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     m_tableView->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_tableView->horizontalHeader()->setStretchLastSection(true);
     m_tableView->horizontalHeader()->setSectionResizeMode(PackageTableModel::CheckColumn, QHeaderView::Fixed);
-    m_tableView->setColumnWidth(PackageTableModel::CheckColumn, 28);
+    m_tableView->setColumnWidth(PackageTableModel::CheckColumn, 40);
+    m_tableView->setColumnWidth(PackageTableModel::NameColumn, 240);
+    m_tableView->setColumnWidth(PackageTableModel::InstalledVersionColumn, 150);
+    m_tableView->setColumnWidth(PackageTableModel::AvailableVersionColumn, 150);
+    m_tableView->setColumnWidth(PackageTableModel::ArchitectureColumn, 90);
+    m_tableView->setColumnWidth(PackageTableModel::SizeColumn, 90);
+    // A Material data table: a borderless card with a hairline header.
+    m_tableView->setProperty("m3", QStringLiteral("table"));
+    m_tableView->setFrameShape(QFrame::NoFrame);
+    m_tableView->setMouseTracking(true);
     m_tableView->setContextMenuPolicy(Qt::CustomContextMenu);
     // Off by default to match the table's existing appearance; the user
     // opts in per-column from the header's own right-click menu.
@@ -106,8 +115,6 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     // they describe.
     m_statsLabel = new QLabel(this);
     m_statsLabel->setProperty("m3", QStringLiteral("muted"));
-    actionRow->addSpacing(8);
-    actionRow->addWidget(m_statsLabel);
     actionRow->addStretch(1);
     actionRow->addWidget(m_installButton);
     actionRow->addWidget(m_reinstallButton);
@@ -115,15 +122,12 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     actionRow->addWidget(m_updateButton);
 
     m_detailTitle = new QLabel(this);
-    QFont titleFont = m_detailTitle->font();
-    titleFont.setBold(true);
-    titleFont.setPointSize(titleFont.pointSize() + 4);
-    m_detailTitle->setFont(titleFont);
+    m_detailTitle->setProperty("m3", QStringLiteral("title"));
 
     // Dimmed secondary text (a palette role, so it follows theme changes)
     // rather than italics.
     m_detailMeta = new QLabel(this);
-    m_detailMeta->setForegroundRole(QPalette::PlaceholderText);
+    m_detailMeta->setProperty("m3", QStringLiteral("muted"));
 
     m_detailDescription = new QLabel(this);
     m_detailDescription->setWordWrap(true);
@@ -147,6 +151,7 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     detailPanel->setLayout(detailLayout);
 
     auto *splitter = new QSplitter(Qt::Vertical, this);
+    splitter->setHandleWidth(12);
     splitter->addWidget(m_tableView);
     splitter->addWidget(detailPanel);
     splitter->setStretchFactor(0, 3);
@@ -156,6 +161,7 @@ PackageBrowser::PackageBrowser(PackageBackend *backend, Mode mode, QWidget *pare
     layout->setContentsMargins(0, 0, 0, 0);
     layout->addLayout(actionRow);
     layout->addWidget(splitter, 1);
+    layout->addWidget(m_statsLabel);
 
     connect(m_model, &PackageTableModel::checkedChanged, this, &PackageBrowser::onCheckedChanged);
     connect(m_tableView->selectionModel(), &QItemSelectionModel::currentRowChanged, this,

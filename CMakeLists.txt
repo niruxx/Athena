@@ -41,6 +41,8 @@ add_executable(athena
     src/core/AppStreamIndex.cpp
     src/core/SystemTools.h
     src/core/SystemTools.cpp
+    src/core/SnapTools.h
+    src/core/SnapTools.cpp
 
     src/core/backends/DnfBackend.h
     src/core/backends/DnfBackend.cpp
@@ -79,6 +81,8 @@ add_executable(athena
     src/ui/M3Dialog.cpp
     src/ui/M3Widgets.h
     src/ui/M3Widgets.cpp
+    src/ui/M3List.h
+    src/ui/M3List.cpp
     src/ui/Motion.h
     src/ui/Motion.cpp
     src/ui/MaterialTheme.h
@@ -125,6 +129,10 @@ add_executable(athena
     src/ui/RepositoriesPage.cpp
     src/ui/SettingsPage.h
     src/ui/SettingsPage.cpp
+    src/ui/SnapManagePage.h
+    src/ui/SnapManagePage.cpp
+    src/ui/SnapshotsPage.h
+    src/ui/SnapshotsPage.cpp
     src/ui/TerminalOutputDialog.h
     src/ui/TerminalOutputDialog.cpp
     src/ui/TransactionConfirmDialog.h
@@ -168,6 +176,8 @@ set(CPACK_RPM_PACKAGE_LICENSE "GPLv3+")
 set(CPACK_RPM_PACKAGE_GROUP "Applications/System")
 set(CPACK_RPM_PACKAGE_AUTOREQPROV YES)
 set(CPACK_RPM_PACKAGE_REQUIRES "polkit")
+# Optional: system snapshots before changes (and restoring them).
+set(CPACK_RPM_PACKAGE_SUGGESTS "snapper, timeshift")
 set(CPACK_RPM_PACKAGE_RELEASE "1")
 set(CPACK_RPM_PACKAGE_RELEASE_DIST ON)
 set(CPACK_RPM_FILE_NAME "RPM-DEFAULT")
@@ -180,6 +190,7 @@ set(CPACK_DEBIAN_PACKAGE_SECTION "admin")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
     "libqt6core6, libqt6gui6, libqt6widgets6, libqt6network6, libqt6concurrent6, libc6, policykit-1 | polkitd")
+set(CPACK_DEBIAN_PACKAGE_SUGGESTS "snapper, timeshift")
 set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
 
 include(CPack)

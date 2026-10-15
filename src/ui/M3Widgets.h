@@ -14,6 +14,7 @@ class QHBoxLayout;
 class QLabel;
 class QPushButton;
 class QTimer;
+class QVBoxLayout;
 
 // Small Material 3 building blocks shared by the redesigned pages.
 
@@ -109,5 +110,21 @@ QWidget *accentPicker(QWidget *parent);
 
 // A rounded card frame of the given role ("card", "hero", "warn", "callout").
 QFrame *card(const QString &role, QWidget *parent);
+
+// A Material Symbols icon as a label, in the primary color — or, with
+// `tile`, on a 40px secondary-container tile (as list rows lead with).
+// Follows theme changes.
+QLabel *symbolLabel(const QString &symbol, int size, QWidget *parent, bool tile = false);
+
+// A card with an icon + title header and optional supporting text;
+// `content` is its layout, to add the section's own widgets below.
+QFrame *section(QWidget *parent, const QString &icon, const QString &title, const QString &text, QVBoxLayout *&content);
+
+// A list row with a leading symbol tile, a title and supporting line, and
+// a trailing M3 switch (returned in `toggle`); clicking the row flips it.
+QWidget *switchRow(QWidget *parent, const QString &symbol, const QString &title, const QString &supporting, M3Switch *&toggle);
+
+// A 1px outline-variant line between rows in a card.
+QFrame *divider(QWidget *parent);
 
 } // namespace M3

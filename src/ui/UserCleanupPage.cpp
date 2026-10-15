@@ -13,6 +13,8 @@
 
 #include "../core/UserCleanupUtils.h"
 #include "AppIcons.h"
+#include "M3List.h"
+#include "M3Widgets.h"
 #include "MaterialTheme.h"
 #include "PackageActions.h"
 
@@ -55,9 +57,11 @@ QVector<CleanupTarget> general()
     return {
         {QObject::tr("Temporary Files"), AppIcons::temporary(), {QStringLiteral("/tmp")},
          QObject::tr("Files you own under the system-wide /tmp directory. Other users' files there are "
-                     "left untouched.")},
+                     "left untouched."),
+         QStringLiteral("storage")},
         {QObject::tr("Cache"), AppIcons::cache(), {home + QStringLiteral("/.cache")},
-         QObject::tr("Cached application data. Safe to clear — it will be regenerated as needed.")},
+         QObject::tr("Cached application data. Safe to clear — it will be regenerated as needed."),
+         QStringLiteral("cached")},
     };
 }
 
@@ -66,18 +70,20 @@ QVector<CleanupTarget> advanced()
     const QString home = QDir::homePath();
     return {
         {QObject::tr("Trash"), AppIcons::trash(), {home + QStringLiteral("/.local/share/Trash")},
-         QObject::tr("Files and folders deleted through a file manager but not yet emptied.")},
+         QObject::tr("Files and folders deleted through a file manager but not yet emptied."),
+         QStringLiteral("delete")},
         {QObject::tr("Thumbnail Cache"), AppIcons::image(), {home + QStringLiteral("/.cache/thumbnails")},
-         QObject::tr("Cached preview images for pictures and videos.")},
+         QObject::tr("Cached preview images for pictures and videos."), QStringLiteral("image")},
         {QObject::tr("Shell & Tool History"), AppIcons::terminal(),
          {home + QStringLiteral("/.bash_history"), home + QStringLiteral("/.zsh_history"),
           home + QStringLiteral("/.local/share/fish/fish_history"), home + QStringLiteral("/.python_history"),
           home + QStringLiteral("/.lesshst"), home + QStringLiteral("/.viminfo"),
           home + QStringLiteral("/.node_repl_history")},
-         QObject::tr("Command history for common shells and interactive tools.")},
+         QObject::tr("Command history for common shells and interactive tools."), QStringLiteral("terminal")},
         {QObject::tr("Recently Used Files List"), AppIcons::history(),
          {home + QStringLiteral("/.local/share/recently-used.xbel")},
-         QObject::tr("The list of recently opened files shown by file-picker dialogs and file managers.")},
+         QObject::tr("The list of recently opened files shown by file-picker dialogs and file managers."),
+         QStringLiteral("history")},
     };
 }
 
@@ -86,7 +92,7 @@ QVector<CleanupTarget> advanced()
 UserCleanupPage::UserCleanupPage(const QString &introText, const QVector<CleanupTarget> &targets, QWidget *parent)
     : QWidget(parent), m_targets(targets)
 {
-    auto *introLabel = new QLabel(introText, this);
+    auto *introLabel = M3::label(introText, QStringLiteral("muted"), this);
     introLabel->setWordWrap(true);
 
     m_tree = new QTreeWidget(this);
@@ -99,12 +105,18 @@ UserCleanupPage::UserCleanupPage(const QString &introText, const QVector<Cleanup
     m_tree->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     m_tree->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
     m_tree->header()->setSectionResizeMode(2, QHeaderView::Stretch);
+    M3List::apply(m_tree, {/*subtitle=*/-1, /*trailing=*/1});
 
     for (int i = 0; i < m_targets.size(); ++i) {
         const CleanupTarget &target = m_targets.at(i);
         auto *item = new QTreeWidgetItem(m_tree);
-        item->setIcon(0, target.icon);
+        if (!target.symbol.isEmpty())
+            item->setData(0, M3List::SymbolRole, target.symbol);
+        else
+            item->setIcon(0, target.icon);
         item->setText(0, target.label);
+        item->setData(0, M3List::SubtitleRole, target.description);
+        item->setToolTip(0, locationDetail(target.paths));
         item->setText(1, tr("scanning..."));
         item->setText(2, locationSummary(target.paths));
         item->setToolTip(2, locationDetail(target.paths));
@@ -116,22 +128,20 @@ UserCleanupPage::UserCleanupPage(const QString &introText, const QVector<Cleanup
     // & Tool History), so the full description and every path a target
     // covers is shown here instead, for whichever row is currently
     // focused.
-    m_detailsFrame = new QFrame(this);
-    m_detailsFrame->setFrameShape(QFrame::StyledPanel);
+    m_detailsFrame = M3::card(QStringLiteral("card"), this);
     auto *detailsLayout = new QHBoxLayout(m_detailsFrame);
+    detailsLayout->setContentsMargins(20, 14, 20, 14);
+    detailsLayout->setSpacing(16);
 
-    m_detailsIcon = new QLabel(m_detailsFrame);
-    m_detailsIcon->setFixedSize(32, 32);
-    m_detailsIcon->setScaledContents(true);
+    m_detailsIcon = M3::symbolLabel(QStringLiteral("folder_open"), 22, m_detailsFrame, true);
     detailsLayout->addWidget(m_detailsIcon, 0, Qt::AlignTop);
 
     auto *detailsTextLayout = new QVBoxLayout;
-    m_detailsTitle = new QLabel(m_detailsFrame);
-    QFont titleFont = m_detailsTitle->font();
-    titleFont.setBold(true);
-    m_detailsTitle->setFont(titleFont);
-    m_detailsDescription = new QLabel(m_detailsFrame);
+    detailsTextLayout->setSpacing(4);
+    m_detailsTitle = M3::label(QString(), QStringLiteral("titleM"), m_detailsFrame);
+    m_detailsDescription = M3::label(QString(), QStringLiteral("muted"), m_detailsFrame);
     m_detailsDescription->setWordWrap(true);
+    m_detailsDescription->hide(); // the row already shows it
     m_detailsLocation = new QLabel(m_detailsFrame);
     m_detailsLocation->setWordWrap(true);
     m_detailsLocation->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -151,9 +161,7 @@ UserCleanupPage::UserCleanupPage(const QString &introText, const QVector<Cleanup
     MaterialTheme::styleButton(m_deleteAllButton, QStringLiteral("danger"), QStringLiteral("delete_sweep"));
     m_deleteButton->setEnabled(false);
     m_totalLabel = new QLabel(this);
-    QFont totalFont = m_totalLabel->font();
-    totalFont.setBold(true);
-    m_totalLabel->setFont(totalFont);
+    m_totalLabel->setProperty("m3", QStringLiteral("titleM"));
 
     auto *buttonRow = new QHBoxLayout;
     buttonRow->addWidget(m_refreshButton);
@@ -227,7 +235,6 @@ void UserCleanupPage::updateDetailsPanel()
 {
     const QTreeWidgetItem *item = m_tree->currentItem();
     if (!item) {
-        m_detailsIcon->clear();
         m_detailsTitle->clear();
         m_detailsDescription->clear();
         m_detailsLocation->clear();
@@ -236,8 +243,7 @@ void UserCleanupPage::updateDetailsPanel()
 
     const int row = item->data(0, RoleRow).toInt();
     const CleanupTarget &target = m_targets.at(row);
-    m_detailsIcon->setPixmap(target.icon.pixmap(32, 32));
-    m_detailsTitle->setText(target.label);
+    m_detailsTitle->setText(target.paths.size() == 1 ? tr("Location") : tr("Locations"));
     m_detailsDescription->setText(target.description);
     m_detailsLocation->setText(locationDetail(target.paths));
 }

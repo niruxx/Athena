@@ -1,6 +1,8 @@
 #include "AurPkgbuildPage.h"
 
+#include <QAction>
 #include <QDesktopServices>
+#include <QFrame>
 #include <QFontDatabase>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -13,25 +15,28 @@
 
 #include "../core/backends/AurBackend.h"
 #include "AppIcons.h"
+#include "M3Widgets.h"
 #include "MaterialTheme.h"
 
 AurPkgbuildPage::AurPkgbuildPage(AurBackend *backend, QWidget *parent) : QWidget(parent), m_backend(backend)
 {
-    auto *noticeLabel = new QLabel(
+    QVBoxLayout *noticeLayout = nullptr;
+    QFrame *notice = M3::section(
+        this, QStringLiteral("verified_user"), tr("Read the build script first"),
         tr("AUR packages are user-submitted build scripts that run on your machine and aren't reviewed by "
            "Arch Linux. Read a package's PKGBUILD here before installing it — check where its sources are "
            "downloaded from and what its build()/package() steps do."),
-        this);
-    noticeLabel->setWordWrap(true);
+        noticeLayout);
 
-    m_methodLabel = new QLabel(this);
-    QFont methodFont = m_methodLabel->font();
-    methodFont.setItalic(true);
-    m_methodLabel->setFont(methodFont);
+    m_methodLabel = M3::label(QString(), QStringLiteral("label"), notice);
     m_methodLabel->setWordWrap(true);
+    noticeLayout->addWidget(m_methodLabel);
 
     m_nameEdit = new QLineEdit(this);
     m_nameEdit->setPlaceholderText(tr("AUR package name (e.g. paru-bin)"));
+    m_nameEdit->setProperty("m3", QStringLiteral("search"));
+    m_nameEdit->addAction(MaterialTheme::icon(QStringLiteral("search"), MaterialTheme::current().onSurfaceVariant, 20),
+                          QLineEdit::LeadingPosition);
     m_loadButton = new QPushButton(AppIcons::search(), tr("Show PKGBUILD"), this);
     MaterialTheme::styleButton(m_loadButton, QStringLiteral("filled"), QStringLiteral("description"));
     m_openPageButton = new QPushButton(tr("Open AUR Page"), this);
@@ -43,7 +48,7 @@ AurPkgbuildPage::AurPkgbuildPage(AurBackend *backend, QWidget *parent) : QWidget
     topRow->addWidget(m_loadButton);
     topRow->addWidget(m_openPageButton);
 
-    m_statusLabel = new QLabel(tr("Enter a package name."), this);
+    m_statusLabel = M3::label(tr("Enter a package name."), QStringLiteral("muted"), this);
 
     m_view = new QPlainTextEdit(this);
     m_view->setReadOnly(true);
@@ -51,8 +56,8 @@ AurPkgbuildPage::AurPkgbuildPage(AurBackend *backend, QWidget *parent) : QWidget
     m_view->setLineWrapMode(QPlainTextEdit::NoWrap);
 
     auto *layout = new QVBoxLayout(this);
-    layout->addWidget(noticeLabel);
-    layout->addWidget(m_methodLabel);
+    layout->setSpacing(14);
+    layout->addWidget(notice);
     layout->addLayout(topRow);
     layout->addWidget(m_statusLabel);
     layout->addWidget(m_view, 1);
@@ -69,7 +74,7 @@ void AurPkgbuildPage::showEvent(QShowEvent *event)
     m_methodLabel->setText(AurBackend::reviewRequired()
                                ? tr("PKGBUILD review is on: every install, reinstall, and update opens each "
                                     "package's build files for review and editing before anything is built.")
-                               : tr("Packages are built with: %1 — without review (turn it on in Preferences → "
+                               : tr("Packages are built with: %1 — without review (turn it on in Settings → "
                                     "General → AUR).")
                                      .arg(AurBackend::buildMethodName(AurBackend::buildMethod())));
 }

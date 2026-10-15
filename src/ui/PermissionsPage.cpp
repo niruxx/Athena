@@ -21,11 +21,15 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSplitter>
+#include <QStackedWidget>
 #include <QTableWidget>
 #include <QVBoxLayout>
 #include <QtConcurrent/QtConcurrent>
 
+#include "AppCatalog.h"
 #include "AppIcons.h"
+#include "M3List.h"
+#include "M3Widgets.h"
 #include "AthenaStyle.h"
 #include "M3Dialog.h"
 #include "MaterialTheme.h"
@@ -54,10 +58,11 @@ const QVector<QPair<QString, QString>> &filesystemPresets()
 PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWidget(parent), m_backend(backend)
 {
     m_appList = new QListWidget(this);
-    AthenaStyle::makeSidebar(m_appList);
+    M3List::apply(m_appList, {-1, -1, /*plain=*/true});
+    m_appList->setMinimumWidth(260);
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
-    MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
-    m_statusLabel = new QLabel(tr("Loading apps..."), this);
+    MaterialTheme::styleButton(m_refreshButton, QStringLiteral("text"), QStringLiteral("refresh"));
+    m_statusLabel = M3::label(tr("Loading apps..."), QStringLiteral("muted"), this);
 
     auto *leftLayout = new QVBoxLayout;
     // The page's own layout already pads the whole splitter.
@@ -70,140 +75,167 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     auto *leftPanel = new QWidget(this);
     leftPanel->setLayout(leftLayout);
 
-    m_appTitle = new QLabel(tr("Select an app on the left to manage its permissions."), this);
-    QFont titleFont = m_appTitle->font();
-    titleFont.setBold(true);
-    titleFont.setPointSize(titleFont.pointSize() + 1);
-    m_appTitle->setFont(titleFont);
+    // Header card: the app, and resetting everything.
+    auto *headerCard = M3::card(QStringLiteral("card"), this);
+    auto *headerLayout = new QHBoxLayout(headerCard);
+    headerLayout->setContentsMargins(20, 16, 20, 16);
+    headerLayout->setSpacing(16);
+    m_appIcon = new QLabel(headerCard);
+    m_appIcon->setFixedSize(48, 48);
+    headerLayout->addWidget(m_appIcon);
+    auto *headerText = new QVBoxLayout;
+    headerText->setSpacing(2);
+    m_appTitle = M3::label(QString(), QStringLiteral("title"), headerCard);
     m_appTitle->setWordWrap(true);
+    m_appSubtitle = M3::label(QString(), QStringLiteral("muted"), headerCard);
+    m_appSubtitle->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    headerText->addWidget(m_appTitle);
+    headerText->addWidget(m_appSubtitle);
+    headerLayout->addLayout(headerText, 1);
+    m_resetButton = new QPushButton(AppIcons::clean(), tr("Reset to Defaults"), headerCard);
+    MaterialTheme::styleButton(m_resetButton, QStringLiteral("danger"), QStringLiteral("restart_alt"));
+    m_resetButton->setToolTip(tr("Remove every override for this app, reverting it to its default permissions."));
+    headerLayout->addWidget(m_resetButton, 0, Qt::AlignVCenter);
 
-    auto *accessGroup = new QGroupBox(tr("Access"), this);
-    auto *accessLayout = new QHBoxLayout(accessGroup);
-    m_networkCheck = new QCheckBox(tr("Network"), this);
-    m_ipcCheck = new QCheckBox(tr("Interprocess Communication"), this);
-    accessLayout->addWidget(m_networkCheck);
-    accessLayout->addWidget(m_ipcCheck);
-    accessLayout->addStretch(1);
+    // Switch cards, one per kind of permission.
+    auto switchCard = [this](const QString &icon, const QString &title, const QString &text, QVBoxLayout *&rows) {
+        QFrame *card = M3::section(this, icon, title, text, rows);
+        rows->setSpacing(0);
+        return card;
+    };
+    QVBoxLayout *accessRows = nullptr;
+    QFrame *accessGroup = switchCard(QStringLiteral("public"), tr("Access"), QString(), accessRows);
+    m_networkCheck = addToggle(accessRows, QStringLiteral("wifi"), tr("Network"), tr("The internet and your local network"));
+    m_ipcCheck = addToggle(accessRows, QStringLiteral("hub"), tr("Interprocess communication"),
+                           tr("Shared memory with programs outside the sandbox; X11 apps usually need it"));
 
-    auto *socketsGroup = new QGroupBox(tr("Sockets"), this);
-    auto *socketsGrid = new QGridLayout(socketsGroup);
-    m_x11Check = addToggle(socketsGrid, 0, 0, tr("X11 Windowing System"));
-    m_waylandCheck = addToggle(socketsGrid, 1, 0, tr("Wayland Windowing System"));
-    m_audioCheck = addToggle(socketsGrid, 2, 0, tr("Audio (PulseAudio)"));
-    m_sshAuthCheck = addToggle(socketsGrid, 0, 1, tr("SSH Agent"));
-    m_sessionBusCheck = addToggle(socketsGrid, 1, 1, tr("Session Bus (D-Bus)"));
-    m_systemBusCheck = addToggle(socketsGrid, 2, 1, tr("System Bus (D-Bus)"));
+    QVBoxLayout *socketRows = nullptr;
+    QFrame *socketsGroup = switchCard(QStringLiteral("lan"), tr("Sockets"), QString(), socketRows);
+    m_waylandCheck = addToggle(socketRows, QStringLiteral("desktop_windows"), tr("Wayland windowing system"),
+                               tr("Show windows through Wayland"));
+    m_x11Check = addToggle(socketRows, QStringLiteral("desktop_windows"), tr("X11 windowing system"),
+                           tr("Show windows through X11, which lets apps see and type into each other"));
+    m_audioCheck = addToggle(socketRows, QStringLiteral("volume_up"), tr("Audio"), tr("Play and record sound (PulseAudio or PipeWire)"));
+    m_sshAuthCheck = addToggle(socketRows, QStringLiteral("key"), tr("SSH agent"), tr("Use the SSH keys loaded in your agent"));
+    m_sessionBusCheck = addToggle(socketRows, QStringLiteral("lan"), tr("Session bus"),
+                                  tr("Talk to every service on your desktop's D-Bus session bus"));
+    m_systemBusCheck = addToggle(socketRows, QStringLiteral("dns"), tr("System bus"), tr("Talk to every system service on D-Bus"));
 
-    auto *devicesGroup = new QGroupBox(tr("Devices"), this);
-    auto *devicesGrid = new QGridLayout(devicesGroup);
-    m_gpuCheck = addToggle(devicesGrid, 0, 0, tr("Graphics (GPU/DRI)"));
-    m_allDevicesCheck = addToggle(devicesGrid, 1, 0, tr("All Devices"));
-    m_kvmCheck = addToggle(devicesGrid, 0, 1, tr("Virtualization (KVM)"));
-    m_shmCheck = addToggle(devicesGrid, 1, 1, tr("Shared Memory"));
+    QVBoxLayout *deviceRows = nullptr;
+    QFrame *devicesGroup = switchCard(QStringLiteral("memory"), tr("Devices"), QString(), deviceRows);
+    m_gpuCheck = addToggle(deviceRows, QStringLiteral("memory"), tr("Graphics acceleration"), tr("Use the GPU (DRI) directly"));
+    m_allDevicesCheck = addToggle(deviceRows, QStringLiteral("usb"), tr("All devices"),
+                                  tr("Everything in /dev — webcams, game controllers, USB devices"));
+    m_kvmCheck = addToggle(deviceRows, QStringLiteral("deployed_code"), tr("Virtualization"), tr("Run virtual machines (KVM)"));
+    m_shmCheck = addToggle(deviceRows, QStringLiteral("storage"), tr("Shared memory"), tr("The host's /dev/shm"));
 
-    auto *featuresGroup = new QGroupBox(tr("Features"), this);
-    auto *featuresGrid = new QGridLayout(featuresGroup);
-    m_develCheck = addToggle(featuresGrid, 0, 0, tr("Development (ptrace, etc.)"));
-    m_multiarchCheck = addToggle(featuresGrid, 1, 0, tr("Multiarch"));
-    m_bluetoothCheck = addToggle(featuresGrid, 0, 1, tr("Bluetooth"));
-    m_canbusCheck = addToggle(featuresGrid, 1, 1, tr("CAN Bus"));
-    m_perAppDevShmCheck = addToggle(featuresGrid, 2, 0, tr("Per-application /dev/shm"));
+    QVBoxLayout *featureRows = nullptr;
+    QFrame *featuresGroup = switchCard(QStringLiteral("tune"), tr("Features"), QString(), featureRows);
+    m_develCheck = addToggle(featureRows, QStringLiteral("bug_report"), tr("Development"), tr("Debugging syscalls such as ptrace"));
+    m_multiarchCheck = addToggle(featureRows, QStringLiteral("extension"), tr("Multiarch"), tr("Run programs built for other architectures (32-bit)"));
+    m_bluetoothCheck = addToggle(featureRows, QStringLiteral("bluetooth"), tr("Bluetooth"), tr("Bluetooth sockets"));
+    m_canbusCheck = addToggle(featureRows, QStringLiteral("cable"), tr("CAN bus"), tr("CAN networking, for automotive and industrial hardware"));
+    m_perAppDevShmCheck = addToggle(featureRows, QStringLiteral("storage"), tr("Per-app /dev/shm"),
+                                    tr("A private /dev/shm shared only between this app's instances"));
 
-    auto *filesystemGroup = new QGroupBox(tr("Filesystem Access"), this);
+    // List cards: an M3 list, with add/remove actions under it.
+    auto listCard = [this](const QString &icon, const QString &title, const QString &text, QAbstractItemView *view,
+                           QPushButton *add, QPushButton *remove) {
+        QVBoxLayout *content = nullptr;
+        QFrame *card = M3::section(this, icon, title, text, content);
+        view->setParent(card);
+        view->setMinimumHeight(64);
+        view->setMaximumHeight(240);
+        content->addWidget(view);
+        auto *buttons = new QHBoxLayout;
+        buttons->addWidget(add);
+        buttons->addWidget(remove);
+        buttons->addStretch(1);
+        content->addLayout(buttons);
+        return card;
+    };
+
     m_filesystemList = new QListWidget(this);
     m_filesystemList->setSelectionMode(QAbstractItemView::SingleSelection);
+    M3List::apply(m_filesystemList, {-1, -1, /*plain=*/true});
     m_addFilesystemButton = new QPushButton(AppIcons::addItem(), tr("Add Access..."), this);
     MaterialTheme::styleButton(m_addFilesystemButton, QStringLiteral("tonal"), QStringLiteral("add"));
     m_removeFilesystemButton = new QPushButton(AppIcons::uninstall(), tr("Remove Selected"), this);
     MaterialTheme::styleButton(m_removeFilesystemButton, QStringLiteral("text"), QStringLiteral("delete"));
     m_removeFilesystemButton->setEnabled(false);
+    QFrame *filesystemGroup = listCard(QStringLiteral("folder"), tr("Files and folders"),
+                                       tr("Folders the app can open outside its sandbox, besides files you pick in a file dialog."),
+                                       m_filesystemList, m_addFilesystemButton, m_removeFilesystemButton);
 
-    auto *filesystemButtonRow = new QHBoxLayout;
-    filesystemButtonRow->addWidget(m_addFilesystemButton);
-    filesystemButtonRow->addWidget(m_removeFilesystemButton);
-    filesystemButtonRow->addStretch(1);
-
-    auto *filesystemLayout = new QVBoxLayout(filesystemGroup);
-    filesystemLayout->addWidget(m_filesystemList, 1);
-    filesystemLayout->addLayout(filesystemButtonRow);
-
-    auto *dbusGroup = new QGroupBox(tr("D-Bus Access"), this);
     m_dbusList = new QListWidget(this);
     m_dbusList->setSelectionMode(QAbstractItemView::SingleSelection);
+    M3List::apply(m_dbusList, {-1, -1, /*plain=*/true});
     m_addDBusButton = new QPushButton(AppIcons::addItem(), tr("Add..."), this);
     MaterialTheme::styleButton(m_addDBusButton, QStringLiteral("tonal"), QStringLiteral("add"));
     m_removeDBusButton = new QPushButton(AppIcons::uninstall(), tr("Remove Selected"), this);
     MaterialTheme::styleButton(m_removeDBusButton, QStringLiteral("text"), QStringLiteral("delete"));
     m_removeDBusButton->setEnabled(false);
+    QFrame *dbusGroup = listCard(QStringLiteral("hub"), tr("D-Bus services"),
+                                 tr("Individual services the app may talk to or own, without the whole bus."),
+                                 m_dbusList, m_addDBusButton, m_removeDBusButton);
 
-    auto *dbusButtonRow = new QHBoxLayout;
-    dbusButtonRow->addWidget(m_addDBusButton);
-    dbusButtonRow->addWidget(m_removeDBusButton);
-    dbusButtonRow->addStretch(1);
-
-    auto *dbusLayout = new QVBoxLayout(dbusGroup);
-    dbusLayout->addWidget(m_dbusList, 1);
-    dbusLayout->addLayout(dbusButtonRow);
-
-    auto *envGroup = new QGroupBox(tr("Environment Variables"), this);
     m_envTable = new QTableWidget(0, 2, this);
     m_envTable->setHorizontalHeaderLabels({tr("Key"), tr("Value")});
-    m_envTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    m_envTable->verticalHeader()->setVisible(false);
     m_envTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_envTable->setSelectionMode(QAbstractItemView::SingleSelection);
     m_envTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    M3List::apply(m_envTable, {/*subtitle=*/1, -1, /*plain=*/true});
     m_addEnvButton = new QPushButton(AppIcons::addItem(), tr("Add..."), this);
     MaterialTheme::styleButton(m_addEnvButton, QStringLiteral("tonal"), QStringLiteral("add"));
     m_removeEnvButton = new QPushButton(AppIcons::uninstall(), tr("Remove Selected"), this);
     MaterialTheme::styleButton(m_removeEnvButton, QStringLiteral("text"), QStringLiteral("delete"));
     m_removeEnvButton->setEnabled(false);
+    QFrame *envGroup = listCard(QStringLiteral("terminal"), tr("Environment variables"),
+                                tr("Variables set for the app every time it starts."), m_envTable, m_addEnvButton,
+                                m_removeEnvButton);
 
-    auto *envButtonRow = new QHBoxLayout;
-    envButtonRow->addWidget(m_addEnvButton);
-    envButtonRow->addWidget(m_removeEnvButton);
-    envButtonRow->addStretch(1);
-
-    auto *envLayout = new QVBoxLayout(envGroup);
-    envLayout->addWidget(m_envTable, 1);
-    envLayout->addLayout(envButtonRow);
-
-    m_resetButton = new QPushButton(AppIcons::clean(), tr("Reset to Defaults"), this);
-    MaterialTheme::styleButton(m_resetButton, QStringLiteral("danger"), QStringLiteral("restart_alt"));
-    m_resetButton->setToolTip(tr("Remove every override for this app, reverting it to its default permissions."));
-
-    auto *resetRow = new QHBoxLayout;
-    resetRow->addStretch(1);
-    resetRow->addWidget(m_resetButton);
+    m_emptyState = M3::label(tr("Select an app on the left to manage its permissions."), QStringLiteral("muted"), this);
+    m_emptyState->setAlignment(Qt::AlignCenter);
 
     auto *detailLayout = new QVBoxLayout;
-    detailLayout->addWidget(m_appTitle);
-    detailLayout->addWidget(accessGroup);
-    detailLayout->addWidget(socketsGroup);
-    detailLayout->addWidget(devicesGroup);
-    detailLayout->addWidget(featuresGroup);
+    detailLayout->setContentsMargins(0, 0, 8, 8);
+    detailLayout->setSpacing(16);
+    detailLayout->addWidget(headerCard);
+    // Two columns of switch cards when there's room for them.
+    auto *switchGrid = new QGridLayout;
+    switchGrid->setSpacing(16);
+    switchGrid->addWidget(accessGroup, 0, 0);
+    switchGrid->addWidget(devicesGroup, 1, 0);
+    switchGrid->addWidget(socketsGroup, 0, 1, 2, 1);
+    switchGrid->addWidget(featuresGroup, 2, 0, 1, 2);
+    switchGrid->setRowStretch(1, 1);
+    detailLayout->addLayout(switchGrid);
     detailLayout->addWidget(filesystemGroup);
     detailLayout->addWidget(dbusGroup);
     detailLayout->addWidget(envGroup);
-    detailLayout->addLayout(resetRow);
+    detailLayout->addStretch(1);
     m_detailPanel = new QWidget(this);
     m_detailPanel->setLayout(detailLayout);
 
-    // Scrolls as one unit (rather than each group box scrolling
-    // internally) since the groups together are taller than most windows
-    // once features/D-Bus/environment are all shown at once.
+    // Scrolls as one unit (rather than each card scrolling internally)
+    // since the cards together are taller than most windows.
     auto *detailScroll = new QScrollArea(this);
     detailScroll->setWidgetResizable(true);
     detailScroll->setWidget(m_detailPanel);
     detailScroll->setFrameShape(QFrame::NoFrame);
+    detailScroll->setProperty("m3", QStringLiteral("page"));
+
+    m_detailStack = new QStackedWidget(this);
+    m_detailStack->addWidget(m_emptyState);
+    m_detailStack->addWidget(detailScroll);
 
     auto *splitter = new QSplitter(this);
     AthenaStyle::makeSidebarSplitter(splitter);
     splitter->addWidget(leftPanel);
-    splitter->addWidget(detailScroll);
+    splitter->addWidget(m_detailStack);
     splitter->setStretchFactor(0, 1);
-    splitter->setStretchFactor(1, 2);
-    splitter->setSizes({280, 720});
+    splitter->setStretchFactor(1, 3);
+    splitter->setSizes({300, 900});
 
     auto *layout = new QVBoxLayout(this);
     layout->addWidget(splitter, 1);
@@ -218,8 +250,8 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
             &PermissionsPage::onPermissionsLoaded);
     connect(&m_actionWatcher, &QFutureWatcher<OperationResult>::finished, this, &PermissionsPage::onActionFinished);
 
-    auto connectShared = [this](QCheckBox *check, const QString &name) {
-        connect(check, &QCheckBox::toggled, this, [this, name](bool enabled) {
+    auto connectShared = [this](QAbstractButton *check, const QString &name) {
+        connect(check, &QAbstractButton::toggled, this, [this, name](bool enabled) {
             if (m_updatingChecks)
                 return;
             const QString appId = currentAppId();
@@ -231,8 +263,8 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     connectShared(m_networkCheck, QStringLiteral("network"));
     connectShared(m_ipcCheck, QStringLiteral("ipc"));
 
-    auto connectSocket = [this](QCheckBox *check, const QString &name) {
-        connect(check, &QCheckBox::toggled, this, [this, name](bool enabled) {
+    auto connectSocket = [this](QAbstractButton *check, const QString &name) {
+        connect(check, &QAbstractButton::toggled, this, [this, name](bool enabled) {
             if (m_updatingChecks)
                 return;
             const QString appId = currentAppId();
@@ -248,8 +280,8 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     connectSocket(m_sessionBusCheck, QStringLiteral("session-bus"));
     connectSocket(m_systemBusCheck, QStringLiteral("system-bus"));
 
-    auto connectDevice = [this](QCheckBox *check, const QString &name) {
-        connect(check, &QCheckBox::toggled, this, [this, name](bool enabled) {
+    auto connectDevice = [this](QAbstractButton *check, const QString &name) {
+        connect(check, &QAbstractButton::toggled, this, [this, name](bool enabled) {
             if (m_updatingChecks)
                 return;
             const QString appId = currentAppId();
@@ -263,8 +295,8 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     connectDevice(m_kvmCheck, QStringLiteral("kvm"));
     connectDevice(m_shmCheck, QStringLiteral("shm"));
 
-    auto connectFeature = [this](QCheckBox *check, const QString &name) {
-        connect(check, &QCheckBox::toggled, this, [this, name](bool enabled) {
+    auto connectFeature = [this](QAbstractButton *check, const QString &name) {
+        connect(check, &QAbstractButton::toggled, this, [this, name](bool enabled) {
             if (m_updatingChecks)
                 return;
             const QString appId = currentAppId();
@@ -287,8 +319,8 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
         if (appId.isEmpty())
             return;
 
-        QDialog dialog(this);
-        dialog.setWindowTitle(tr("Add Filesystem Access"));
+        M3Dialog dialog(this);
+        dialog.setHeadline(tr("Add Filesystem Access"), QStringLiteral("folder"));
 
         auto *presetCombo = new QComboBox(&dialog);
         for (const auto &preset : filesystemPresets())
@@ -324,13 +356,11 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
         form->addRow(tr("Custom Path:"), pathRow);
         form->addRow(QString(), readOnlyCheck);
 
-        auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
-        connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-
-        auto *dialogLayout = new QVBoxLayout(&dialog);
-        dialogLayout->addLayout(form);
-        dialogLayout->addWidget(buttons);
+        dialog.body()->addLayout(form);
+        connect(dialog.addAction(tr("Cancel"), QStringLiteral("text")), &QPushButton::clicked, &dialog, &QDialog::reject);
+        QPushButton *addButton = dialog.addAction(tr("Add"), QStringLiteral("filled"), QStringLiteral("add"));
+        addButton->setDefault(true);
+        connect(addButton, &QPushButton::clicked, &dialog, &QDialog::accept);
 
         if (dialog.exec() != QDialog::Accepted)
             return;
@@ -363,8 +393,8 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
         if (appId.isEmpty())
             return;
 
-        QDialog dialog(this);
-        dialog.setWindowTitle(tr("Add D-Bus Name"));
+        M3Dialog dialog(this);
+        dialog.setHeadline(tr("Add D-Bus Name"), QStringLiteral("hub"));
 
         auto *nameEdit = new QLineEdit(&dialog);
         nameEdit->setPlaceholderText(tr("org.example.Service"));
@@ -380,13 +410,11 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
         form->addRow(tr("Bus:"), busCombo);
         form->addRow(tr("Access:"), kindCombo);
 
-        auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
-        connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-
-        auto *dialogLayout = new QVBoxLayout(&dialog);
-        dialogLayout->addLayout(form);
-        dialogLayout->addWidget(buttons);
+        dialog.body()->addLayout(form);
+        connect(dialog.addAction(tr("Cancel"), QStringLiteral("text")), &QPushButton::clicked, &dialog, &QDialog::reject);
+        QPushButton *addButton = dialog.addAction(tr("Add"), QStringLiteral("filled"), QStringLiteral("add"));
+        addButton->setDefault(true);
+        connect(addButton, &QPushButton::clicked, &dialog, &QDialog::accept);
 
         if (dialog.exec() != QDialog::Accepted)
             return;
@@ -424,8 +452,8 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
         if (appId.isEmpty())
             return;
 
-        QDialog dialog(this);
-        dialog.setWindowTitle(tr("Add Environment Variable"));
+        M3Dialog dialog(this);
+        dialog.setHeadline(tr("Add Environment Variable"), QStringLiteral("terminal"));
 
         auto *keyEdit = new QLineEdit(&dialog);
         auto *valueEdit = new QLineEdit(&dialog);
@@ -434,13 +462,11 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
         form->addRow(tr("Key:"), keyEdit);
         form->addRow(tr("Value:"), valueEdit);
 
-        auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
-        connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
-        connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
-
-        auto *dialogLayout = new QVBoxLayout(&dialog);
-        dialogLayout->addLayout(form);
-        dialogLayout->addWidget(buttons);
+        dialog.body()->addLayout(form);
+        connect(dialog.addAction(tr("Cancel"), QStringLiteral("text")), &QPushButton::clicked, &dialog, &QDialog::reject);
+        QPushButton *addButton = dialog.addAction(tr("Add"), QStringLiteral("filled"), QStringLiteral("add"));
+        addButton->setDefault(true);
+        connect(addButton, &QPushButton::clicked, &dialog, &QDialog::accept);
 
         if (dialog.exec() != QDialog::Accepted)
             return;
@@ -485,18 +511,22 @@ PermissionsPage::PermissionsPage(FlatpakBackend *backend, QWidget *parent) : QWi
     refresh();
 }
 
-QCheckBox *PermissionsPage::addToggle(QGridLayout *grid, int row, int column, const QString &label)
+M3Switch *PermissionsPage::addToggle(QVBoxLayout *rows, const QString &symbol, const QString &title, const QString &supporting)
 {
-    auto *check = new QCheckBox(label, this);
-    grid->addWidget(check, row, column);
-    return check;
+    QWidget *card = rows->parentWidget();
+    if (card->property("m3rows").toInt() > 0)
+        rows->addWidget(M3::divider(card));
+    card->setProperty("m3rows", card->property("m3rows").toInt() + 1);
+    M3Switch *toggle = nullptr;
+    rows->addWidget(M3::switchRow(rows->parentWidget(), symbol, title, supporting, toggle));
+    return toggle;
 }
 
 void PermissionsPage::setDetailEnabled(bool enabled)
 {
     m_detailPanel->setEnabled(enabled);
-    if (!enabled)
-        m_appTitle->setText(tr("Select an app on the left to manage its permissions."));
+    if (!enabled && currentAppId().isEmpty())
+        m_detailStack->setCurrentIndex(0);
 }
 
 QString PermissionsPage::currentAppId() const
@@ -531,7 +561,7 @@ void PermissionsPage::onAppListLoaded()
     QVector<QPair<QString, QString>> entries; // (label, app ID)
     for (const PackageInfo &app : apps) {
         const QString prettyName = app.description.section(QStringLiteral(" — "), 0, 0);
-        entries.append({prettyName.isEmpty() ? app.name : tr("%1 (%2)").arg(prettyName, app.name), app.name});
+        entries.append({prettyName.isEmpty() ? app.name : prettyName, app.name});
     }
     std::sort(entries.begin(), entries.end(), [](const QPair<QString, QString> &a, const QPair<QString, QString> &b) {
         return QString::compare(a.first, b.first, Qt::CaseInsensitive) < 0;
@@ -543,6 +573,11 @@ void PermissionsPage::onAppListLoaded()
     for (const auto &[label, appId] : entries) {
         auto *item = new QListWidgetItem(label, m_appList);
         item->setData(AppIdRole, appId);
+        item->setData(M3List::SubtitleRole, appId);
+        if (const AppCatalog::Entry *entry = AppCatalog::find(appId); entry && !AppCatalog::iconFor(*entry).isNull())
+            item->setIcon(AppCatalog::iconFor(*entry));
+        else
+            item->setData(M3List::SymbolRole, QStringLiteral("deployed_code"));
         if (appId == wanted)
             m_appList->setCurrentItem(item);
     }
@@ -574,7 +609,13 @@ void PermissionsPage::loadPermissionsForCurrentApp()
         return;
     }
 
-    m_appTitle->setText(m_appList->currentItem()->text());
+    QListWidgetItem *current = m_appList->currentItem();
+    m_appTitle->setText(current->text());
+    m_appSubtitle->setText(appId);
+    const QIcon icon = current->icon();
+    m_appIcon->setPixmap((icon.isNull() ? MaterialTheme::icon(QStringLiteral("deployed_code"), MaterialTheme::current().primary, 40)
+                                        : icon).pixmap(48, 48));
+    m_detailStack->setCurrentIndex(1);
     m_detailPanel->setEnabled(false); // stays disabled until the load finishes, to avoid editing stale state
 
     FlatpakBackend *backend = m_backend;
@@ -627,7 +668,28 @@ void PermissionsPage::applyPermissions(const FlatpakBackend::Permissions &perms)
 void PermissionsPage::rebuildFilesystemList(const QStringList &filesystems)
 {
     m_filesystemList->clear();
-    m_filesystemList->addItems(filesystems);
+    for (const QString &spec : filesystems) {
+        auto *item = new QListWidgetItem(spec, m_filesystemList);
+        QString base = spec;
+        QString mode = tr("Read and write");
+        if (spec.endsWith(QLatin1String(":ro"))) {
+            base.chop(3);
+            mode = tr("Read-only");
+        } else if (spec.endsWith(QLatin1String(":create"))) {
+            base.chop(7);
+            mode = tr("Read and write, created if missing");
+        } else if (spec.endsWith(QLatin1String(":rw"))) {
+            base.chop(3);
+        }
+        QString friendly;
+        for (const auto &preset : filesystemPresets()) {
+            if (preset.second == base)
+                friendly = preset.first;
+        }
+        item->setData(M3List::SubtitleRole, friendly.isEmpty() ? mode : tr("%1 · %2").arg(friendly, mode));
+        item->setData(M3List::SymbolRole, base == QLatin1String("host") || base == QLatin1String("host-os")
+                                              ? QStringLiteral("warning") : QStringLiteral("folder"));
+    }
     m_removeFilesystemButton->setEnabled(false);
 }
 
@@ -637,10 +699,11 @@ void PermissionsPage::rebuildDBusList(const FlatpakBackend::Permissions &perms)
 
     auto addEntries = [this](const QStringList &names, const QString &bus, const QString &kind) {
         for (const QString &name : names) {
-            const QString busLabel = bus == QLatin1String("system") ? tr("system") : tr("session");
-            const QString kindLabel = kind == QLatin1String("own") ? tr("own") : tr("talk");
-            auto *item =
-                new QListWidgetItem(tr("[%1 bus, %2] %3").arg(busLabel, kindLabel, name), m_dbusList);
+            const QString busLabel = bus == QLatin1String("system") ? tr("System") : tr("Session");
+            const QString kindLabel = kind == QLatin1String("own") ? tr("may own the name") : tr("may talk to it");
+            auto *item = new QListWidgetItem(name, m_dbusList);
+            item->setData(M3List::SubtitleRole, tr("%1 bus · %2").arg(busLabel, kindLabel));
+            item->setData(M3List::SymbolRole, QStringLiteral("hub"));
             item->setData(AppIdRole, QStringList{bus, kind, name});
         }
     };

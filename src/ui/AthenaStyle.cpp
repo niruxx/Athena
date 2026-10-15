@@ -2,10 +2,15 @@
 
 #include <QAbstractItemView>
 #include <QFrame>
+#include <QPainter>
+#include <QPainterPath>
+#include <QStyleOption>
 #include <QSplitter>
 #include <QStyleFactory>
 #include <QTreeView>
 #include <QVBoxLayout>
+
+#include "MaterialTheme.h"
 
 namespace {
 
@@ -67,6 +72,13 @@ int AthenaStyle::pixelMetric(PixelMetric metric, const QStyleOption *option, con
         return 16;
     case PM_ListViewIconSize:
         return 22;
+    case PM_IndicatorWidth:
+    case PM_IndicatorHeight:
+    case PM_ExclusiveIndicatorWidth:
+    case PM_ExclusiveIndicatorHeight:
+        if (MaterialTheme::materialActive())
+            return 18;
+        return QProxyStyle::pixelMetric(metric, option, widget);
     default:
         return QProxyStyle::pixelMetric(metric, option, widget);
     }
@@ -95,6 +107,65 @@ QSize AthenaStyle::sizeFromContents(ContentsType type, const QStyleOption *optio
         break;
     }
     return size;
+}
+
+void AthenaStyle::drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
+                                const QWidget *widget) const
+{
+    const bool check = element == PE_IndicatorCheckBox || element == PE_IndicatorItemViewItemCheck;
+    const bool radio = element == PE_IndicatorRadioButton;
+    if (!MaterialTheme::materialActive() || (!check && !radio)) {
+        QProxyStyle::drawPrimitive(element, option, painter, widget);
+        return;
+    }
+
+    const MaterialTheme::Scheme &s = MaterialTheme::current();
+    const bool enabled = option->state & State_Enabled;
+    const bool on = option->state & (State_On | State_NoChange);
+    // An 18px box centered in whatever rect the style was given.
+    const int side = qMin(18, qMin(option->rect.width(), option->rect.height()));
+    const QRectF box(option->rect.x() + (option->rect.width() - side) / 2.0,
+                     option->rect.y() + (option->rect.height() - side) / 2.0, side, side);
+    QColor accent = enabled ? s.primary : s.onSurface;
+    QColor outline = enabled ? s.onSurfaceVariant : s.onSurface;
+    if (!enabled) {
+        accent.setAlphaF(0.38);
+        outline.setAlphaF(0.38);
+    }
+
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    if (radio) {
+        painter->setPen(QPen(on ? accent : outline, 2));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawEllipse(box.adjusted(1, 1, -1, -1));
+        if (on) {
+            painter->setPen(Qt::NoPen);
+            painter->setBrush(accent);
+            painter->drawEllipse(box.center(), side * 0.25, side * 0.25);
+        }
+    } else if (on) {
+        painter->setPen(Qt::NoPen);
+        painter->setBrush(accent);
+        painter->drawRoundedRect(box, 3, 3);
+        QPen mark(enabled ? s.onPrimary : s.surface, 2.2, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin);
+        painter->setPen(mark);
+        if (option->state & State_NoChange) {
+            painter->drawLine(QPointF(box.left() + side * 0.25, box.center().y()),
+                              QPointF(box.right() - side * 0.25, box.center().y()));
+        } else {
+            QPainterPath tick;
+            tick.moveTo(box.left() + side * 0.24, box.top() + side * 0.52);
+            tick.lineTo(box.left() + side * 0.42, box.top() + side * 0.70);
+            tick.lineTo(box.left() + side * 0.77, box.top() + side * 0.32);
+            painter->drawPath(tick);
+        }
+    } else {
+        painter->setPen(QPen(outline, 2));
+        painter->setBrush(Qt::NoBrush);
+        painter->drawRoundedRect(box.adjusted(1, 1, -1, -1), 2, 2);
+    }
+    painter->restore();
 }
 
 QString AthenaStyle::preferredStyleName()

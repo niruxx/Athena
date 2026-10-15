@@ -12,8 +12,11 @@ class QListWidgetItem;
 class QCheckBox;
 class QLabel;
 class QPushButton;
-class QGridLayout;
+class QAbstractButton;
+class QStackedWidget;
 class QTableWidget;
+class QVBoxLayout;
+class M3Switch;
 
 // Lets the user inspect and edit an installed Flatpak app's sandbox
 // permissions (`flatpak override --user`): shared namespaces, exposed
@@ -48,7 +51,7 @@ private:
     void setDetailEnabled(bool enabled);
     QString currentAppId() const;
     QString m_pendingAppId;
-    QCheckBox *addToggle(QGridLayout *grid, int row, int column, const QString &label);
+    M3Switch *addToggle(QVBoxLayout *rows, const QString &symbol, const QString &title, const QString &supporting);
 
     // Runs a mutating override call (checkbox toggle, filesystem add/
     // remove, reset) off the UI thread, then reloads the current app's
@@ -62,28 +65,32 @@ private:
     QLabel *m_statusLabel;
 
     QWidget *m_detailPanel;
+    QStackedWidget *m_detailStack;
+    QLabel *m_emptyState;
+    QLabel *m_appIcon;
     QLabel *m_appTitle;
+    QLabel *m_appSubtitle;
 
-    QCheckBox *m_networkCheck;
-    QCheckBox *m_ipcCheck;
+    M3Switch *m_networkCheck;
+    M3Switch *m_ipcCheck;
 
-    QCheckBox *m_x11Check;
-    QCheckBox *m_waylandCheck;
-    QCheckBox *m_audioCheck;
-    QCheckBox *m_sshAuthCheck;
-    QCheckBox *m_sessionBusCheck;
-    QCheckBox *m_systemBusCheck;
+    M3Switch *m_x11Check;
+    M3Switch *m_waylandCheck;
+    M3Switch *m_audioCheck;
+    M3Switch *m_sshAuthCheck;
+    M3Switch *m_sessionBusCheck;
+    M3Switch *m_systemBusCheck;
 
-    QCheckBox *m_gpuCheck;
-    QCheckBox *m_allDevicesCheck;
-    QCheckBox *m_kvmCheck;
-    QCheckBox *m_shmCheck;
+    M3Switch *m_gpuCheck;
+    M3Switch *m_allDevicesCheck;
+    M3Switch *m_kvmCheck;
+    M3Switch *m_shmCheck;
 
-    QCheckBox *m_develCheck;
-    QCheckBox *m_multiarchCheck;
-    QCheckBox *m_bluetoothCheck;
-    QCheckBox *m_canbusCheck;
-    QCheckBox *m_perAppDevShmCheck;
+    M3Switch *m_develCheck;
+    M3Switch *m_multiarchCheck;
+    M3Switch *m_bluetoothCheck;
+    M3Switch *m_canbusCheck;
+    M3Switch *m_perAppDevShmCheck;
 
     QListWidget *m_filesystemList;
     QPushButton *m_addFilesystemButton;

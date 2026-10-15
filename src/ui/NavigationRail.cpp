@@ -124,7 +124,8 @@ NavigationRail::NavigationRail(QWidget *parent, Qt::Orientation orientation) : Q
     setFixedWidth(88);
     m_layout = new QVBoxLayout(this);
     m_layout->setContentsMargins(4, 16, 4, 20);
-    m_layout->setSpacing(10);
+    // Tight enough for eight destinations in a short window.
+    m_layout->setSpacing(4);
 
     // The app mark at the top of the rail, as in the M3 rail "FAB/menu" slot.
     auto *logo = new QLabel(this);

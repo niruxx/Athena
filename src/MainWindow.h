@@ -55,6 +55,7 @@ private slots:
 private:
     void buildSources();
     QWidget *buildSourceTabs();
+    QWidget *buildFlatpakPage();
     void buildShell();
     void setupActions();
     void setupTray();
@@ -76,6 +77,10 @@ private:
     // Flatpak-only methods, AurPkgbuildPage needs fetchPkgbuild().
     std::unique_ptr<FlatpakBackend> m_flatpakBackend;
     std::unique_ptr<PackageBackend> m_snapBackend;
+    class QStackedWidget *m_flatpakSections = nullptr;
+    class QButtonGroup *m_flatpakSegments = nullptr;
+    class QTabWidget *m_toolTabs = nullptr;
+    QWidget *m_snapshotsTab = nullptr;
     std::unique_ptr<AurBackend> m_aurBackend;
 
     CatalogHub *m_hub = nullptr;

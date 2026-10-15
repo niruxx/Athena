@@ -61,7 +61,7 @@ Your system's packages (**DNF**, **APT**, or **pacman**), the **AUR**, **Flatpak
 
 - 🔄 **One Updates page** across every source, grouped by source: "Update everything" or a hand-picked selection.
 - 📰 **Arch news first.** Unread [archlinux.org news](https://archlinux.org/news/) shows on Home and stops a system update until you've read it or chosen to go ahead.
-- 📸 **Snapshots before changes.** With Snapper or Timeshift, Athena takes a snapshot before each install, removal, downgrade, and update (**Settings → System**).
+- 📸 **Snapshots before changes.** With Snapper or Timeshift, Athena takes a snapshot before each install, removal, downgrade, and update (**Settings → System**), and **Tools → Snapshots** lists them all to take, delete, or restore one: a Snapper rollback at the next restart, undoing the changes since in place, or a Timeshift restore.
 - 🔍 **See the real plan first.** Confirmations show the dependency-resolved transaction: what gets pulled in and what gets cleaned up.
 - 📟 **Live terminal output** for every transaction, showing the exact command and its output as it streams.
 - ⏪ **Downgrade on Arch** from your pacman cache or the Arch Linux Archive.
@@ -83,7 +83,8 @@ Your system's packages (**DNF**, **APT**, or **pacman**), the **AUR**, **Flatpak
 | 🪞 **Mirrors** | Rank pacman mirrors with `reflector` and preview the list before it's saved, or turn on DNF's fastest-mirror. |
 | 🕘 **History** | One timeline of installs, removals, and upgrades across pacman, APT, DNF, and Flatpak, beside the raw logs. |
 | 📦 **Export & Import** | Everything you chose to install, from every source, in one file. On a new machine, pick what's missing and install it. |
-| 🔒 **Flatpak sandbox** | A full **Permissions** editor built on `flatpak override`, plus **User Data** and **Leftover Data** browsers. |
+| 🔒 **Flatpak** | A page of its own: a **Permissions** editor built on `flatpak override` (a switch per permission), **App data** and **Leftovers** browsers, and **Backup**. |
+| 🧩 **Snap management** | Switch a snap's channel, revert to its previous revision, enable or disable it, and connect or disconnect its interfaces. |
 | 💾 **Backups** | Flatpak app data and app list to one `.tar.gz`; your dotfiles and config likewise, restored the same way. |
 | 🗑️ **User cleanup** | `/tmp`, `~/.cache`, trash, thumbnails, shell history, and recent files, with sizes shown before anything is deleted. |
 
@@ -251,9 +252,6 @@ See [CHANGELOG.md](CHANGELOG.md) for a version-by-version history of what's chan
 What's left from the redesign plan:
 
 - **Ratings and popularity in Discover** — the AppStream catalogs Athena reads have no ratings or download counts, so this needs an online source (such as Flathub's statistics or ODRS reviews); categories are sorted alphabetically until then.
-- **Classic pages as full redesigns** — Repositories and History are rebuilt; Flatpak Permissions, User Data, Leftover Data, Flatpak Backup, the cleanup and Backup & Restore tabs, the Package Browser, Groups, and the PKGBUILD viewer share the new buttons, cards, and motion but keep their original layouts (tables, group boxes).
-- **Flatpak tools as first-class pages** instead of tabs under Sources → Flatpak.
-- **Browsing and restoring snapshots** from inside Athena (today it takes them and shows the latest; restoring is done with Snapper or Timeshift).
 - **New recordings** for the README (the screenshots are current; the GIFs aren't).
 
 ## ⚖️ License

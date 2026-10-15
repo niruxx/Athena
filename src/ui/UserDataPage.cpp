@@ -1,5 +1,7 @@
 #include "UserDataPage.h"
 
+#include <algorithm>
+
 #include <QDesktopServices>
 #include <QDir>
 #include <QHBoxLayout>
@@ -12,7 +14,10 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include "../core/DirSizeScanner.h"
+#include "AppCatalog.h"
 #include "AppIcons.h"
+#include "M3List.h"
+#include "M3Widgets.h"
 #include "MaterialTheme.h"
 #include "PackageActions.h"
 
@@ -34,10 +39,10 @@ QString formatSize(qint64 bytes)
 
 UserDataPage::UserDataPage(FlatpakBackend *backend, QWidget *parent) : QWidget(parent), m_backend(backend)
 {
-    auto *info = new QLabel(tr("Data stored under <code>~/.var/app/</code> for currently installed "
-                                "applications. Clearing data removes settings, caches, and saved "
-                                "files for that app without uninstalling it."),
-                             this);
+    auto *info = M3::label(tr("Data stored under <code>~/.var/app/</code> for currently installed "
+                              "applications. Clearing data removes settings, caches, and saved "
+                              "files for that app without uninstalling it."),
+                           QStringLiteral("muted"), this);
     info->setWordWrap(true);
 
     m_tree = new QTreeWidget(this);
@@ -48,6 +53,7 @@ UserDataPage::UserDataPage(FlatpakBackend *backend, QWidget *parent) : QWidget(p
     m_tree->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_tree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_tree->header()->setSectionResizeMode(2, QHeaderView::Stretch);
+    M3List::apply(m_tree, {/*subtitle=*/-1, /*trailing=*/1});
 
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
     MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
@@ -75,6 +81,7 @@ UserDataPage::UserDataPage(FlatpakBackend *backend, QWidget *parent) : QWidget(p
     connect(m_openButton, &QPushButton::clicked, this, &UserDataPage::onOpenFolder);
     connect(m_clearButton, &QPushButton::clicked, this, &UserDataPage::onClearData);
     connect(m_tree, &QTreeWidget::itemSelectionChanged, this, &UserDataPage::onSelectionChanged);
+    connect(m_tree, &QTreeWidget::itemDoubleClicked, this, &UserDataPage::onOpenFolder);
     connect(&m_appListWatcher, &QFutureWatcher<QVector<PackageInfo>>::finished, this,
             &UserDataPage::onAppListLoaded);
 
@@ -119,10 +126,15 @@ void UserDataPage::onAppListLoaded()
         const QString prettyName = prettyNames.value(dirName);
         const QString path = root.filePath(dirName);
         auto *item = new QTreeWidgetItem(m_tree);
-        item->setText(0, prettyName.isEmpty() ? dirName : tr("%1 (%2)").arg(prettyName, dirName));
+        item->setText(0, prettyName.isEmpty() ? dirName : prettyName);
         item->setText(1, tr("scanning..."));
         item->setText(2, path);
         item->setData(0, RolePath, path);
+        item->setData(0, M3List::SubtitleRole, tr("%1 · %2").arg(dirName, QDir::home().relativeFilePath(path).prepend(QStringLiteral("~/"))));
+        if (const AppCatalog::Entry *entry = AppCatalog::find(dirName); entry && !AppCatalog::iconFor(*entry).isNull())
+            item->setIcon(0, AppCatalog::iconFor(*entry));
+        else
+            item->setData(0, M3List::SymbolRole, QStringLiteral("folder"));
         paths << path;
     }
 
@@ -159,6 +171,14 @@ void UserDataPage::onScanFinished()
     for (int i = 0; i < m_tree->topLevelItemCount(); ++i)
         total += m_tree->topLevelItem(i)->data(1, Qt::UserRole).toLongLong();
     m_totalLabel->setText(tr("Total: %1").arg(formatSize(total)));
+    // Biggest first, once every size is in.
+    QList<QTreeWidgetItem *> items;
+    while (m_tree->topLevelItemCount() > 0)
+        items.append(m_tree->takeTopLevelItem(0));
+    std::stable_sort(items.begin(), items.end(), [](QTreeWidgetItem *a, QTreeWidgetItem *b) {
+        return a->data(1, Qt::UserRole).toLongLong() > b->data(1, Qt::UserRole).toLongLong();
+    });
+    m_tree->addTopLevelItems(items);
 }
 
 void UserDataPage::onSelectionChanged()

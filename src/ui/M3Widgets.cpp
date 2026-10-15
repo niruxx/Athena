@@ -7,6 +7,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLocale>
+#include <QMouseEvent>
 #include <QPainter>
 #include <QParallelAnimationGroup>
 #include <QPropertyAnimation>
@@ -403,6 +404,101 @@ QFrame *card(const QString &role, QWidget *parent)
     auto *frame = new QFrame(parent);
     frame->setProperty("m3", role);
     return frame;
+}
+
+QLabel *symbolLabel(const QString &symbol, int size, QWidget *parent, bool tile)
+{
+    auto *label = new QLabel(parent);
+    const int box = tile ? 40 : size;
+    label->setFixedSize(box, box);
+    label->setAlignment(Qt::AlignCenter);
+    auto paint = [label, symbol, size, tile]() {
+        const MaterialTheme::Scheme &s = MaterialTheme::current();
+        label->setPixmap(MaterialTheme::icon(symbol, tile ? s.onSecondaryContainer : s.primary, size).pixmap(size, size));
+        label->setStyleSheet(tile ? QStringLiteral("background: %1; border-radius: 12px;").arg(s.secondaryContainer.name())
+                                  : QString());
+    };
+    paint();
+    QObject::connect(MaterialTheme::notifier(), &MaterialTheme::Notifier::changed, label, paint);
+    return label;
+}
+
+QFrame *section(QWidget *parent, const QString &icon, const QString &title, const QString &text, QVBoxLayout *&content)
+{
+    QFrame *frame = card(QStringLiteral("card"), parent);
+    content = new QVBoxLayout(frame);
+    content->setContentsMargins(20, 18, 20, 18);
+    content->setSpacing(10);
+    auto *head = new QHBoxLayout;
+    head->setSpacing(12);
+    head->addWidget(symbolLabel(icon, 22, frame, false));
+    head->addWidget(label(title, QStringLiteral("titleM"), frame), 1);
+    content->addLayout(head);
+    if (!text.isEmpty()) {
+        auto *body = label(text, QStringLiteral("muted"), frame);
+        body->setWordWrap(true);
+        content->addWidget(body);
+    }
+    return frame;
+}
+
+namespace {
+
+// Clicking anywhere on a switch row flips its switch, as in M3 lists.
+class SwitchRow : public QWidget {
+public:
+    SwitchRow(QWidget *parent, M3Switch *toggle) : QWidget(parent), m_toggle(toggle)
+    {
+        setCursor(Qt::PointingHandCursor);
+    }
+
+protected:
+    void mouseReleaseEvent(QMouseEvent *event) override
+    {
+        if (event->button() == Qt::LeftButton && rect().contains(event->position().toPoint()) && m_toggle->isEnabled())
+            m_toggle->click();
+        QWidget::mouseReleaseEvent(event);
+    }
+
+private:
+    M3Switch *m_toggle;
+};
+
+} // namespace
+
+QWidget *switchRow(QWidget *parent, const QString &symbol, const QString &title, const QString &supporting, M3Switch *&toggle)
+{
+    toggle = new M3Switch(nullptr);
+    auto *row = new SwitchRow(parent, toggle);
+    toggle->setParent(row);
+    auto *layout = new QHBoxLayout(row);
+    layout->setContentsMargins(0, 8, 0, 8);
+    layout->setSpacing(16);
+    if (!symbol.isEmpty())
+        layout->addWidget(symbolLabel(symbol, 22, row, true), 0, Qt::AlignVCenter);
+    auto *text = new QVBoxLayout;
+    text->setSpacing(2);
+    auto *titleLabel = label(title, QString(), row);
+    titleLabel->setWordWrap(true);
+    text->addWidget(titleLabel);
+    if (!supporting.isEmpty()) {
+        auto *support = label(supporting, QStringLiteral("muted"), row);
+        support->setWordWrap(true);
+        text->addWidget(support);
+    }
+    layout->addLayout(text, 1);
+    layout->addWidget(toggle, 0, Qt::AlignVCenter);
+    return row;
+}
+
+QFrame *divider(QWidget *parent)
+{
+    auto *line = new QFrame(parent);
+    line->setFixedHeight(1);
+    auto paint = [line]() { line->setStyleSheet(QStringLiteral("background: %1;").arg(MaterialTheme::current().outlineVariant.name())); };
+    paint();
+    QObject::connect(MaterialTheme::notifier(), &MaterialTheme::Notifier::changed, line, paint);
+    return line;
 }
 
 } // namespace M3

@@ -13,6 +13,8 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include "AppIcons.h"
+#include "M3List.h"
+#include "M3Widgets.h"
 #include "AthenaStyle.h"
 #include "MaterialTheme.h"
 #include "PackageBrowser.h"
@@ -26,22 +28,13 @@ GroupsPage::GroupsPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
 {
     m_tree = new QTreeWidget(this);
     m_tree->setHeaderLabels({tr("Category"), tr("Installed")});
-    AthenaStyle::makeSidebar(m_tree);
-    // A fixed pixel width truncated longer category/environment names
-    // regardless of how wide the splitter panel actually was; resize to
-    // fit whatever's currently in the tree instead.
-    m_tree->header()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    m_tree->header()->setSectionResizeMode(1, QHeaderView::Stretch);
+    M3List::apply(m_tree, {-1, /*trailing=*/1, /*plain=*/true});
+    m_tree->setMinimumWidth(240);
 
-    m_categoryTitle = new QLabel(this);
-    QFont titleFont = m_categoryTitle->font();
-    titleFont.setBold(true);
-    titleFont.setPointSize(titleFont.pointSize() + 2);
-    m_categoryTitle->setFont(titleFont);
+    m_categoryTitle = M3::label(QString(), QStringLiteral("title"), this);
 
-    m_categoryDescription = new QLabel(this);
+    m_categoryDescription = M3::label(QString(), QStringLiteral("muted"), this);
     m_categoryDescription->setWordWrap(true);
-    m_categoryDescription->setAlignment(Qt::AlignCenter);
 
     m_browser = new PackageBrowser(backend, PackageBrowser::Mode::InstallRemove, this);
 
@@ -60,7 +53,7 @@ GroupsPage::GroupsPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
     splitter->addWidget(rightPanel);
     splitter->setStretchFactor(0, 1);
     splitter->setStretchFactor(1, 3);
-    splitter->setSizes({320, 680});
+    splitter->setSizes({280, 720});
 
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
     MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
@@ -113,15 +106,12 @@ void GroupsPage::onGroupsLoaded()
     m_tree->clear();
 
     auto *groupRoot = new QTreeWidgetItem(m_tree, {tr("Groups"), QString()});
-    groupRoot->setFlags(Qt::ItemIsEnabled);
-    QFont sectionFont = groupRoot->font(0);
-    sectionFont.setBold(true);
-    groupRoot->setFont(0, sectionFont);
+    M3List::makeHeader(groupRoot);
 
     QTreeWidgetItem *itemToReselect = nullptr;
     for (const PackageGroupInfo &group : groups) {
-        auto *item = new QTreeWidgetItem(groupRoot, {group.name, group.installed ? tr("Yes") : tr("No")});
-        item->setIcon(0, AppIcons::folder());
+        // Only installed groups say so; "No" on every other row is noise.
+        auto *item = new QTreeWidgetItem(groupRoot, {group.name, group.installed ? tr("Installed") : QString()});
         item->setData(0, GroupIdRole, group.id);
         item->setData(0, GroupIsMetaRole, group.isMeta);
         if (!previouslySelectedId.isEmpty() && group.id == previouslySelectedId)

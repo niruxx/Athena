@@ -6,7 +6,7 @@
 # the source tree via $startdir/../..
 
 pkgname=athena
-pkgver=2.2.0
+pkgver=3.0.0
 pkgrel=1
 pkgdesc="Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak"
 arch=('x86_64')
@@ -18,7 +18,9 @@ optdepends=('git: AUR support'
             'base-devel: building AUR packages'
             'paru: preferred AUR helper (yay also works; makepkg is used otherwise)'
             'archlinux-appstream-data: find apps that are not installed yet in Discover'
-            'kimageformats: app icons from the Arch app catalog (JPEG XL)')
+            'kimageformats: app icons from the Arch app catalog (JPEG XL)'
+            'snapper: system snapshots before changes, and restoring them (Btrfs)'
+            'timeshift: system snapshots before changes, and restoring them')
 source=()
 sha256sums=()
 

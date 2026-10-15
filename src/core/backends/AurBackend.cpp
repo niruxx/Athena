@@ -518,7 +518,7 @@ QVector<ProcessRunner::Command> AurBackend::buildCommands(const QStringList &pac
     if (packageNames.isEmpty())
         return {};
     if (reviewRequired()) {
-        return {failCommand(QObject::tr("AUR builds require PKGBUILD review first (Preferences → General → AUR); "
+        return {failCommand(QObject::tr("AUR builds require PKGBUILD review first (Settings → General → AUR); "
                                         "refusing to build unreviewed."))};
     }
 
@@ -675,7 +675,7 @@ TransactionPreview AurBackend::previewInstall(const QStringList &packageNames)
         sections << QObject::tr("Dependencies that couldn't be resolved (the build will likely fail):\n  %1")
                         .arg(plan.unresolved.join(QStringLiteral("\n  ")));
     sections << QObject::tr("AUR packages are user-submitted build scripts, not reviewed or signed by Arch "
-                            "Linux. Turn on PKGBUILD review in Preferences → General → AUR to read and edit "
+                            "Linux. Turn on PKGBUILD review in Settings → General → AUR to read and edit "
                             "each one before it builds.");
 
     TransactionPreview preview;

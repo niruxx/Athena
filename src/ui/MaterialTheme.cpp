@@ -259,6 +259,13 @@ QString widgetRules(const Scheme &s)
                         "QAbstractItemView::item:selected { background: %4; color: %5; }\n")
              .arg(css(s.surface), css(s.surfaceContainerLow), css(s.outlineVariant), css(s.secondaryContainer),
                   css(s.onSecondaryContainer), hover);
+    // M3List views: a borderless, rounded container for the rows.
+    q += QStringLiteral("QAbstractItemView[m3=\"list\"] { background: %1; border: none; border-radius: 16px; padding: 6px 0; }\n"
+                        "QAbstractItemView[m3=\"listPlain\"] { background: transparent; border: none; padding: 0; }\n"
+                        "QAbstractItemView[m3=\"table\"] { background: %1; border: none; border-radius: 16px; }\n"
+                        "QAbstractItemView[m3=\"table\"]::item { border-bottom: 1px solid %2; padding: 0 6px; }\n"
+                        "QAbstractItemView[m3=\"table\"] QHeaderView::section { background: %1; padding: 12px 10px; }\n")
+             .arg(css(s.surface), css(s.surfaceContainer));
     q += QStringLiteral("QHeaderView { background: transparent; border: none; }\n"
                         "QHeaderView::section { background: %1; color: %2; border: none; border-bottom: 1px solid %3; padding: 8px 10px; "
                         "font-weight: 600; }\n QTableCornerButton::section { background: %1; border: none; }\n")

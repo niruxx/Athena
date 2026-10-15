@@ -5,6 +5,7 @@
 
 #include <QAction>
 #include <QApplication>
+#include <QButtonGroup>
 #include <QDesktopServices>
 #include <QEvent>
 #include <QGuiApplication>
@@ -52,6 +53,8 @@
 #include "ui/RepositoriesPage.h"
 #include "ui/SearchPage.h"
 #include "ui/SettingsPage.h"
+#include "ui/SnapManagePage.h"
+#include "ui/SnapshotsPage.h"
 #include "ui/ToolsDialogs.h"
 #include "ui/ToolsPages.h"
 #include "ui/UpdateBannerWidget.h"
@@ -244,10 +247,6 @@ QWidget *MainWindow::buildSourceTabs()
         FlatpakBackend *flatpak = m_flatpakBackend.get();
         QTabWidget *tabs = sourceTabs(m_sourcesPage);
         tabs->addTab(lazyRepositories(flatpak, tr("Flatpak"), tabs), tr("Remotes"));
-        tabs->addTab(lazy<PermissionsPage>(flatpak, tabs), tr("Permissions"));
-        tabs->addTab(lazy<UserDataPage>(flatpak, tabs), tr("User Data"));
-        tabs->addTab(lazy<LeftoverDataPage>(flatpak, tabs), tr("Leftover Data"));
-        tabs->addTab(lazy<BackupRestorePage>(flatpak, tabs), tr("Backup && Restore"));
         tabs->addTab(lazy<InstalledPage>(static_cast<PackageBackend *>(flatpak), tabs), tr("Package Browser"));
         tabs->addTab(lazy<SearchPage>(static_cast<PackageBackend *>(flatpak), tabs), tr("Advanced Search"));
         tabs->addTab(new LazyPage([flatpak](QWidget *host) { return new HistoryPage(flatpak, host, QStringLiteral("flatpak")); }, tabs),
@@ -257,9 +256,11 @@ QWidget *MainWindow::buildSourceTabs()
     if (m_snapBackend) {
         PackageBackend *snap = m_snapBackend.get();
         QTabWidget *tabs = sourceTabs(m_sourcesPage);
+        tabs->addTab(new LazyPage([](QWidget *host) { return new SnapManagePage(host); }, tabs), tr("Manage"));
         tabs->addTab(lazy<InstalledPage>(snap, tabs), tr("Package Browser"));
         tabs->addTab(lazy<SearchPage>(snap, tabs), tr("Advanced Search"));
-        tabs->addTab(lazy<HistoryPage>(snap, tabs), tr("History"));
+        tabs->addTab(new LazyPage([snap](QWidget *host) { return new HistoryPage(snap, host, QStringLiteral("snap")); }, tabs),
+                     tr("History"));
         m_sourcesPage->addSource(tr("Snap"), QStringLiteral("widgets"), tabs);
     }
     return m_sourcesPage;
@@ -300,6 +301,8 @@ void MainWindow::buildShell()
     addPage(QStringLiteral("installed"), tr("Installed"), QStringLiteral("apps"), installed);
     addPage(QStringLiteral("updates"), tr("Updates"), QStringLiteral("update"), updates);
     addPage(QStringLiteral("sources"), tr("Sources"), QStringLiteral("hub"), buildSourceTabs());
+    if (m_flatpakBackend)
+        addPage(QStringLiteral("flatpak"), tr("Flatpak"), QStringLiteral("deployed_code"), buildFlatpakPage());
 
     // Tools: housekeeping that isn't about packages (the former User
     // Management group).
@@ -318,6 +321,9 @@ void MainWindow::buildShell()
     toolTabs->addTab(new UserBackupRestorePage(toolTabs), tr("Backup && Restore"));
     toolTabs->addTab(new ExportImportPage(m_hub, nativeSource >= 0 ? m_hub->sources()[nativeSource].key : QString(), toolTabs),
                      tr("Export && Import"));
+    m_snapshotsTab = new LazyPage([](QWidget *host) { return new SnapshotsPage(host); }, toolTabs);
+    toolTabs->addTab(m_snapshotsTab, tr("Snapshots"));
+    m_toolTabs = toolTabs;
     toolsLayout->addWidget(toolTabs);
     addPage(QStringLiteral("tools"), tr("Tools"), QStringLiteral("build"), tools);
 
@@ -408,30 +414,62 @@ void MainWindow::buildShell()
 
     connect(m_rail, &NavigationRail::currentChanged, this, [this](int index) { goToPage(m_pageKeys.value(index)); });
     connect(m_bottomBar, &NavigationRail::currentChanged, this, [this](int index) { goToPage(m_pageKeys.value(index)); });
-    connect(home, &HomePage::navigate, this, &MainWindow::goToPage);
+    connect(home, &HomePage::navigate, this, [this](const QString &key) {
+        if (key == QLatin1String("snapshots")) {
+            goToPage(QStringLiteral("tools"));
+            m_toolTabs->setCurrentWidget(m_snapshotsTab);
+            return;
+        }
+        goToPage(key);
+    });
     connect(home, &HomePage::updateEverything, this, &MainWindow::updateAll);
     connect(home, &HomePage::reviewAurUpdates, this, &MainWindow::reviewAurUpdates);
     connect(updates, &AllUpdatesPage::updateEverything, this, &MainWindow::updateAll);
     connect(m_sheet, &DetailsSheet::packagesChanged, m_hub, &CatalogHub::refreshAll);
     connect(m_sheet, &DetailsSheet::message, this, &MainWindow::showMessage);
-    // The sheet's "Edit permissions": Sources → Flatpak → Permissions, on that app.
+    // The sheet's "Edit permissions": Flatpak → Permissions, on that app.
     connect(m_sheet, &DetailsSheet::editPermissions, this, [this](const QString &appId) {
-        goToPage(QStringLiteral("sources"));
-        m_sourcesPage->showSource(m_sourcesPage->indexOfSource(tr("Flatpak")));
-        for (QTabWidget *tabs : m_sourcesPage->findChildren<QTabWidget *>()) {
-            for (int i = 0; i < tabs->count(); ++i) {
-                if (tabs->tabText(i) != tr("Permissions"))
-                    continue;
-                tabs->setCurrentIndex(i);
-                // The tab builds its page on first show.
-                QTimer::singleShot(0, this, [tabs, i, appId]() {
-                    if (auto *page = tabs->widget(i)->findChild<PermissionsPage *>())
-                        page->selectApp(appId);
-                });
-                return;
-            }
-        }
+        if (!m_flatpakSections)
+            return;
+        goToPage(QStringLiteral("flatpak"));
+        m_flatpakSegments->button(0)->setChecked(true);
+        Motion::switchStack(m_flatpakSections, 0);
+        // The section builds its page on first show.
+        QTimer::singleShot(0, this, [this, appId]() {
+            if (auto *page = m_flatpakSections->widget(0)->findChild<PermissionsPage *>())
+                page->selectApp(appId);
+        });
     });
+}
+
+QWidget *MainWindow::buildFlatpakPage()
+{
+    // Flatpak's own tools — what a sandboxed app may reach, the data it
+    // keeps, what uninstalled apps left behind, and backups — as one page
+    // with a segmented button per section.
+    FlatpakBackend *flatpak = m_flatpakBackend.get();
+    auto *page = new QWidget(m_pages);
+    auto *layout = new QVBoxLayout(page);
+    layout->setContentsMargins(24, 4, 18, 12);
+    layout->setSpacing(12);
+    auto *switcher = new QHBoxLayout;
+    m_flatpakSegments = M3::segmented({{tr("Permissions"), QStringLiteral("lock")},
+                                       {tr("App data"), QStringLiteral("folder")},
+                                       {tr("Leftovers"), QStringLiteral("delete_sweep")},
+                                       {tr("Backup"), QStringLiteral("backup")}},
+                                      page, switcher);
+    switcher->addStretch(1);
+    layout->addLayout(switcher);
+
+    m_flatpakSections = new QStackedWidget(page);
+    m_flatpakSections->addWidget(lazy<PermissionsPage>(flatpak, m_flatpakSections));
+    m_flatpakSections->addWidget(lazy<UserDataPage>(flatpak, m_flatpakSections));
+    m_flatpakSections->addWidget(lazy<LeftoverDataPage>(flatpak, m_flatpakSections));
+    m_flatpakSections->addWidget(lazy<BackupRestorePage>(flatpak, m_flatpakSections));
+    layout->addWidget(m_flatpakSections, 1);
+    m_flatpakSegments->button(0)->setChecked(true);
+    connect(m_flatpakSegments, &QButtonGroup::idClicked, this, [this](int id) { Motion::switchStack(m_flatpakSections, id); });
+    return page;
 }
 
 void MainWindow::setupActions()

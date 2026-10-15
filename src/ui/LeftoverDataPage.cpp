@@ -18,6 +18,8 @@
 
 #include "../core/DirSizeScanner.h"
 #include "AppIcons.h"
+#include "M3List.h"
+#include "M3Widgets.h"
 #include "MaterialTheme.h"
 #include "PackageActions.h"
 
@@ -41,10 +43,10 @@ QString formatSize(qint64 bytes)
 
 LeftoverDataPage::LeftoverDataPage(FlatpakBackend *backend, QWidget *parent) : QWidget(parent), m_backend(backend)
 {
-    auto *info = new QLabel(tr("Data left behind under <code>~/.var/app/</code> by applications that "
-                                "are no longer installed. Safe to delete once you're sure you won't "
-                                "reinstall the app and want its old settings back."),
-                             this);
+    auto *info = M3::label(tr("Data left behind under <code>~/.var/app/</code> by applications that "
+                              "are no longer installed. Safe to delete once you're sure you won't "
+                              "reinstall the app and want its old settings back."),
+                           QStringLiteral("muted"), this);
     info->setWordWrap(true);
 
     m_includeOverridesCheck = new QCheckBox(
@@ -59,6 +61,7 @@ LeftoverDataPage::LeftoverDataPage(FlatpakBackend *backend, QWidget *parent) : Q
     m_tree->setSelectionMode(QAbstractItemView::ExtendedSelection);
     m_tree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_tree->header()->setSectionResizeMode(2, QHeaderView::Stretch);
+    M3List::apply(m_tree, {/*subtitle=*/-1, /*trailing=*/1});
 
     m_refreshButton = new QPushButton(AppIcons::refresh(), tr("Refresh"), this);
     MaterialTheme::styleButton(m_refreshButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
@@ -137,6 +140,8 @@ void LeftoverDataPage::onAppListLoaded()
             item->setText(2, path);
             item->setData(0, RolePath, path);
             item->setData(0, RoleIsDir, true);
+            item->setData(0, M3List::SymbolRole, QStringLiteral("folder"));
+            item->setData(0, M3List::SubtitleRole, tr("App data · %1").arg(QDir::home().relativeFilePath(path).prepend(QStringLiteral("~/"))));
             dataPaths << path;
         }
     }
@@ -151,7 +156,9 @@ void LeftoverDataPage::onAppListLoaded()
                 const QString path = overridesRoot.filePath(fileName);
                 const qint64 size = QFileInfo(path).size();
                 auto *item = new QTreeWidgetItem(m_tree);
-                item->setText(0, tr("%1 (override only)").arg(fileName));
+                item->setText(0, fileName);
+                item->setData(0, M3List::SymbolRole, QStringLiteral("lock"));
+                item->setData(0, M3List::SubtitleRole, tr("Permission override only · %1").arg(QDir::home().relativeFilePath(path).prepend(QStringLiteral("~/"))));
                 item->setText(1, formatSize(size));
                 item->setText(2, path);
                 item->setData(0, RolePath, path);

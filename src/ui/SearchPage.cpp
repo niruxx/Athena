@@ -4,6 +4,7 @@
 #include <QComboBox>
 #include <QFileDialog>
 #include <QFormLayout>
+#include <QFrame>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -16,6 +17,7 @@
 
 #include "../models/PackageTableModel.h"
 #include "AppIcons.h"
+#include "M3Widgets.h"
 #include "MaterialTheme.h"
 #include "PackageActions.h"
 #include "PackageBrowser.h"
@@ -32,8 +34,12 @@ SearchPage::SearchPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
     topRow->addWidget(m_queryEdit, 1);
     topRow->addWidget(m_searchButton);
 
-    auto *advancedGroup = new QGroupBox(tr("Advanced Search"), this);
+    // The filters, as one card of controls under the search field.
+    QFrame *advancedGroup = M3::card(QStringLiteral("card"), this);
     auto *advancedLayout = new QHBoxLayout(advancedGroup);
+    advancedLayout->setContentsMargins(20, 12, 20, 12);
+    advancedLayout->addWidget(M3::symbolLabel(QStringLiteral("tune"), 22, advancedGroup));
+    advancedLayout->addSpacing(4);
 
     m_dependencyQueryCheck = new QCheckBox(tr("Dependency Query"), this);
     m_dependencyQueryCheck->setToolTip(
@@ -51,15 +57,15 @@ SearchPage::SearchPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
     advancedLayout->addWidget(m_dependencyQueryCheck);
     advancedLayout->addWidget(m_dependencyDirectionCombo);
     advancedLayout->addSpacing(12);
-    advancedLayout->addWidget(new QLabel(tr("Repository:"), this));
+    advancedLayout->addWidget(M3::label(tr("Repository"), QStringLiteral("label"), this));
     advancedLayout->addWidget(m_repositoryFilterCombo, 1);
     advancedLayout->addSpacing(12);
-    advancedLayout->addWidget(new QLabel(tr("Architecture:"), this));
+    advancedLayout->addWidget(M3::label(tr("Architecture"), QStringLiteral("label"), this));
     advancedLayout->addWidget(m_architectureFilterCombo, 1);
 
     m_browser = new PackageBrowser(backend, PackageBrowser::Mode::InstallRemove, this);
 
-    m_statusLabel = new QLabel(tr("Enter a search term."), this);
+    m_statusLabel = M3::label(tr("Enter a search term."), QStringLiteral("muted"), this);
 
     m_downloadButton = new QPushButton(AppIcons::download(), tr("Download Selected"), this);
     MaterialTheme::styleButton(m_downloadButton, QStringLiteral("tonal"), QStringLiteral("download"));
@@ -72,7 +78,7 @@ SearchPage::SearchPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
     m_downloadWithDepsButton->setEnabled(false);
 
     auto *downloadRow = new QHBoxLayout;
-    downloadRow->addStretch(1);
+    downloadRow->addWidget(m_statusLabel, 1);
     downloadRow->addWidget(m_downloadButton);
     downloadRow->addWidget(m_downloadWithDepsButton);
 
@@ -80,7 +86,6 @@ SearchPage::SearchPage(PackageBackend *backend, QWidget *parent) : QWidget(paren
     layout->addLayout(topRow);
     layout->addWidget(advancedGroup);
     layout->addWidget(m_browser, 1);
-    layout->addWidget(m_statusLabel);
     layout->addLayout(downloadRow);
 
     connect(m_queryEdit, &QLineEdit::returnPressed, this, &SearchPage::runSearch);

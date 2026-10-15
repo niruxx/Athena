@@ -339,9 +339,9 @@ HomePage::HomePage(CatalogHub *hub, PackageBackend *native, const QString &nativ
     if (snapshotTool != SystemTools::SnapshotTool::None) {
         QPushButton *settingsButton = nullptr;
         tiles->addWidget(tile(QStringLiteral("history"), tr("Snapshots"), m_snapshotMetric, m_snapshotText, settingsButton,
-                              tr("Snapshot settings")),
+                              tr("Browse snapshots")),
                          1);
-        connect(settingsButton, &QPushButton::clicked, this, [this]() { emit navigate(QStringLiteral("settings")); });
+        connect(settingsButton, &QPushButton::clicked, this, [this]() { emit navigate(QStringLiteral("snapshots")); });
         m_snapshotText->setText(AppSettings::instance().snapshotBeforeTransactions()
                                     ? tr("%1 takes one before every system change.").arg(SystemTools::snapshotToolName(snapshotTool))
                                     : tr("%1 is set up. Turn on snapshots before transactions in Settings → System.")
@@ -537,14 +537,18 @@ void HomePage::refreshInstalled()
 void HomePage::loadSideStats()
 {
     const QString nativeKey = m_nativeKey;
-    const bool flatpak = m_hub->indexOf(QStringLiteral("flatpak")) >= 0;
+    QStringList extra;
+    for (const QString &key : {QStringLiteral("flatpak"), QStringLiteral("snap")}) {
+        if (m_hub->indexOf(key) >= 0)
+            extra.append(key);
+    }
     const bool snapshots = m_snapshotMetric != nullptr;
-    m_statsWatcher.setFuture(QtConcurrent::run([nativeKey, flatpak, snapshots]() {
+    m_statsWatcher.setFuture(QtConcurrent::run([nativeKey, extra, snapshots]() {
         SideStats stats;
         const QString cacheDir = nativeKey.isEmpty() ? QString() : SystemTools::packageCacheDir(nativeKey);
         if (!cacheDir.isEmpty() && QFileInfo::exists(cacheDir))
             stats.cacheBytes = SystemTools::directorySize(cacheDir);
-        stats.activity = SystemTools::recentActivity(nativeKey, flatpak, 8);
+        stats.activity = SystemTools::recentActivity(nativeKey, extra, 8);
         if (snapshots)
             stats.snapshots = SystemTools::listSnapshots(1);
         return stats;

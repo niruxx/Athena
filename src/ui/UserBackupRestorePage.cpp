@@ -15,6 +15,7 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QRadioButton>
+#include <QScrollArea>
 #include <QSet>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -23,6 +24,8 @@
 #include "../core/DirSizeScanner.h"
 #include "../core/ProcessRunner.h"
 #include "AppIcons.h"
+#include "M3List.h"
+#include "M3Widgets.h"
 #include "M3Dialog.h"
 #include "MaterialTheme.h"
 #include "PackageActions.h"
@@ -80,14 +83,26 @@ QStringList topLevelEntries(const QString &source, bool isFolder)
 
 UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
 {
-    auto *outer = new QVBoxLayout(this);
+    // Both cards together are taller than a small window, so the page
+    // scrolls as one rather than squeezing the lists.
+    auto *content = new QWidget(this);
+    auto *scroll = new QScrollArea(this);
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setProperty("m3", QStringLiteral("page"));
+    scroll->setWidget(content);
+    auto *pageLayout = new QVBoxLayout(this);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    pageLayout->addWidget(scroll);
+    auto *outer = new QVBoxLayout(content);
+    outer->setSpacing(16);
 
-    auto *backupGroup = new QGroupBox(tr("Backup"), this);
-    auto *backupLayout = new QVBoxLayout(backupGroup);
-    backupLayout->addWidget(new QLabel(tr("Save your dotfiles and configuration — hidden files and folders "
-                                           "directly under your home directory — to a destination you choose, "
-                                           "either as a single compressed archive or a plain uncompressed copy."),
-                                        backupGroup));
+    QVBoxLayout *backupLayout = nullptr;
+    QFrame *backupGroup = M3::section(this, QStringLiteral("backup"), tr("Back up"),
+                                      tr("Save your dotfiles and configuration — hidden files and folders "
+                                         "directly under your home directory — to a destination you choose, "
+                                         "either as a single compressed archive or a plain uncompressed copy."),
+                                      backupLayout);
 
     auto *destRow = new QHBoxLayout;
     m_backupDestEdit = new QLineEdit(backupGroup);
@@ -120,6 +135,8 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
     m_entriesTree->setSelectionMode(QAbstractItemView::NoSelection);
     m_entriesTree->header()->setSectionResizeMode(0, QHeaderView::Stretch);
     m_entriesTree->header()->setSectionResizeMode(1, QHeaderView::ResizeToContents);
+    M3List::apply(m_entriesTree, {-1, /*trailing=*/1, /*plain=*/true});
+    m_entriesTree->setMinimumHeight(280);
     backupBody->addWidget(m_entriesTree, 1);
 
     auto *backupSideLayout = new QVBoxLayout;
@@ -129,9 +146,7 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
     MaterialTheme::styleButton(m_rescanButton, QStringLiteral("tonal"), QStringLiteral("refresh"));
     m_selectedSummaryLabel = new QLabel(backupGroup);
     m_selectedSummaryLabel->setWordWrap(true);
-    QFont summaryFont = m_selectedSummaryLabel->font();
-    summaryFont.setBold(true);
-    m_selectedSummaryLabel->setFont(summaryFont);
+    m_selectedSummaryLabel->setProperty("m3", QStringLiteral("muted"));
     m_backupButton = new QPushButton(AppIcons::archive(), tr("Back Up Now"), backupGroup);
     MaterialTheme::styleButton(m_backupButton, QStringLiteral("filled"), QStringLiteral("backup"));
     backupSideLayout->addWidget(m_selectAllCheck);
@@ -149,13 +164,13 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
 
     outer->addWidget(backupGroup, 3);
 
-    auto *restoreGroup = new QGroupBox(tr("Restore"), this);
-    auto *restoreLayout = new QVBoxLayout(restoreGroup);
-    restoreLayout->addWidget(new QLabel(tr("Restore dotfiles/configuration from a backup — either kind — "
-                                            "back into your home directory, overwriting any existing files "
-                                            "with the same name. Handy when moving to a new machine or a "
-                                            "fresh OS install."),
-                                         restoreGroup));
+    QVBoxLayout *restoreLayout = nullptr;
+    QFrame *restoreGroup = M3::section(this, QStringLiteral("restore"), tr("Restore"),
+                                       tr("Restore dotfiles/configuration from a backup — either kind — "
+                                          "back into your home directory, overwriting any existing files "
+                                          "with the same name. Handy when moving to a new machine or a "
+                                          "fresh OS install."),
+                                       restoreLayout);
 
     auto *sourceRow = new QHBoxLayout;
     m_restoreSourceEdit = new QLineEdit(restoreGroup);
@@ -176,14 +191,15 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
     m_previewSummaryLabel->setWordWrap(true);
     m_previewList = new QListWidget(restoreGroup);
     m_previewList->setSelectionMode(QAbstractItemView::NoSelection);
-    m_previewList->setAlternatingRowColors(true);
+    M3List::apply(m_previewList, {-1, -1, /*plain=*/true});
+    m_previewList->setMinimumHeight(160);
     previewLayout->addWidget(m_previewSummaryLabel);
     previewLayout->addWidget(m_previewList, 1);
     restoreBody->addLayout(previewLayout, 1);
 
     auto *restoreSideLayout = new QVBoxLayout;
-    auto *restoreWarning = new QLabel(
-        tr("Files already in your home directory with the same name will be overwritten."), restoreGroup);
+    auto *restoreWarning = M3::label(
+        tr("Files already in your home directory with the same name will be overwritten."), QStringLiteral("muted"), restoreGroup);
     restoreWarning->setWordWrap(true);
     m_restoreButton = new QPushButton(AppIcons::download(), tr("Restore Now..."), restoreGroup);
     MaterialTheme::styleButton(m_restoreButton, QStringLiteral("filled"), QStringLiteral("restore"));
@@ -197,7 +213,7 @@ UserBackupRestorePage::UserBackupRestorePage(QWidget *parent) : QWidget(parent)
 
     restoreLayout->addLayout(restoreBody, 1);
 
-    outer->addWidget(restoreGroup, 2);
+    outer->addWidget(restoreGroup, 1);
 
     m_statusLabel = new QLabel(this);
     m_statusLabel->setWordWrap(true);
@@ -258,6 +274,8 @@ void UserBackupRestorePage::onEntriesScanned()
         auto *item = new QTreeWidgetItem(m_entriesTree);
         item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
         item->setText(0, entry);
+        item->setData(0, M3List::SymbolRole, QFileInfo(QDir(QDir::homePath()).filePath(entry)).isDir() ? QStringLiteral("folder")
+                                                                                                    : QStringLiteral("description"));
         item->setCheckState(0, kDefaultUncheckedEntries.contains(entry) ? Qt::Unchecked : Qt::Checked);
         item->setText(1, tr("scanning..."));
         item->setData(0, RoleSize, 0);

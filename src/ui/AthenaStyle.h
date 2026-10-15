@@ -21,6 +21,10 @@ public:
                     const QWidget *widget = nullptr) const override;
     QSize sizeFromContents(ContentsType type, const QStyleOption *option, const QSize &contentsSize,
                            const QWidget *widget) const override;
+    // Under the Material look, checkboxes (in forms and item views) and
+    // radio buttons are drawn as Material 3's.
+    void drawPrimitive(PrimitiveElement element, const QStyleOption *option, QPainter *painter,
+                       const QWidget *widget = nullptr) const override;
 
     // "Breeze" if that style plugin is installed, else "Fusion" — the
     // style forced Light/Dark modes paint with (both draw strictly from

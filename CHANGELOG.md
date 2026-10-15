@@ -3,7 +3,7 @@
 All notable changes to Athena are documented in this file. Newest release first;
 append new entries above as changes land.
 
-## [Unreleased]
+## [3.0.0] - 2026-10-14
 
 ### Added
 
@@ -136,6 +136,27 @@ append new entries above as changes land.
 - **Bottom navigation bar** in narrow windows (under 720px wide), as
   Material 3 does; the window can now shrink to 420×520.
 
+- **Snap management** (Sources → Snap → Manage): for each installed snap,
+  switch the channel it follows (track and risk level, from the store's open
+  channels), revert to the revision kept from before its last refresh,
+  enable or disable it, and connect or disconnect its interfaces with
+  switches, the Snap counterpart of Flatpak's permissions. Classic-confinement
+  snaps say interfaces don't apply to them.
+- **Snap in the activity timeline**: installs, removals, refreshes
+  (including auto-refreshes of several snaps at once), and reverts from
+  `snap changes`, on Home and in Sources → Snap → History.
+
+- **Snapshots page** (Tools → Snapshots, and Home's Snapshots tile): every
+  Snapper or Timeshift snapshot, newest first, with what it was for
+  (Snapper's before/after pairs, Timeshift's on-demand/boot/daily tags),
+  when, and who took it. Take one with a description, delete one, or
+  restore one. With Snapper, choose between rolling back at the next
+  restart and undoing the changes made since, right away; Timeshift
+  restores the files and restarts, leaving the bootloader alone. Timeshift
+  (and Snapper configs that don't allow your account) list snapshots only
+  with administrator access, behind a "Show snapshots" button rather than a
+  password prompt on opening the tab.
+
 ### Changed
 
 - "Start on tab" is now "Start on page" (Home, Discover, Installed, or
@@ -148,7 +169,7 @@ append new entries above as changes land.
 - The classic pages under Sources and Tools use the new design's buttons
   (filled/tonal/destructive roles with Material icons), cards, and search
   field; the Package Browser shows its listed/installed/to-install/to-remove
-  counts (the old status bar's) beside its actions.
+  counts (the old status bar's) under its table.
 - Flatpak and Snap have their **Advanced Search** tabs again (Dependency
   Query, and downloading without installing).
 - The unused Preferences dialog and the old per-source Updates tab were
@@ -162,9 +183,35 @@ append new entries above as changes land.
   drawn inside the dialog rather than relying on window opacity).
 - Discover's category chips scroll sideways when the window is too narrow
   for them, instead of squeezing their labels.
+- **The classic pages are redesigned** in the new style:
+  - Flatpak Permissions is a set of cards with a switch per permission,
+    each saying what it allows, a header with the app's icon, and list cards
+    for folders, D-Bus services, and environment variables; its dialogs are
+    Material dialogs.
+  - User Data, Leftover Data, both cleanup tabs, the Flatpak and dotfile
+    backup lists, and the Groups and Package Browser sidebars are Material
+    lists: app icons or symbol tiles, a supporting line (app ID and folder,
+    what a cleanup target is), and sizes on the right, largest first.
+  - Backup & Restore (Flatpak and Tools) and the PKGBUILD viewer use
+    section cards with icon headers; Advanced Search's filters are one card.
+  - The Package Browser is a borderless data table with wider version
+    columns, and its counts sit under the table instead of being cut off
+    beside the buttons.
+  - Checkboxes and radio buttons are drawn as Material 3's everywhere under
+    the Material look.
+- **Flatpak has its own page** in the navigation rail, with Permissions,
+  App data, Leftovers, and Backup as segmented sections; Sources → Flatpak
+  keeps the source's own tabs (Remotes, Package Browser, Advanced Search,
+  History). "Edit permissions" in the details sheet opens the new page.
+- The navigation rail's destinations sit closer together, so all eight fit
+  in a short window.
 
 ### Fixed
 
+- Tools → Backup & Restore showed "0 B" for every dotfile that's a plain
+  file (`.bashrc`, `.bash_history`), so the selected total left them out.
+- Two AUR messages still pointed to "Preferences → General → AUR"; they now
+  say Settings.
 - **AUR packages were invisible in the new pages.** Discover's Apps view
   dropped every AUR search result (the AUR has no app catalog to mark them
   as apps), and Installed's "Apps only" hid installed AUR packages without a

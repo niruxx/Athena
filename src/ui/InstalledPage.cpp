@@ -12,6 +12,7 @@
 #include <QtConcurrent/QtConcurrent>
 
 #include "AppIcons.h"
+#include "M3List.h"
 #include "AthenaStyle.h"
 #include "MaterialTheme.h"
 #include "PackageActions.h"
@@ -28,9 +29,10 @@ InstalledPage::InstalledPage(PackageBackend *backend, QWidget *parent)
     m_categoryTree = new QTreeWidget(this);
     m_categoryTree->setHeaderHidden(true);
     m_categoryTree->setColumnCount(1);
-    AthenaStyle::makeSidebar(m_categoryTree);
-    auto *allItem = new QTreeWidgetItem(m_categoryTree, {tr("All Installed Packages")});
-    allItem->setIcon(0, AppIcons::archive());
+    M3List::apply(m_categoryTree, {-1, -1, /*plain=*/true});
+    m_categoryTree->setMinimumWidth(250);
+    auto *allItem = new QTreeWidgetItem(m_categoryTree, {tr("All installed")});
+    allItem->setData(0, M3List::SymbolRole, QStringLiteral("inventory_2"));
     m_categoryTree->setCurrentItem(allItem);
 
     m_filterEdit = new QLineEdit(this);
@@ -44,6 +46,7 @@ InstalledPage::InstalledPage(PackageBackend *backend, QWidget *parent)
     m_browser = new PackageBrowser(backend, PackageBrowser::Mode::InstallRemove, this);
 
     m_statusLabel = new QLabel(tr("Loading installed packages..."), this);
+    m_statusLabel->setProperty("m3", QStringLiteral("muted"));
 
     auto *topRow = new QHBoxLayout;
     topRow->addWidget(m_filterEdit, 1);
@@ -65,7 +68,7 @@ InstalledPage::InstalledPage(PackageBackend *backend, QWidget *parent)
     splitter->addWidget(rightPanel);
     splitter->setStretchFactor(0, 1);
     splitter->setStretchFactor(1, 3);
-    splitter->setSizes({320, 680});
+    splitter->setSizes({260, 740});
 
     auto *layout = new QVBoxLayout(this);
     layout->addWidget(splitter, 1);
@@ -102,7 +105,8 @@ void InstalledPage::refresh()
 void InstalledPage::onLoaded()
 {
     m_allPackages = m_watcher.result();
-    m_statusLabel->setText(tr("%1 installed packages").arg(m_allPackages.size()));
+    // The browser's own counts line says how many are listed and installed.
+    m_statusLabel->clear();
     applyCategoryFilter();
     setBusy(false);
 }
@@ -128,14 +132,10 @@ void InstalledPage::onCategoriesLoaded()
 
     QTreeWidgetItem *allItem = m_categoryTree->topLevelItem(0);
     auto *categoriesRoot = new QTreeWidgetItem(m_categoryTree, {tr("Categories")});
-    categoriesRoot->setFlags(Qt::ItemIsEnabled);
-    QFont sectionFont = categoriesRoot->font(0);
-    sectionFont.setBold(true);
-    categoriesRoot->setFont(0, sectionFont);
+    M3List::makeHeader(categoriesRoot);
 
     for (const PackageGroupInfo &group : groups) {
         auto *item = new QTreeWidgetItem(categoriesRoot, {group.name});
-        item->setIcon(0, AppIcons::folder());
         item->setData(0, CategoryIdRole, group.id);
         item->setData(0, CategoryIsMetaRole, group.isMeta);
     }
