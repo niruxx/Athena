@@ -238,11 +238,15 @@ QVector<PackageInfo> SnapBackend::listUpdates()
     return updates;
 }
 
+QVector<ProcessRunner::Command> SnapBackend::upgradeCommands(const QStringList &packageNames) const
+{
+    return {{"pkexec", QStringList{"snap", "refresh"} + packageNames}};
+}
+
 OperationResult SnapBackend::upgradePackages(const QStringList &packageNames)
 {
-    QStringList args = {"refresh"};
-    args += packageNames;
-    const Result result = ProcessRunner::run("pkexec", QStringList{"snap"} + args, 600000);
+    // Updates can take a long time (big runtimes, slow mirrors).
+    const Result result = ProcessRunner::runSequence(upgradeCommands(packageNames), 2 * 60 * 60 * 1000);
     OperationResult op;
     op.success = result.started && result.exitCode == 0;
     op.output = result.stdOut + result.stdErr;

@@ -717,11 +717,22 @@ QVector<PackageInfo> AptBackend::listUpdates()
     return updates;
 }
 
+QVector<ProcessRunner::Command> AptBackend::upgradeCommands(const QStringList &packageNames) const
+{
+    // APT::Status-Fd=1 adds machine-readable progress lines ("pmstatus:pkg:42.5:...")
+    // that the terminal window turns into a progress bar.
+    QStringList args = {"env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "-o", "APT::Status-Fd=1"};
+    if (packageNames.isEmpty())
+        args += {"--with-new-pkgs", "upgrade", "-y"};
+    else
+        args += QStringList{"install", "-y", "--only-upgrade"} + packageNames;
+    return {{"pkexec", args}};
+}
+
 OperationResult AptBackend::upgradePackages(const QStringList &packageNames)
 {
-    QStringList args = {"env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y", "--only-upgrade"};
-    args += packageNames;
-    const Result result = ProcessRunner::run("pkexec", args, 600000);
+    // Updates can take a long time (big runtimes, slow mirrors).
+    const Result result = ProcessRunner::runSequence(upgradeCommands(packageNames), 2 * 60 * 60 * 1000);
     OperationResult op;
     op.success = result.started && result.exitCode == 0;
     op.output = result.stdOut + result.stdErr;
@@ -742,7 +753,7 @@ QVector<ProcessRunner::Command> AptBackend::installCommands(const QStringList &p
 {
     // DEBIAN_FRONTEND=noninteractive suppresses debconf prompts that would
     // otherwise hang waiting for input apt-get can't get through pkexec.
-    QStringList args = {"env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y"};
+    QStringList args = {"env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "-o", "APT::Status-Fd=1", "install", "-y"};
     args += packageNames;
     return {{"pkexec", args}};
 }
@@ -751,14 +762,14 @@ QVector<ProcessRunner::Command> AptBackend::removeCommands(const QStringList &pa
 {
     // --auto-remove folds cleanup of now-unused dependencies into the
     // same transaction, instead of leaving them for a separate autoremove.
-    QStringList args = {"env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "remove", "-y", "--auto-remove"};
+    QStringList args = {"env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "-o", "APT::Status-Fd=1", "remove", "-y", "--auto-remove"};
     args += packageNames;
     return {{"pkexec", args}};
 }
 
 QVector<ProcessRunner::Command> AptBackend::reinstallCommands(const QStringList &packageNames) const
 {
-    QStringList args = {"env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y", "--reinstall"};
+    QStringList args = {"env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "-o", "APT::Status-Fd=1", "install", "-y", "--reinstall"};
     args += packageNames;
     return {{"pkexec", args}};
 }
@@ -835,7 +846,7 @@ TransactionPreview AptBackend::previewRemove(const QStringList &packageNames)
 
 QVector<ProcessRunner::Command> AptBackend::cleanUnusedDependenciesCommands() const
 {
-    return {{"pkexec", {"env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "autoremove", "-y"}}};
+    return {{"pkexec", {"env", "DEBIAN_FRONTEND=noninteractive", "apt-get", "-o", "APT::Status-Fd=1", "autoremove", "-y"}}};
 }
 
 OperationResult AptBackend::cleanUnusedDependencies()

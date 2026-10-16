@@ -39,11 +39,20 @@ private:
     void finishAll(bool success);
     void appendText(const QString &text);
     void appendLine(const QString &line);
+    // Reads progress out of the output as it streams: pacman's "( 3/10)
+    // upgrading foo", dnf's "[ 3/10] ...", APT's Status-Fd "pmstatus:" lines,
+    // Flatpak's and Snap's per-app lines.
+    void scanProgress(const QString &text);
+    void parseProgressLine(const QString &line);
+    void showStep(const QString &text, int current = -1, int total = -1);
 
     QPlainTextEdit *m_output;
     QLabel *m_statusIcon;
     QLabel *m_statusLabel;
     QProgressBar *m_progress;
+    QLabel *m_stepLabel;
+    QString m_partialLine;
+    QString m_allOutput;
     QPushButton *m_closeButton;
 
     QVector<ProcessRunner::Command> m_commands;

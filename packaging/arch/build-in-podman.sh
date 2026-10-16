@@ -14,7 +14,7 @@ podman run --rm \
     docker.io/library/archlinux:latest \
     bash -c '
         set -euo pipefail
-        pacman -Syu --noconfirm --needed base-devel cmake qt6-base polkit
+        pacman -Syu --noconfirm --needed base-devel cmake qt6-base polkit polkit-kde-agent
         useradd -m builder
         cp -r /repo /home/builder/repo
         chown -R builder:builder /home/builder/repo

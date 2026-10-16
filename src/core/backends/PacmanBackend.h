@@ -36,6 +36,7 @@ public:
 
     QVector<PackageInfo> listUpdates() override;
     OperationResult upgradePackages(const QStringList &packageNames) override;
+    QVector<ProcessRunner::Command> upgradeCommands(const QStringList &packageNames) const override;
     OperationResult refreshMetadata() override;
 
     QVector<ProcessRunner::Command> downloadCommands(const QStringList &packageNames, const QString &destinationDir,

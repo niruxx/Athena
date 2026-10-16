@@ -200,11 +200,15 @@ QVector<PackageInfo> FlatpakBackend::listUpdates()
     return updates;
 }
 
+QVector<ProcessRunner::Command> FlatpakBackend::upgradeCommands(const QStringList &packageNames) const
+{
+    return {{"flatpak", QStringList{"update", "-y", "--noninteractive"} + packageNames}};
+}
+
 OperationResult FlatpakBackend::upgradePackages(const QStringList &packageNames)
 {
-    QStringList args = {"update", "-y", "--noninteractive"};
-    args += packageNames;
-    const Result result = ProcessRunner::run("flatpak", args, 600000);
+    // Updates can take a long time (big runtimes, slow mirrors).
+    const Result result = ProcessRunner::runSequence(upgradeCommands(packageNames), 2 * 60 * 60 * 1000);
     OperationResult op;
     op.success = result.started && result.exitCode == 0;
     op.output = result.stdOut + result.stdErr;

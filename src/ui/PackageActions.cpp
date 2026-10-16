@@ -266,22 +266,18 @@ void upgradePackages(QWidget *parentWidget, PackageBackend *backend, const QStri
 
     const QString verb = packageNames.size() == 1 ? QObject::tr("Update") : QObject::tr("Update packages");
     const QString summary = QObject::tr("Update %1?").arg(summarizeNames(packageNames));
-    confirmAndRun(
+    // In the terminal window, like installs, so the update's progress and
+    // output are visible while it runs. A failed snapshot stops the
+    // sequence before anything is updated.
+    confirmAndRunCommandsWithTerminal(
         parentWidget, verb, summary,
-        [backend, packageNames, verb]() {
-            const QVector<ProcessRunner::Command> snapshot = snapshotSteps(backend, verb.toLower());
-            if (!snapshot.isEmpty()) {
-                const ProcessRunner::Result taken = ProcessRunner::runSequence(snapshot, 600000);
-                if (!taken.started || taken.exitCode != 0) {
-                    OperationResult failed;
-                    failed.output = QObject::tr("The snapshot before updating failed, so nothing was updated.\n\n%1")
-                                        .arg(taken.stdOut + taken.stdErr);
-                    return failed;
-                }
-            }
-            return backend->upgradePackages(packageNames);
-        },
+        [backend, packageNames, verb]() { return snapshotSteps(backend, verb.toLower()) + backend->upgradeCommands(packageNames); },
         std::move(onFinished));
+}
+
+bool runInTerminal(QWidget *parentWidget, const QString &title, const QVector<ProcessRunner::Command> &commands)
+{
+    return runTerminalDialog(parentWidget, title, commands);
 }
 
 void cleanUnusedDependencies(QWidget *parentWidget, PackageBackend *backend,

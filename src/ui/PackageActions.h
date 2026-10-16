@@ -74,6 +74,10 @@ void cleanUnusedDependencies(QWidget *parentWidget, PackageBackend *backend,
 // itself (native packages, AUR builds — not Flatpak or Snap). Empty otherwise.
 QVector<ProcessRunner::Command> snapshotSteps(PackageBackend *backend, const QString &what);
 
+// Runs `commands` in the terminal window (live output and progress) and
+// returns whether every one succeeded; no confirmation step.
+bool runInTerminal(QWidget *parentWidget, const QString &title, const QVector<ProcessRunner::Command> &commands);
+
 void downloadPackages(QWidget *parentWidget, PackageBackend *backend, const QStringList &packageNames,
                        const QString &destinationDir, bool includeDependencies,
                        std::function<void(bool success)> onFinished);

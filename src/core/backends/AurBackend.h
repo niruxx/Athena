@@ -126,6 +126,7 @@ public:
     // was bumped on the AUR, not for every new upstream commit.
     QVector<PackageInfo> listUpdates() override;
     OperationResult upgradePackages(const QStringList &packageNames) override;
+    QVector<ProcessRunner::Command> upgradeCommands(const QStringList &packageNames) const override;
     OperationResult refreshMetadata() override;
 
     // Clones each package's AUR git repo (PKGBUILD and friends) into

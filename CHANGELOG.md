@@ -208,6 +208,28 @@ append new entries above as changes land.
 
 ### Fixed
 
+- **Updates had no progress.** Updating (one app, a source's "Update all",
+  or "Update everything") ran silently in the background, so the Updates
+  page sat unchanged until it finished — or until a long Flatpak update hit
+  a ten-minute timeout. Updates now run in the terminal window like
+  installs, with a progress bar and a line saying what's happening, read
+  from each tool's output: pacman's and dnf's step counts, APT's
+  percentage, the app Flatpak or Snap is on. Installs and removals get the
+  same progress. "Update everything" is a real full upgrade per source
+  (`pacman -Syu`, `dnf upgrade`, `apt-get upgrade`, `flatpak update`,
+  `snap refresh`) instead of a list of package names, so on Arch it's no
+  longer a partial upgrade.
+- **No password prompt on some desktops.** pkexec needs a polkit
+  authentication agent running in the session; bare compositors (niri,
+  Hyprland, sway) and minimal installs often don't start one, and pkexec
+  then printed its text-mode prompt into the terminal window and failed
+  ("Error creating textual authentication agent … /dev/tty"). Athena now
+  runs pkexec with its text prompt off, starts an installed agent itself
+  when none is running, and explains plainly when there's no agent or the
+  prompt was dismissed. The packages depend on an agent: `polkit-kde-agent`
+  on Arch, any agent on Fedora (`polkit-kde` if there's none) and Debian
+  (`polkit-kde-agent-1` or any `polkit-1-auth-agent`), and on Debian on
+  `pkexec` itself, which newer Debian and Ubuntu ship separately.
 - Tools → Backup & Restore showed "0 B" for every dotfile that's a plain
   file (`.bashrc`, `.bash_history`), so the selected total left them out.
 - Two AUR messages still pointed to "Preferences → General → AUR"; they now

@@ -55,6 +55,7 @@
 #include "ui/SettingsPage.h"
 #include "ui/SnapManagePage.h"
 #include "ui/SnapshotsPage.h"
+#include "ui/TransactionConfirmDialog.h"
 #include "ui/ToolsDialogs.h"
 #include "ui/ToolsPages.h"
 #include "ui/UpdateBannerWidget.h"
@@ -755,31 +756,19 @@ void MainWindow::updateAll()
         if (!snapshot.isEmpty())
             break;
     }
-    PackageActions::confirmAndRun(
-        this, tr("Update All"), summary,
-        [namesByBackend, snapshot]() -> OperationResult {
-            OperationResult combined;
-            if (!snapshot.isEmpty()) {
-                const ProcessRunner::Result taken = ProcessRunner::runSequence(snapshot, 600000);
-                if (!taken.started || taken.exitCode != 0) {
-                    combined.output = tr("The snapshot before updating failed, so nothing was updated.\n\n%1")
-                                          .arg(taken.stdOut + taken.stdErr);
-                    return combined;
-                }
-            }
-            combined.success = true;
-            for (auto it = namesByBackend.constBegin(); it != namesByBackend.constEnd(); ++it) {
-                const OperationResult result = it.key()->upgradePackages(it.value());
-                combined.success = combined.success && result.success;
-                if (!result.output.isEmpty())
-                    combined.output += result.output + '\n';
-            }
-            return combined;
-        },
-        [this, reviewAur](bool success) {
-            showMessage(success ? tr("Updates installed.") : tr("Some updates failed to install."));
-            reviewAur();
-        });
+    if (!TransactionConfirmDialog::confirm(this, tr("Update everything"), summary))
+        return;
+    // One terminal window for the whole batch: the snapshot, then each
+    // source's own full update (pacman -Syu, dnf upgrade, flatpak update,
+    // snap refresh) — or the named builds, for AUR without review.
+    QVector<ProcessRunner::Command> commands = snapshot;
+    for (auto it = namesByBackend.constBegin(); it != namesByBackend.constEnd(); ++it) {
+        const bool aur = m_aurBackend && it.key() == m_aurBackend.get();
+        commands += it.key()->upgradeCommands(aur ? it.value() : QStringList());
+    }
+    const bool success = PackageActions::runInTerminal(this, tr("Update everything"), commands);
+    showMessage(success ? tr("Updates installed.") : tr("Some updates failed to install."));
+    reviewAur();
 }
 
 void MainWindow::applyDisableGroupView(bool disabled)

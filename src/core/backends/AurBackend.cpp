@@ -730,6 +730,12 @@ QVector<PackageInfo> AurBackend::listUpdates()
     return updates;
 }
 
+QVector<ProcessRunner::Command> AurBackend::upgradeCommands(const QStringList &packageNames) const
+{
+    // An AUR update is a rebuild; there's no "everything" without names.
+    return buildCommands(packageNames, true);
+}
+
 OperationResult AurBackend::upgradePackages(const QStringList &packageNames)
 {
     return toOperationResult(ProcessRunner::runSequence(buildCommands(packageNames, true), kBuildTimeoutMs));

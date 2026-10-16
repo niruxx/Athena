@@ -485,11 +485,15 @@ QVector<PackageInfo> DnfBackend::listUpdates()
     return updates;
 }
 
+QVector<ProcessRunner::Command> DnfBackend::upgradeCommands(const QStringList &packageNames) const
+{
+    return {{"pkexec", QStringList{dnfExecutable(), "upgrade", "-y"} + packageNames}};
+}
+
 OperationResult DnfBackend::upgradePackages(const QStringList &packageNames)
 {
-    QStringList args = {dnfExecutable(), "upgrade", "-y"};
-    args += packageNames;
-    const Result result = ProcessRunner::run("pkexec", args, 600000);
+    // Updates can take a long time (big runtimes, slow mirrors).
+    const Result result = ProcessRunner::runSequence(upgradeCommands(packageNames), 2 * 60 * 60 * 1000);
     OperationResult op;
     op.success = result.started && result.exitCode == 0;
     op.output = result.stdOut + result.stdErr;

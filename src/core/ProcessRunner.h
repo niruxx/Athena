@@ -47,6 +47,13 @@ Result runWithStdin(const QString &program, const QStringList &args, const QByte
 // that stopped the sequence (or the last one, if all succeeded).
 Result runSequence(const QVector<Command> &commands, int timeoutMsPerCommand = 600000);
 
+// The arguments to start `program` with: for pkexec, with its text-mode
+// password prompt turned off. Without a polkit authentication agent,
+// pkexec would otherwise print a password prompt into the output and fail
+// for want of a terminal; this way it fails at once with "No
+// authentication agent found", which the UI can explain.
+QStringList launchArgs(const QString &program, const QStringList &args);
+
 // Returns true if `program` resolves to something executable on PATH.
 bool executableExists(const QString &program);
 

@@ -104,6 +104,11 @@ public:
     // it" as different operations).
     virtual QVector<PackageInfo> listUpdates() = 0;
     virtual OperationResult upgradePackages(const QStringList &packageNames) = 0;
+    // The commands upgradePackages() runs, for showing them live in a
+    // terminal window. An empty list means "update everything" — a full
+    // system upgrade where the backend has one (pacman -Syu), rather than
+    // naming each pending package.
+    virtual QVector<ProcessRunner::Command> upgradeCommands(const QStringList &packageNames) const = 0;
 
     // Downloads (without installing) the named packages into
     // destinationDir, optionally also fetching their not-yet-installed

@@ -43,6 +43,8 @@ add_executable(athena
     src/core/SystemTools.cpp
     src/core/SnapTools.h
     src/core/SnapTools.cpp
+    src/core/PolkitAgent.h
+    src/core/PolkitAgent.cpp
 
     src/core/backends/DnfBackend.h
     src/core/backends/DnfBackend.cpp
@@ -175,7 +177,12 @@ set(CPACK_PACKAGE_CHECKSUM SHA256)
 set(CPACK_RPM_PACKAGE_LICENSE "GPLv3+")
 set(CPACK_RPM_PACKAGE_GROUP "Applications/System")
 set(CPACK_RPM_PACKAGE_AUTOREQPROV YES)
-set(CPACK_RPM_PACKAGE_REQUIRES "polkit")
+# pkexec is in polkit; a password prompt also needs an authentication agent
+# running in the session — any one will do, and polkit-kde (Qt, like Athena)
+# is installed when there's none. Athena starts it itself on desktops that
+# don't (bare compositors such as niri, Hyprland, or sway).
+set(CPACK_RPM_PACKAGE_REQUIRES
+    "polkit, (polkit-kde or polkit-gnome or lxqt-policykit or mate-polkit or xfce-polkit or hyprpolkitagent or soteria)")
 # Optional: system snapshots before changes (and restoring them).
 set(CPACK_RPM_PACKAGE_SUGGESTS "snapper, timeshift")
 set(CPACK_RPM_PACKAGE_RELEASE "1")
@@ -189,7 +196,7 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "niruxxdaboi <perezkyle98@protonmail.com>")
 set(CPACK_DEBIAN_PACKAGE_SECTION "admin")
 set(CPACK_DEBIAN_PACKAGE_ARCHITECTURE "amd64")
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
-    "libqt6core6, libqt6gui6, libqt6widgets6, libqt6network6, libqt6concurrent6, libc6, policykit-1 | polkitd")
+    "libqt6core6, libqt6gui6, libqt6widgets6, libqt6network6, libqt6concurrent6, libc6, pkexec | policykit-1, polkit-kde-agent-1 | polkit-1-auth-agent")
 set(CPACK_DEBIAN_PACKAGE_SUGGESTS "snapper, timeshift")
 set(CPACK_DEBIAN_FILE_NAME "DEB-DEFAULT")
 

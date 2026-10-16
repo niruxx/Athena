@@ -12,7 +12,10 @@ pkgdesc="Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak"
 arch=('x86_64')
 url="https://github.com/niruxx/Athena"
 license=('GPL-3.0-or-later')
-depends=('qt6-base' 'polkit')
+# pkexec is in polkit; its password prompt needs an authentication agent
+# running in the session. Athena starts this one itself when the desktop
+# doesn't run any (bare compositors such as niri, Hyprland, or sway).
+depends=('qt6-base' 'polkit' 'polkit-kde-agent')
 makedepends=('cmake')
 optdepends=('git: AUR support'
             'base-devel: building AUR packages'

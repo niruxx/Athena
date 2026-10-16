@@ -4,6 +4,8 @@
 #include <QProcessEnvironment>
 #include <QStandardPaths>
 
+#include "PolkitAgent.h"
+
 namespace ProcessRunner {
 
 namespace {
@@ -22,7 +24,9 @@ Result runInternal(const QString &program, const QStringList &args, const QByteA
     if (!workingDirectory.isEmpty())
         process.setWorkingDirectory(workingDirectory);
 
-    process.start(program, args);
+    if (program == QLatin1String("pkexec"))
+        PolkitAgent::ensureRunning(); // a password prompt needs an agent to show it
+    process.start(program, launchArgs(program, args));
     if (!process.waitForStarted(5000)) {
         result.started = false;
         return result;
@@ -46,6 +50,15 @@ Result runInternal(const QString &program, const QStringList &args, const QByteA
 }
 
 } // namespace
+
+QStringList launchArgs(const QString &program, const QStringList &args)
+{
+    if (program != QLatin1String("pkexec") && !program.endsWith(QLatin1String("/pkexec")))
+        return args;
+    if (args.value(0) == QLatin1String("--disable-internal-agent"))
+        return args;
+    return QStringList{QStringLiteral("--disable-internal-agent")} + args;
+}
 
 Result run(const QString &program, const QStringList &args, int timeoutMs, const QString &workingDirectory)
 {
