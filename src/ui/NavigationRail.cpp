@@ -233,6 +233,15 @@ void NavigationRail::addStretch()
         m_layout->addStretch(1);
 }
 
+void NavigationRail::setDestinationVisible(int index, bool visible)
+{
+    if (index < 0 || index >= m_buttons.size())
+        return;
+    m_buttons[index]->setVisible(visible);
+    // The indicator follows its button's new position once laid out.
+    QTimer::singleShot(0, this, [this]() { moveIndicator(false); });
+}
+
 void NavigationRail::clearSelection()
 {
     m_group->setExclusive(false);

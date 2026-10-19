@@ -16,7 +16,7 @@ class QPoint;
 // Installed Version / Latest Version / Description) with a details panel
 // below showing the highlighted row's full description, plus action
 // buttons and a matching right-click menu. Shared by the classic
-// InstalledPage, SearchPage, and GroupsPage (under Sources) so the checkbox
+// the Groups page so the checkbox
 // multi-select and action wiring isn't duplicated across them. Mode::Updates
 // served the old per-source Updates tab, which the cross-source Updates page
 // replaced; it's unused for now.

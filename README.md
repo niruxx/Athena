@@ -54,7 +54,7 @@ Your system's packages (**DNF**, **APT**, or **pacman**), the **AUR**, **Flatpak
 - 🧩 **One card per app.** pacman's `firefox`, Flathub's Firefox, and the AUR's `firefox-bin` merge into one card; pick the source in the details sheet.
 - 📋 **Details sheet** with screenshots, description, version, size, homepage, and a summary of a Flatpak app's sandbox permissions (risky ones highlighted), plus Install, Remove, Update, Reinstall, Open, and **Edit permissions**.
 - ☑️ **Batch selection** in Discover, Installed, and Updates, and **right-click menus** on every list and card.
-- 🔍 **Advanced search**: Dependency Query (what provides or requires a capability), plus Repository and Architecture filters.
+- 🔍 **Advanced search** in Discover: Dependency Query (what provides or requires a capability), plus Repository and Architecture filters.
 - ⬇️ **Download without installing**, with or without dependencies.
 
 ### ⬆️ Updates you can trust
@@ -79,11 +79,12 @@ Your system's packages (**DNF**, **APT**, or **pacman**), the **AUR**, **Flatpak
 | | |
 |---|---|
 | 🧽 **Free up space** | Package-cache cleanup (`paccache`/`pacman -Sc`, `apt clean`, `dnf clean`) and left-behind dependencies, with sizes shown first. |
+| 🗂️ **Groups** | A page for your package manager's groups (pacman groups, dnf groups and environments, tasksel tasks): search them, see what's installed, install a whole group's missing packages, or manage its packages one by one. |
 | 🌐 **Repositories** | Switch repos on and off, add new ones (including **COPR** on Fedora), and refresh metadata, for your system and Flatpak remotes. |
 | 🪞 **Mirrors** | Rank pacman mirrors with `reflector` and preview the list before it's saved, or turn on DNF's fastest-mirror. |
 | 🕘 **History** | One timeline of installs, removals, and upgrades across pacman, APT, DNF, and Flatpak, beside the raw logs. |
 | 📦 **Export & Import** | Everything you chose to install, from every source, in one file. On a new machine, pick what's missing and install it. |
-| 🔒 **Flatpak** | A page of its own: a **Permissions** editor built on `flatpak override` (a switch per permission), **App data** and **Leftovers** browsers, and **Backup**. |
+| 🔒 **Flatpak** | A page of its own: a **Permissions** editor built on `flatpak override` (a switch per permission), and **App data** and **Leftovers** browsers. |
 | 🧩 **Snap management** | Switch a snap's channel, revert to its previous revision, enable or disable it, and connect or disconnect its interfaces. |
 | 💾 **Backups** | Flatpak app data and app list to one `.tar.gz`; your dotfiles and config likewise, restored the same way. |
 | 🗑️ **User cleanup** | `/tmp`, `~/.cache`, trash, thumbnails, shell history, and recent files, with sizes shown before anything is deleted. |
@@ -118,7 +119,7 @@ Your system's packages (**DNF**, **APT**, or **pacman**), the **AUR**, **Flatpak
 </table>
 
 <details>
-<summary><b>🧰 More: Repositories, History, Mirrors, Export & Import, package groups</b></summary>
+<summary><b>🧰 More: Repositories, History, Mirrors, Export & Import</b></summary>
 <br>
 
 <table>
@@ -129,10 +130,6 @@ Your system's packages (**DNF**, **APT**, or **pacman**), the **AUR**, **Flatpak
 <tr>
 <td align="center"><b>🪞 Mirrors</b><br><br><img src="docs/screenshots/m3-mirrors.png" alt="Mirror ranking"></td>
 <td align="center"><b>📦 Export &amp; Import</b><br><br><img src="docs/screenshots/m3-export.png" alt="Export and Import"></td>
-</tr>
-<tr>
-<td align="center"><b>🗂️ Package groups</b><br><br><img src="docs/screenshots/m3-discover-groups.png" alt="Package groups in Discover"></td>
-<td></td>
 </tr>
 </table>
 
@@ -241,7 +238,7 @@ Packaging (`.rpm`/`.deb` via CPack, `.AppImage` via `linuxdeploy`, Arch via `pac
 
 ## 🔐 A note on privileges
 
-Installing, removing, and reinstalling packages is done through [`pkexec`](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html) (Polkit), which prompts you for your password through your desktop's native authentication dialog — Athena never asks for or stores a password itself. Flatpak install/remove operations use Flatpak's own built-in Polkit integration the same way; Snap has no such integration of its own, so its operations go through `pkexec` too. AUR packages are built as your own user (makepkg refuses to run as root); only the final install and any repository dependencies go through `pkexec`. Athena does that by pointing makepkg's `PACMAN_AUTH`, or the helper's `--sudo` option, at it. Downloading packages (without installing them) is unprivileged on DNF, APT, and Snap; Pacman and Flatpak downloads still go through the same privilege model as a normal install. Flatpak's Permissions, User Data, Leftover Data, and Backup & Restore tabs are the exception in the other direction — they all act on user-level state (`~/.local/share/flatpak/overrides`, `~/.var/app`), so none of them need a privilege prompt at all. The whole Tools page is the same way: every General/Advanced cleanup item only ever removes files it confirms you own (so a shared `/tmp` is safe to point it at), and its Backup & Restore tab only reads and writes your own home directory — none of it needs a privilege prompt either.
+Installing, removing, and reinstalling packages is done through [`pkexec`](https://www.freedesktop.org/software/polkit/docs/latest/pkexec.1.html) (Polkit), which prompts you for your password through your desktop's native authentication dialog — Athena never asks for or stores a password itself. Flatpak install/remove operations use Flatpak's own built-in Polkit integration the same way; Snap has no such integration of its own, so its operations go through `pkexec` too. AUR packages are built as your own user (makepkg refuses to run as root); only the final install and any repository dependencies go through `pkexec`. Athena does that by pointing makepkg's `PACMAN_AUTH`, or the helper's `--sudo` option, at it. Downloading packages (without installing them) is unprivileged on DNF, APT, and Snap; Pacman and Flatpak downloads still go through the same privilege model as a normal install. The Flatpak page and Flatpak backups are the exception in the other direction — they all act on user-level state (`~/.local/share/flatpak/overrides`, `~/.var/app`), so none of them need a privilege prompt at all. The whole Tools page is the same way: every Free up space item for your own files only ever removes files it confirms you own (so a shared `/tmp` is safe to point it at), and its Backup & Restore tab only reads and writes your own home directory — none of it needs a privilege prompt either.
 
 ## 📜 Changelog
 

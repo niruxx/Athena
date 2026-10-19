@@ -20,7 +20,7 @@ ICONS=(
     backup checklist delete_sweep deselect error folder_open help lock radio_button_unchecked restart_alt
     restore select_all warning
     # permissions, snaps, data and cleanup rows
-    alt_route bluetooth bug_report cable cached dns extension image key lan power_settings_new undo usb
+    alt_route bluetooth bug_report cable cached category dns extension image key lan power_settings_new undo usb
 )
 NAMES=$(IFS=,; echo "${ICONS[*]}")
 

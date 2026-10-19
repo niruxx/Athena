@@ -157,8 +157,43 @@ append new entries above as changes land.
   with administrator access, behind a "Show snapshots" button rather than a
   password prompt on opening the tab.
 
+- **Groups page** in the navigation rail: the native package manager's
+  package groups (pacman groups, dnf groups and environments, tasksel
+  tasks), with a search field over the list. Choosing one shows its
+  description and how many of its packages are installed, with "Install
+  missing" (or "Install group") and "Remove installed…" for the whole group,
+  and its packages in the package table — searchable, filterable to All /
+  Installed / Not installed, and installable, reinstallable, or removable
+  one by one. It replaces the Groups tab under Sources; Settings → Layout →
+  "Hide the Groups page" hides it.
+
 ### Changed
 
+- **Every feature has one home.** A pass over the whole UI to remove
+  duplicates and put things where they're looked for:
+  - The rail runs from everyday pages to configuration: Home, Discover,
+    Installed, Updates, Groups, Flatpak, Sources, Tools, Settings.
+  - Sources keeps only what's particular to each source: repositories or
+    remotes, mirrors, history, the AUR's PKGBUILD viewer, Snap management.
+    Its per-source Package Browser and Advanced Search tabs are gone —
+    Installed lists everything installed (with Show all, Remove, and
+    Reinstall), and Discover's Advanced has Dependency Query, the
+    repository and architecture filters, and Download.
+  - Discover opens on **All apps**, the whole catalog, instead of
+    repeating what Installed shows; its Package groups chip is gone in
+    favor of the Groups page.
+  - Tools → **Free up space** is every cleanup in one tab: packages (the
+    package cache and unused dependencies, as Home's Cleanup tile opens),
+    then your files (Everyday, and Worth a second look). It replaces the
+    Cleanup and Advanced Cleanup tabs and the ⋮ menu's "Clean Left-Behind
+    Dependencies".
+  - Tools → **Backup & Restore** holds every backup: your files, and
+    Flatpak apps' data (formerly Flatpak → Backup).
+  - The ⋮ menu has only app-level items (reload, Athena updates, report a
+    bug, about, quit). Pages that don't fit in the bottom navigation bar
+    are listed there only in narrow windows, where they're otherwise out of
+    reach.
+  - Home's Recent activity has a "See all" link to the full history.
 - "Start on tab" is now "Start on page" (Home, Discover, Installed, or
   Updates). The previous setting doesn't carry over, so Athena starts on
   Home until you pick another page.

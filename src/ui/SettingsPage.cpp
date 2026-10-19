@@ -213,7 +213,7 @@ QWidget *buildLayoutTab(QWidget *parent, QCheckBox *&disableGroupViewCheck)
 
     auto *browsingGroup = new QGroupBox(QObject::tr("Package Browsing"), tab);
     auto *browsingLayout = new QVBoxLayout(browsingGroup);
-    disableGroupViewCheck = new QCheckBox(QObject::tr("Disable Group view"), tab);
+    disableGroupViewCheck = new QCheckBox(QObject::tr("Hide the Groups page"), tab);
     disableGroupViewCheck->setChecked(AppSettings::instance().disableGroupView());
     browsingLayout->addWidget(disableGroupViewCheck);
     auto *architectureCheck = new QCheckBox(QObject::tr("Show architecture in package lists"), tab);

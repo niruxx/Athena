@@ -11,7 +11,7 @@ class QWidget;
 
 // Shared confirm -> run -> report-outcome flow for the privileged
 // install/remove/reinstall/cleanup actions, used by PackageBrowser and
-// InstalledPage (and so, by extension, InstalledPage/SearchPage/GroupsPage)
+// the package pages (Discover, Installed, Updates, Groups)
 // so the pkexec + terminal-dialog plumbing isn't duplicated per page.
 namespace PackageActions {
 

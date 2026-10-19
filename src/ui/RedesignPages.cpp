@@ -354,7 +354,15 @@ HomePage::HomePage(CatalogHub *hub, PackageBackend *native, const QString &nativ
     auto *activityLayout = new QVBoxLayout(activity);
     activityLayout->setContentsMargins(20, 20, 20, 16);
     activityLayout->setSpacing(6);
-    activityLayout->addWidget(M3::label(tr("Recent activity"), QStringLiteral("titleM"), activity));
+    auto *activityHead = new QHBoxLayout;
+    activityHead->addWidget(M3::label(tr("Recent activity"), QStringLiteral("titleM"), activity), 1);
+    if (!m_nativeKey.isEmpty()) {
+        auto *seeAll = new QPushButton(tr("See all"), activity);
+        MaterialTheme::styleButton(seeAll, QStringLiteral("text"), QStringLiteral("chevron_right"));
+        connect(seeAll, &QPushButton::clicked, this, [this]() { emit navigate(QStringLiteral("history")); });
+        activityHead->addWidget(seeAll);
+    }
+    activityLayout->addLayout(activityHead);
     m_activityRows = new QVBoxLayout;
     m_activityRows->setSpacing(0);
     m_activityRows->addWidget(M3::label(tr("Loading…"), QStringLiteral("muted"), activity));
@@ -626,19 +634,12 @@ DiscoverPage::DiscoverPage(CatalogHub *hub, DetailsSheet *sheet, QWidget *parent
     auto *categoryLayout = new QHBoxLayout(m_categoryRow);
     categoryLayout->setContentsMargins(0, 0, 0, 0);
     categoryLayout->setSpacing(8);
-    QVector<QPair<QString, QString>> categories = {{tr("Your apps"), QStringLiteral("star")}};
+    // "All apps" browses the whole catalog (what's installed is the
+    // Installed page; package groups are the Groups page).
+    QVector<QPair<QString, QString>> categories = {{tr("All apps"), QStringLiteral("apps")}};
     for (const Category &category : kCategories)
         categories.append({tr(category.label).replace('&', QStringLiteral("&&")), QString::fromLatin1(category.icon)});
-    PackageBackend *native = hub->nativeSource() >= 0 ? hub->sources()[hub->nativeSource()].backend : nullptr;
-    if (native)
-        categories.append({tr("Package groups"), QStringLiteral("inventory_2")});
     m_categoryChips = M3::chipRow(categories, m_categoryRow, categoryLayout);
-    if (native)
-        m_groupsChip = int(categories.size()) - 1;
-    m_groupPicker = new QComboBox(m_categoryRow);
-    m_groupPicker->setMinimumWidth(220);
-    m_groupPicker->hide();
-    categoryLayout->addWidget(m_groupPicker);
     categoryLayout->addStretch(1);
     // More chips than fit in a narrow window: scroll them sideways rather
     // than squeezing their labels.
@@ -703,15 +704,7 @@ DiscoverPage::DiscoverPage(CatalogHub *hub, DetailsSheet *sheet, QWidget *parent
     connect(m_search, &QLineEdit::returnPressed, this, &DiscoverPage::runSearch);
     connect(m_sourceChips, &QButtonGroup::idClicked, this, &DiscoverPage::showResults);
     connect(m_mode, &QButtonGroup::idClicked, this, &DiscoverPage::showResults);
-    connect(m_categoryChips, &QButtonGroup::idClicked, this, [this](int id) {
-        m_groupPicker->setVisible(id == m_groupsChip);
-        if (id == m_groupsChip) {
-            m_mode->button(1)->click(); // a group's members are packages, listed
-            loadGroups();
-        }
-        showResults();
-    });
-    connect(m_groupPicker, &QComboBox::activated, this, &DiscoverPage::loadGroup);
+    connect(m_categoryChips, &QButtonGroup::idClicked, this, &DiscoverPage::showResults);
 
     auto rerun = [this]() {
         m_activeQuery.clear(); // same text, different kind of search
@@ -852,9 +845,9 @@ void DiscoverPage::showResults()
 {
     const int source = m_sourceChips->checkedId() - 1; // chip 0 is "All sources"
     const bool appsMode = m_mode->checkedId() == 0;
-    const bool groupsMode = m_activeQuery.isEmpty() && m_categoryChips->checkedId() == m_groupsChip;
-    // chip 0 is "Your apps"; the categories follow; the groups chip is last.
-    const int category = m_activeQuery.isEmpty() && !groupsMode ? m_categoryChips->checkedId() - 1 : -1;
+    // chip 0 is "All apps"; the categories follow.
+    const bool allApps = m_activeQuery.isEmpty() && m_categoryChips->checkedId() <= 0;
+    const int category = m_activeQuery.isEmpty() ? m_categoryChips->checkedId() - 1 : -1;
     Motion::switchStack(m_views, appsMode ? 0 : 1);
     m_categoryScroll->setVisible(m_activeQuery.isEmpty());
 
@@ -867,21 +860,9 @@ void DiscoverPage::showResults()
 
     populateFilters();
     QVector<CatalogItem> base;
-    if (groupsMode) {
-        base = m_groupItems;
-        for (CatalogItem &item : base) {
-            for (CatalogVariant &v : item.variants) {
-                if (installedKeys.contains(QString::number(v.source) + '/' + v.info.name))
-                    v.info.installed = true;
-            }
-        }
-    } else if (m_activeQuery.isEmpty() && category < 0) {
-        for (const CatalogItem &item : m_hub->installed()) {
-            if (item.isApp)
-                base.append(item);
-        }
-    } else {
-        base = m_activeQuery.isEmpty() ? m_hub->itemsFor(m_hub->appIndex()->inCategory(QString::fromLatin1(kCategories[category].key)))
+    {
+        base = allApps                  ? m_hub->itemsFor(m_hub->appIndex()->all())
+             : m_activeQuery.isEmpty() ? m_hub->itemsFor(m_hub->appIndex()->inCategory(QString::fromLatin1(kCategories[category].key)))
                                        : m_results;
         for (CatalogItem &item : base) {
             for (CatalogVariant &v : item.variants) {
@@ -923,9 +904,8 @@ void DiscoverPage::showResults()
     }
 
     QVector<CatalogItem> shown;
-    const bool fromIndex = !m_activeQuery.isEmpty() || category >= 0;
-    QVector<CatalogItem> candidates = appsMode && fromIndex ? Catalog::mergeApps(base) : base;
-    if (category >= 0) {
+    QVector<CatalogItem> candidates = appsMode ? Catalog::mergeApps(base) : base;
+    if (m_activeQuery.isEmpty()) {
         std::sort(candidates.begin(), candidates.end(), [](const CatalogItem &a, const CatalogItem &b) {
             return QString::compare(a.title, b.title, Qt::CaseInsensitive) < 0;
         });
@@ -947,13 +927,9 @@ void DiscoverPage::showResults()
 
     QString heading;
     const AppStreamIndex *index = m_hub->appIndex();
-    if (groupsMode)
-        heading = m_groupPicker->currentIndex() < 0 ? tr("Pick a package group")
-                                                    : tr("%n package(s) in %1", "", shown.size()).arg(m_groupPicker->currentText());
-    else if (m_activeQuery.isEmpty() && category < 0)
-        heading = index->isLoaded()
-            ? tr("Your apps · %1 apps from your sources are a search or a category away").arg(QLocale().toString(index->size()))
-            : tr("Your apps · loading the app catalog…");
+    if (allApps)
+        heading = index->isLoaded() ? tr("%1 apps from your sources").arg(QLocale().toString(shown.size()))
+                                    : tr("Loading the app catalog…");
     else if (category >= 0)
         heading = index->isLoaded() ? tr("%n app(s) in %1", "", shown.size()).arg(tr(kCategories[category].label))
                                     : tr("Loading the app catalog…");
@@ -966,63 +942,6 @@ void DiscoverPage::showResults()
         heading = appsMode ? tr("%n app(s) for \"%1\"", "", shown.size()).arg(m_activeQuery)
                            : tr("%n package(s) for \"%1\"", "", shown.size()).arg(m_activeQuery);
     m_heading->setText(heading);
-}
-
-void DiscoverPage::loadGroups()
-{
-    if (m_groupsLoaded)
-        return;
-    m_groupsLoaded = true;
-    PackageBackend *native = m_hub->sources()[m_hub->nativeSource()].backend;
-    auto *watcher = new QFutureWatcher<QVector<PackageGroupInfo>>(this);
-    connect(watcher, &QFutureWatcher<QVector<PackageGroupInfo>>::finished, this, [this, watcher]() {
-        QVector<PackageGroupInfo> groups = watcher->result();
-        watcher->deleteLater();
-        std::sort(groups.begin(), groups.end(), [](const PackageGroupInfo &a, const PackageGroupInfo &b) {
-            return QString::compare(a.name, b.name, Qt::CaseInsensitive) < 0;
-        });
-        const QSignalBlocker blocker(m_groupPicker);
-        m_groupPicker->clear();
-        for (const PackageGroupInfo &group : groups)
-            m_groupPicker->addItem(group.name, QVariant::fromValue(QStringList{group.id, group.isMeta ? QStringLiteral("1") : QString()}));
-        m_groupPicker->setCurrentIndex(-1);
-        m_groupPicker->setPlaceholderText(groups.isEmpty() ? tr("No groups") : tr("Choose a group"));
-        showResults();
-    });
-    watcher->setFuture(QtConcurrent::run([native]() { return native->listGroups(); }));
-}
-
-void DiscoverPage::loadGroup(int index)
-{
-    if (index < 0)
-        return;
-    const QStringList data = m_groupPicker->itemData(index).toStringList();
-    const int source = m_hub->nativeSource();
-    PackageBackend *native = m_hub->sources()[source].backend;
-    const QString id = data.value(0);
-    const bool isMeta = !data.value(1).isEmpty();
-    m_groupItems.clear();
-    showResults();
-    auto *watcher = new QFutureWatcher<QVector<PackageInfo>>(this);
-    connect(watcher, &QFutureWatcher<QVector<PackageInfo>>::finished, this, [this, watcher, source]() {
-        for (const PackageInfo &pkg : watcher->result())
-            m_groupItems.append(Catalog::fromPackage(m_hub->sources(), source, pkg));
-        watcher->deleteLater();
-        showResults();
-    });
-    // Same expansion as the classic Groups tab: environments/meta groups
-    // expand into their member groups' packages.
-    watcher->setFuture(QtConcurrent::run([native, id, isMeta]() {
-        const PackageGroupInfo group = native->groupDetails(id, isMeta);
-        QStringList names = group.packages;
-        for (const QString &sub : group.subGroups) {
-            for (const QString &name : native->groupDetails(sub, false).packages) {
-                if (!names.contains(name))
-                    names << name;
-            }
-        }
-        return native->packageDetails(names);
-    }));
 }
 
 void DiscoverPage::populateFilters()

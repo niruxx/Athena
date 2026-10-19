@@ -387,6 +387,15 @@ QVector<const AppStreamApp *> AppStreamIndex::search(const QString &query, int l
     return result;
 }
 
+QVector<const AppStreamApp *> AppStreamIndex::all() const
+{
+    QVector<const AppStreamApp *> result;
+    result.reserve(m_apps.size());
+    for (const AppStreamApp &app : m_apps)
+        result.append(&app);
+    return result;
+}
+
 QVector<const AppStreamApp *> AppStreamIndex::inCategory(const QString &category) const
 {
     QVector<const AppStreamApp *> result;

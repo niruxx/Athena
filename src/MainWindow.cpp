@@ -40,7 +40,6 @@
 #include "ui/FramelessHelper.h"
 #include "ui/GroupsPage.h"
 #include "ui/HistoryPage.h"
-#include "ui/InstalledPage.h"
 #include "ui/LeftoverDataPage.h"
 #include "ui/M3Dialog.h"
 #include "ui/M3Widgets.h"
@@ -51,7 +50,6 @@
 #include "ui/PermissionsPage.h"
 #include "ui/RedesignPages.h"
 #include "ui/RepositoriesPage.h"
-#include "ui/SearchPage.h"
 #include "ui/SettingsPage.h"
 #include "ui/SnapManagePage.h"
 #include "ui/SnapshotsPage.h"
@@ -220,11 +218,6 @@ QWidget *MainWindow::buildSourceTabs()
         PackageBackend *native = m_backend.get();
         m_systemTabs = sourceTabs(m_sourcesPage);
         m_systemTabs->addTab(lazyRepositories(native, tr("System"), m_systemTabs), tr("Repositories"));
-        m_systemGroupsTab = lazy<GroupsPage>(native, m_systemTabs);
-        if (!AppSettings::instance().disableGroupView())
-            m_systemTabs->addTab(m_systemGroupsTab, tr("Groups"));
-        m_systemTabs->addTab(lazy<InstalledPage>(native, m_systemTabs), tr("Package Browser"));
-        m_systemTabs->addTab(lazy<SearchPage>(native, m_systemTabs), tr("Advanced Search"));
         const QString nativeKey = shortBackendName(native->backendName());
         m_systemTabs->addTab(new LazyPage([native, nativeKey](QWidget *host) { return new HistoryPage(native, host, nativeKey); },
                                           m_systemTabs),
@@ -233,14 +226,11 @@ QWidget *MainWindow::buildSourceTabs()
             m_systemTabs->addTab(new LazyPage([nativeKey](QWidget *host) { return new MirrorsPage(nativeKey, host); }, m_systemTabs),
                                  tr("Mirrors"));
         m_sourcesPage->addSource(shortBackendName(native->backendName()), QStringLiteral("inventory_2"), m_systemTabs);
-        connect(&AppSettings::instance(), &AppSettings::disableGroupViewChanged, this, &MainWindow::applyDisableGroupView);
     }
     if (m_aurBackend) {
         AurBackend *aur = m_aurBackend.get();
         QTabWidget *tabs = sourceTabs(m_sourcesPage);
         tabs->addTab(lazy<AurPkgbuildPage>(aur, tabs), tr("PKGBUILD"));
-        tabs->addTab(lazy<InstalledPage>(static_cast<PackageBackend *>(aur), tabs), tr("Package Browser"));
-        tabs->addTab(lazy<SearchPage>(static_cast<PackageBackend *>(aur), tabs), tr("Advanced Search"));
         tabs->addTab(lazy<HistoryPage>(static_cast<PackageBackend *>(aur), tabs), tr("History"));
         m_sourcesPage->addSource(tr("AUR"), QStringLiteral("construction"), tabs);
     }
@@ -248,8 +238,6 @@ QWidget *MainWindow::buildSourceTabs()
         FlatpakBackend *flatpak = m_flatpakBackend.get();
         QTabWidget *tabs = sourceTabs(m_sourcesPage);
         tabs->addTab(lazyRepositories(flatpak, tr("Flatpak"), tabs), tr("Remotes"));
-        tabs->addTab(lazy<InstalledPage>(static_cast<PackageBackend *>(flatpak), tabs), tr("Package Browser"));
-        tabs->addTab(lazy<SearchPage>(static_cast<PackageBackend *>(flatpak), tabs), tr("Advanced Search"));
         tabs->addTab(new LazyPage([flatpak](QWidget *host) { return new HistoryPage(flatpak, host, QStringLiteral("flatpak")); }, tabs),
                      tr("History"));
         m_sourcesPage->addSource(tr("Flatpak"), QStringLiteral("deployed_code"), tabs);
@@ -258,8 +246,6 @@ QWidget *MainWindow::buildSourceTabs()
         PackageBackend *snap = m_snapBackend.get();
         QTabWidget *tabs = sourceTabs(m_sourcesPage);
         tabs->addTab(new LazyPage([](QWidget *host) { return new SnapManagePage(host); }, tabs), tr("Manage"));
-        tabs->addTab(lazy<InstalledPage>(snap, tabs), tr("Package Browser"));
-        tabs->addTab(lazy<SearchPage>(snap, tabs), tr("Advanced Search"));
         tabs->addTab(new LazyPage([snap](QWidget *host) { return new HistoryPage(snap, host, QStringLiteral("snap")); }, tabs),
                      tr("History"));
         m_sourcesPage->addSource(tr("Snap"), QStringLiteral("widgets"), tabs);
@@ -301,9 +287,25 @@ void MainWindow::buildShell()
     addPage(QStringLiteral("discover"), tr("Discover"), QStringLiteral("explore"), m_discover);
     addPage(QStringLiteral("installed"), tr("Installed"), QStringLiteral("apps"), installed);
     addPage(QStringLiteral("updates"), tr("Updates"), QStringLiteral("update"), updates);
-    addPage(QStringLiteral("sources"), tr("Sources"), QStringLiteral("hub"), buildSourceTabs());
+    // Groups: the native package manager's package groups (pacman groups,
+    // dnf groups and environments, tasksel tasks). Settings → Layout can
+    // hide it.
+    if (m_backend) {
+        PackageBackend *native = m_backend.get();
+        auto *groups = new QWidget(m_pages);
+        auto *groupsLayout = new QVBoxLayout(groups);
+        groupsLayout->setContentsMargins(24, 4, 18, 12);
+        groupsLayout->addWidget(lazy<GroupsPage>(native, groups));
+        m_groupsIndex = m_pageKeys.size();
+        addPage(QStringLiteral("groups"), tr("Groups"), QStringLiteral("category"), groups);
+        applyDisableGroupView(AppSettings::instance().disableGroupView());
+        connect(&AppSettings::instance(), &AppSettings::disableGroupViewChanged, this, &MainWindow::applyDisableGroupView);
+    }
     if (m_flatpakBackend)
         addPage(QStringLiteral("flatpak"), tr("Flatpak"), QStringLiteral("deployed_code"), buildFlatpakPage());
+    // Sources: what's particular to each source — its repositories or
+    // remotes, mirrors, history, AUR build scripts, Snap management.
+    addPage(QStringLiteral("sources"), tr("Sources"), QStringLiteral("hub"), buildSourceTabs());
 
     // Tools: housekeeping that isn't about packages (the former User
     // Management group).
@@ -311,15 +313,8 @@ void MainWindow::buildShell()
     auto *toolsLayout = new QVBoxLayout(tools);
     toolsLayout->setContentsMargins(24, 4, 18, 12);
     QTabWidget *toolTabs = sourceTabs(tools);
-    toolTabs->addTab(new UserCleanupPage(tr("Everyday cleanup — temporary files and cache that are always safe to clear and get "
-                                            "regenerated automatically as needed."),
-                                         UserCleanupTargets::general(), toolTabs),
-                     tr("Cleanup"));
-    toolTabs->addTab(new UserCleanupPage(tr("Less-common cleanup targets — still your own data, but worth a second look "
-                                            "(history, recently-used lists, trash) before clearing them."),
-                                         UserCleanupTargets::advanced(), toolTabs),
-                     tr("Advanced Cleanup"));
-    toolTabs->addTab(new UserBackupRestorePage(toolTabs), tr("Backup && Restore"));
+    toolTabs->addTab(buildFreeUpSpacePage(toolTabs), tr("Free up space"));
+    toolTabs->addTab(buildBackupPage(toolTabs), tr("Backup && Restore"));
     toolTabs->addTab(new ExportImportPage(m_hub, nativeSource >= 0 ? m_hub->sources()[nativeSource].key : QString(), toolTabs),
                      tr("Export && Import"));
     m_snapshotsTab = new LazyPage([](QWidget *host) { return new SnapshotsPage(host); }, toolTabs);
@@ -363,6 +358,23 @@ void MainWindow::buildShell()
     menuButton->setToolTip(tr("More"));
     m_overflowMenu = new QMenu(menuButton);
     connect(menuButton, &QPushButton::clicked, this, [this, menuButton]() {
+        for (QAction *action : std::as_const(m_pageActions)) {
+            m_overflowMenu->removeAction(action);
+            action->deleteLater();
+        }
+        m_pageActions.clear();
+        if (m_bottomBar->isVisible()) {
+            for (int i = kBottomDestinations; i < m_pageKeys.size(); ++i) {
+                if (i == m_groupsIndex && AppSettings::instance().disableGroupView())
+                    continue;
+                auto *action = new QAction(m_pageTitles[i], m_overflowMenu);
+                const QString key = m_pageKeys[i];
+                connect(action, &QAction::triggered, this, [this, key]() { goToPage(key); });
+                m_overflowMenu->insertAction(m_pagesSeparator, action);
+                m_pageActions.append(action);
+            }
+        }
+        m_pagesSeparator->setVisible(!m_pageActions.isEmpty());
         m_overflowMenu->popup(
             menuButton->mapToGlobal(QPoint(menuButton->width() - m_overflowMenu->sizeHint().width(), menuButton->height())));
     });
@@ -416,6 +428,16 @@ void MainWindow::buildShell()
     connect(m_rail, &NavigationRail::currentChanged, this, [this](int index) { goToPage(m_pageKeys.value(index)); });
     connect(m_bottomBar, &NavigationRail::currentChanged, this, [this](int index) { goToPage(m_pageKeys.value(index)); });
     connect(home, &HomePage::navigate, this, [this](const QString &key) {
+        if (key == QLatin1String("history") && m_systemTabs) {
+            // Home's "See all": the system source's full history.
+            goToPage(QStringLiteral("sources"));
+            m_sourcesPage->showSource(0);
+            for (int i = 0; i < m_systemTabs->count(); ++i) {
+                if (m_systemTabs->tabText(i) == tr("History"))
+                    m_systemTabs->setCurrentIndex(i);
+            }
+            return;
+        }
         if (key == QLatin1String("snapshots")) {
             goToPage(QStringLiteral("tools"));
             m_toolTabs->setCurrentWidget(m_snapshotsTab);
@@ -446,8 +468,9 @@ void MainWindow::buildShell()
 QWidget *MainWindow::buildFlatpakPage()
 {
     // Flatpak's own tools — what a sandboxed app may reach, the data it
-    // keeps, what uninstalled apps left behind, and backups — as one page
-    // with a segmented button per section.
+    // keeps, and what uninstalled apps left behind — as one page with a
+    // segmented button per section. (Backing up app data is with the other
+    // backups, under Tools.)
     FlatpakBackend *flatpak = m_flatpakBackend.get();
     auto *page = new QWidget(m_pages);
     auto *layout = new QVBoxLayout(page);
@@ -456,8 +479,7 @@ QWidget *MainWindow::buildFlatpakPage()
     auto *switcher = new QHBoxLayout;
     m_flatpakSegments = M3::segmented({{tr("Permissions"), QStringLiteral("lock")},
                                        {tr("App data"), QStringLiteral("folder")},
-                                       {tr("Leftovers"), QStringLiteral("delete_sweep")},
-                                       {tr("Backup"), QStringLiteral("backup")}},
+                                       {tr("Leftovers"), QStringLiteral("delete_sweep")}},
                                       page, switcher);
     switcher->addStretch(1);
     layout->addLayout(switcher);
@@ -466,11 +488,78 @@ QWidget *MainWindow::buildFlatpakPage()
     m_flatpakSections->addWidget(lazy<PermissionsPage>(flatpak, m_flatpakSections));
     m_flatpakSections->addWidget(lazy<UserDataPage>(flatpak, m_flatpakSections));
     m_flatpakSections->addWidget(lazy<LeftoverDataPage>(flatpak, m_flatpakSections));
-    m_flatpakSections->addWidget(lazy<BackupRestorePage>(flatpak, m_flatpakSections));
     layout->addWidget(m_flatpakSections, 1);
     m_flatpakSegments->button(0)->setChecked(true);
     connect(m_flatpakSegments, &QButtonGroup::idClicked, this, [this](int id) { Motion::switchStack(m_flatpakSections, id); });
     return page;
+}
+
+// A page of sections switched by a segmented button.
+static QWidget *segmentedPage(QWidget *parent, const QVector<QPair<QString, QString>> &labels, const QVector<QWidget *> &pages,
+                              QWidget *above = nullptr)
+{
+    auto *page = new QWidget(parent);
+    auto *layout = new QVBoxLayout(page);
+    layout->setContentsMargins(0, 8, 0, 0);
+    layout->setSpacing(12);
+    if (above)
+        layout->addWidget(above);
+    auto *stack = new QStackedWidget(page);
+    for (QWidget *section : pages)
+        stack->addWidget(section);
+    if (pages.size() > 1) {
+        auto *switcher = new QHBoxLayout;
+        QButtonGroup *group = M3::segmented(labels, page, switcher);
+        switcher->addStretch(1);
+        layout->addLayout(switcher);
+        group->button(0)->setChecked(true);
+        QObject::connect(group, &QButtonGroup::idClicked, stack, [stack](int id) { Motion::switchStack(stack, id); });
+    }
+    layout->addWidget(stack, 1);
+    return page;
+}
+
+QWidget *MainWindow::buildFreeUpSpacePage(QWidget *parent)
+{
+    // Everything that frees disk space in one place: the package manager's
+    // cache and unused dependencies (the same dialog as Home's Cleanup
+    // tile), then your own files.
+    QFrame *packages = nullptr;
+    if (m_backend) {
+        QVBoxLayout *content = nullptr;
+        packages = M3::section(parent, QStringLiteral("cleaning_services"), tr("Packages"),
+                               tr("Old package versions kept in the package cache, and dependencies nothing needs anymore."),
+                               content);
+        auto *button = new QPushButton(tr("Clean up packages…"), packages);
+        MaterialTheme::styleButton(button, QStringLiteral("tonal"), QStringLiteral("cleaning_services"));
+        content->addWidget(button, 0, Qt::AlignLeft);
+        const int native = m_hub->nativeSource();
+        const QString nativeKey = native >= 0 ? m_hub->sources()[native].key : QString();
+        connect(button, &QPushButton::clicked, this, [this, nativeKey]() {
+            CleanupDialog dialog(nativeKey, m_backend.get(), this);
+            if (dialog.runModal())
+                m_hub->refreshInstalled();
+        });
+    }
+    auto *everyday = new UserCleanupPage(tr("Temporary files and caches that are always safe to clear; they're recreated "
+                                            "as needed."),
+                                         UserCleanupTargets::general(), parent);
+    auto *more = new UserCleanupPage(tr("Still your own data, but worth a second look before clearing: history, the "
+                                        "recently-used list, the trash."),
+                                     UserCleanupTargets::advanced(), parent);
+    return segmentedPage(parent, {{tr("Everyday"), QStringLiteral("cached")}, {tr("Worth a second look"), QStringLiteral("history")}},
+                         {everyday, more}, packages);
+}
+
+QWidget *MainWindow::buildBackupPage(QWidget *parent)
+{
+    // Every backup in one place: your settings and dotfiles, and (with
+    // Flatpak) apps' data. Lists of installed apps are Export & Import.
+    QVector<QWidget *> pages = {new UserBackupRestorePage(parent)};
+    if (m_flatpakBackend)
+        pages.append(lazy<BackupRestorePage>(m_flatpakBackend.get(), parent));
+    return segmentedPage(parent, {{tr("Your files"), QStringLiteral("folder")}, {tr("Flatpak apps"), QStringLiteral("deployed_code")}},
+                         pages);
 }
 
 void MainWindow::setupActions()
@@ -486,23 +575,6 @@ void MainWindow::setupActions()
         goToPage(QStringLiteral("discover"));
         m_discover->focusSearch();
     });
-    auto *clean = new QAction(tr("Clean Left-Behind Dependencies"), this);
-    clean->setEnabled(m_backend != nullptr);
-    connect(clean, &QAction::triggered, this, [this]() {
-        PackageActions::cleanUnusedDependencies(this, m_backend.get(), [this](bool success) {
-            if (success)
-                m_hub->refreshInstalled();
-        });
-    });
-    // The old Settings → Repositories shortcut: the system source's
-    // repositories under Sources.
-    auto *repositories = new QAction(tr("Repositories"), this);
-    connect(repositories, &QAction::triggered, this, [this]() {
-        goToPage(QStringLiteral("sources"));
-        m_sourcesPage->showSource(0);
-        if (m_systemTabs)
-            m_systemTabs->setCurrentIndex(0);
-    });
     auto *checkUpdates = new QAction(tr("Check for Athena Updates"), this);
     connect(checkUpdates, &QAction::triggered, this, &MainWindow::checkForApplicationUpdates);
     auto *reportBug = new QAction(tr("Report a Bug…"), this);
@@ -516,15 +588,11 @@ void MainWindow::setupActions()
     for (QAction *action : {reload, find, quit})
         addAction(action);
 
-    // Tools and Settings, for narrow windows where the bottom bar has no room.
-    QAction *toolsAction = m_overflowMenu->addAction(tr("Tools"));
-    connect(toolsAction, &QAction::triggered, this, [this]() { goToPage(QStringLiteral("tools")); });
-    QAction *settingsAction = m_overflowMenu->addAction(tr("Settings"));
-    connect(settingsAction, &QAction::triggered, this, [this]() { goToPage(QStringLiteral("settings")); });
-    m_overflowMenu->addSeparator();
+    // In narrow windows the bottom bar only fits the first pages; the rest
+    // are listed at the top of this menu then (and only then — with the
+    // rail they're one click away already).
+    m_pagesSeparator = m_overflowMenu->addSeparator();
     m_overflowMenu->addAction(reload);
-    m_overflowMenu->addAction(clean);
-    m_overflowMenu->addAction(repositories);
     m_overflowMenu->addSeparator();
     m_overflowMenu->addAction(checkUpdates);
     m_overflowMenu->addAction(reportBug);
@@ -773,16 +841,11 @@ void MainWindow::updateAll()
 
 void MainWindow::applyDisableGroupView(bool disabled)
 {
-    if (!m_systemTabs || !m_systemGroupsTab)
+    if (m_groupsIndex < 0)
         return;
-    const int existing = m_systemTabs->indexOf(m_systemGroupsTab);
-    if (disabled) {
-        if (existing >= 0)
-            m_systemTabs->removeTab(existing);
-        return;
-    }
-    if (existing < 0)
-        m_systemTabs->insertTab(1, m_systemGroupsTab, tr("Groups"));
+    m_rail->setDestinationVisible(m_groupsIndex, !disabled);
+    if (disabled && m_pages->currentIndex() == m_groupsIndex)
+        goToPage(QStringLiteral("home"));
 }
 
 void MainWindow::reloadAllPackageInformation()

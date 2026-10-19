@@ -56,6 +56,8 @@ private:
     void buildSources();
     QWidget *buildSourceTabs();
     QWidget *buildFlatpakPage();
+    QWidget *buildFreeUpSpacePage(QWidget *parent);
+    QWidget *buildBackupPage(QWidget *parent);
     void buildShell();
     void setupActions();
     void setupTray();
@@ -93,6 +95,8 @@ private:
     QStackedWidget *m_pages = nullptr;
     QLabel *m_pageTitle = nullptr;
     QMenu *m_overflowMenu = nullptr;
+    QAction *m_pagesSeparator = nullptr;
+    QList<QAction *> m_pageActions; // pages listed in the menu for narrow windows
     FramelessHelper *m_frameless = nullptr;
     QWidget *m_windowFrame = nullptr;
     QWidget *m_titleBar = nullptr;
@@ -110,7 +114,7 @@ private:
     // The system source's classic tabs, and its Groups tab — kept alive
     // while AppSettings::disableGroupView() has it removed from the tab bar.
     QTabWidget *m_systemTabs = nullptr;
-    QWidget *m_systemGroupsTab = nullptr;
+    int m_groupsIndex = -1; // the Groups page's rail index, or -1 without a native backend
 
     QSystemTrayIcon *m_trayIcon = nullptr;
     QAction *m_trayUpdateAction = nullptr;

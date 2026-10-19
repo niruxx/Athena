@@ -7,7 +7,7 @@
 
 pkgname=athena
 pkgver=3.0.0
-pkgrel=1
+pkgrel=2
 pkgdesc="Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak"
 arch=('x86_64')
 url="https://github.com/niruxx/Athena"

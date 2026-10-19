@@ -113,12 +113,6 @@ private:
     QButtonGroup *m_categoryChips;
     // Package groups (pacman groups, comps groups, tasksel tasks): a chip
     // after the categories, then a picker for the group.
-    int m_groupsChip = -1;
-    QComboBox *m_groupPicker;
-    QVector<CatalogItem> m_groupItems;
-    bool m_groupsLoaded = false;
-    void loadGroups();
-    void loadGroup(int index);
     // Advanced: Dependency Query and repository/architecture filters.
     QPushButton *m_advancedToggle;
     QWidget *m_advancedRow;

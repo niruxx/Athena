@@ -51,6 +51,8 @@ public:
     // No destination selected (the current page isn't one of this bar's).
     void clearSelection();
     void setBadge(int index, int count);
+    // Shows or hides a destination (a page turned off in Settings).
+    void setDestinationVisible(int index, bool visible);
 
 signals:
     void currentChanged(int index);

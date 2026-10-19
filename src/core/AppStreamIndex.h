@@ -50,6 +50,8 @@ public:
 
     // Best matches first: name, then package/ID, keywords, and summary.
     QVector<const AppStreamApp *> search(const QString &query, int limit = 300) const;
+    // Every app in the catalog.
+    QVector<const AppStreamApp *> all() const;
     // Apps in a freedesktop main category ("AudioVideo", "Development", ...).
     QVector<const AppStreamApp *> inCategory(const QString &category) const;
     const AppStreamApp *findNative(const QString &package) const;

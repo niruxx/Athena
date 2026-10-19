@@ -109,10 +109,6 @@ add_executable(athena
     src/ui/FirstRunDialog.cpp
     src/ui/HistoryPage.h
     src/ui/HistoryPage.cpp
-    src/ui/InstalledPage.h
-    src/ui/InstalledPage.cpp
-    src/ui/SearchPage.h
-    src/ui/SearchPage.cpp
     src/ui/GroupsPage.h
     src/ui/GroupsPage.cpp
     src/ui/PackageActions.h
