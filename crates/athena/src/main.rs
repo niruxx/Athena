@@ -2,10 +2,15 @@
 
 mod actions;
 mod context;
+mod desktop;
+mod details;
+mod permissions;
 mod package_list;
 mod pages;
 #[cfg(debug_assertions)]
 mod screenshots;
+mod settings;
+mod setup;
 mod terminal;
 mod util;
 mod window;
@@ -44,6 +49,17 @@ fn main() -> glib::ExitCode {
             gtk::style_context_add_provider_for_display(&display, &provider, gtk::STYLE_PROVIDER_PRIORITY_APPLICATION);
         }
     });
+    // Loaded once and applied before the first window, so it never flashes
+    // the wrong style; `settings::apply` keeps it in step afterwards.
+    let settings = settings::load();
+    {
+        let settings = settings.clone();
+        app.connect_startup(move |_| {
+            if let Some(settings) = &settings {
+                settings::apply(settings);
+            }
+        });
+    }
     app.connect_activate(|app| {
         if let Some(window) = app.active_window() {
             window.present();
@@ -57,5 +73,18 @@ fn main() -> glib::ExitCode {
         quit.connect_activate(move |_, _| app.quit());
     }
     app.add_action(&quit);
+    let preferences = gio::SimpleAction::new("preferences", None);
+    preferences.set_enabled(settings.is_some());
+    {
+        let app = app.clone();
+        preferences.connect_activate(move |_, _| {
+            if let Some(settings) = &settings {
+                let dialog = settings::dialog(settings);
+                if let Some(window) = app.active_window() { settings::add_tools(&dialog, &window); dialog.present(Some(&window)); }
+            }
+        });
+    }
+    app.add_action(&preferences);
+    app.set_accels_for_action("app.preferences", &["<Control>comma"]);
     app.run()
 }

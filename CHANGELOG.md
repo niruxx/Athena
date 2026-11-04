@@ -16,6 +16,8 @@ everything else from 3.0 is planned, phase by phase, in
   Installed, Updates, Repositories) beside the current page, collapsing to
   one pane in narrow windows, and the system's light/dark style and accent
   color.
+- **Preferences** (main menu or Ctrl+,), stored in GSettings: Appearance
+  follows the system style or forces light or dark.
 - **Search** across every source at once, with results as each source
   answers, ranked by how well the name matches, and a source filter.
 - **Installed**: every package from every source, filtered by name or

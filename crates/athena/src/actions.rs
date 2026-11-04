@@ -55,6 +55,7 @@ fn confirm(
     plan: Option<Box<dyn FnOnce() -> TransactionPreview + Send>>,
     accepted: impl FnOnce() + 'static,
 ) {
+    if crate::settings::boolean("skip-confirmations") { accepted(); return; }
     let dialog = adw::AlertDialog::new(Some(heading), Some(body));
     dialog.add_response("cancel", "Cancel");
     dialog.add_response("ok", verb);
@@ -107,7 +108,7 @@ fn run_commands(ctx: &Rc<Context>, title: String, done_message: String, commands
             return;
         }
         let ctx2 = ctx.clone();
-        terminal::run(&ctx.window, &title, commands, false, move |ok| {
+        terminal::run(&ctx.window, &title, commands, crate::settings::boolean("close-on-success"), move |ok| {
             ctx2.toast(if ok { &done_message } else { "Something went wrong — nothing may have changed." });
             ctx2.packages_changed();
         });
@@ -182,4 +183,28 @@ pub fn update_everything(ctx: &Rc<Context>, counts: Vec<(usize, usize)>) {
             });
         },
     );
+}
+
+/// Pick a destination before constructing any download commands.
+pub fn download(ctx: &Rc<Context>, source: usize, names: Vec<String>) {
+    if names.is_empty() { return; }
+    let dialog = adw::AlertDialog::new(Some("Download packages"), Some("Include dependencies? Flatpak downloads into its own cache; other sources use the selected folder."));
+    dialog.add_responses(&[("cancel", "Cancel"), ("only", "Packages only"), ("dependencies", "Include dependencies")]);
+    dialog.set_close_response("cancel");
+    let parent = ctx.window.clone();
+    let ctx = ctx.clone();
+    dialog.connect_response(None, move |_, response| {
+        if response == "cancel" { return; }
+        let dependencies = response == "dependencies";
+        let (ctx, names) = (ctx.clone(), names.clone());
+        let picker = gtk::FileDialog::builder().title("Download to folder").build();
+        let parent = ctx.window.clone();
+        picker.select_folder(Some(&parent), None::<&gtk::gio::Cancellable>, move |result| {
+            let Ok(folder) = result else { return };
+            let Some(path) = folder.path() else { ctx.toast("Choose a local folder."); return };
+            let backend = ctx.backends[source].clone();
+            run_commands(&ctx, "Download packages".into(), "Download complete".into(), move || backend.download_commands(&names, &path.to_string_lossy(), dependencies));
+        });
+    });
+    dialog.present(Some(&parent));
 }

@@ -30,6 +30,8 @@ impl InstalledPage {
         let filters = gtk::Box::builder().spacing(8).margin_top(6).margin_bottom(6).margin_start(12).margin_end(12).build();
         filters.append(&search);
         filters.append(&sources);
+        let apps = gtk::ToggleButton::with_label("Apps only");
+        filters.append(&apps);
         let filter_bar = adw::Clamp::builder().maximum_size(1000).child(&filters).build();
 
         let list = Rc::new(PackageList::new(ctx));
@@ -72,6 +74,10 @@ impl InstalledPage {
                     page.reload();
                 }
             });
+        }
+        {
+            let page = page.clone();
+            apps.connect_toggled(move |toggle| { page.list.set_apps_only(toggle.is_active()); page.update_view(); });
         }
         page.reload();
         page

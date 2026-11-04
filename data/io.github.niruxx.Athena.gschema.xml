@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="io.github.niruxx.Athena" path="/io/github/niruxx/Athena/">
+    <key name="color-scheme" type="s">
+      <choices>
+        <choice value="default"/>
+        <choice value="light"/>
+        <choice value="dark"/>
+      </choices>
+      <default>"default"</default>
+      <summary>Appearance</summary>
+      <description>"default" follows the system style; "light" and "dark" force one.</description>
+    </key>
+    <key name="start-page" type="s"><default>"search"</default></key>
+    <key name="close-on-success" type="b"><default>false</default></key>
+    <key name="skip-confirmations" type="b"><default>false</default></key>
+    <key name="show-architecture" type="b"><default>false</default></key>
+    <key name="show-size" type="b"><default>false</default></key>
+    <key name="compact-rows" type="b"><default>false</default></key>
+    <key name="dnf-metadata-hours" type="u"><default>24</default></key>
+    <key name="hide-groups" type="b"><default>false</default></key>
+    <key name="check-releases" type="b"><default>true</default></key>
+    <key name="log-folder" type="s"><default>""</default></key>
+    <key name="log-level" type="s"><default>"info"</default></key>
+    <key name="setup-complete" type="b"><default>false</default></key>
+  </schema>
+</schemalist>

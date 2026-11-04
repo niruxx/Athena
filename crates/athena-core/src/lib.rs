@@ -16,3 +16,5 @@ pub use process::Command;
 
 /// The version shown in About, from Cargo.toml.
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+pub mod releases;

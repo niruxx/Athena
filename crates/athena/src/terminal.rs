@@ -193,6 +193,7 @@ pub fn run(parent: &impl IsA<gtk::Widget>, title: &str, commands: Vec<Command>, 
                     }
                 }
                 Event::Finished(ok) => {
+                    crate::settings::log(&output, !ok);
                     result.set(ok);
                     pulse.remove();
                     progress.set_visible(false);

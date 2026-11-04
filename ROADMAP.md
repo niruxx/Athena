@@ -43,7 +43,7 @@ The core and a usable app: search, install, remove and update across every sourc
 ## Phase 2: Feature parity, everyday use
 
 - [ ] **Settings** (GSettings schema `io.github.niruxx.Athena`, AdwPreferencesDialog):
-  - [ ] Appearance (follow system / light / dark), through AdwStyleManager
+  - [x] Appearance (follow system / light / dark), through AdwStyleManager
   - [ ] Start on page
   - [ ] Close the terminal window automatically on success
   - [ ] Skip confirmations ("Run transactions without asking")

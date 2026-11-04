@@ -18,6 +18,8 @@ const DESTINATIONS: &[Destination] = &[
     Destination { key: "installed", title: "Installed", icon: "view-grid-symbolic" },
     Destination { key: "updates", title: "Updates", icon: "software-update-available-symbolic" },
     Destination { key: "repositories", title: "Repositories", icon: "network-server-symbolic" },
+    Destination { key: "groups", title: "Groups", icon: "folder-symbolic" },
+    Destination { key: "history", title: "History", icon: "document-open-recent-symbolic" },
 ];
 
 fn sidebar_row(destination: &Destination) -> (gtk::ListBoxRow, gtk::Label) {
@@ -34,7 +36,13 @@ fn sidebar_row(destination: &Destination) -> (gtk::ListBoxRow, gtk::Label) {
 pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
     let window = adw::ApplicationWindow::builder().application(app).title("Athena").default_width(1100).default_height(760).width_request(360).height_request(400).build();
     let toasts = adw::ToastOverlay::new();
-    let ctx = Context::new(athena_core::distro::all_backends(), window.clone(), toasts.clone());
+    let mut backends = athena_core::distro::all_backends();
+    if let Some(settings) = crate::settings::load() {
+        for backend in &mut backends {
+            if backend.key() == "dnf" { *backend = std::sync::Arc::new(athena_core::backends::DnfBackend::new().with_metadata_expire_hours(settings.uint("dnf-metadata-hours"))); }
+        }
+    }
+    let ctx = Context::new(backends, window.clone(), toasts.clone());
 
     if ctx.backends.is_empty() {
         let status = adw::StatusPage::builder()
@@ -60,17 +68,25 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
     stack.add_named(&updates.widget, Some("updates"));
     stack.add_named(&repositories.widget, Some("repositories"));
 
+    stack.add_named(&crate::pages::groups::build(&ctx), Some("groups"));
+    stack.add_named(&crate::pages::history::build(&ctx), Some("history"));
+
     // Sidebar.
     let list = gtk::ListBox::new();
     list.add_css_class("navigation-sidebar");
     let mut badges = Vec::new();
     for destination in DESTINATIONS {
         let (row, badge) = sidebar_row(destination);
+        if destination.key == "groups" {
+            if let Some(settings) = crate::settings::load() { settings.bind("hide-groups", &row, "visible").invert_boolean().build(); }
+        }
         list.append(&row);
         badges.push(badge);
     }
     let menu = gio::Menu::new();
     menu.append(Some("_Reload Package Information"), Some("app.reload"));
+    menu.append(Some("_Preferences"), Some("app.preferences"));
+    menu.append(Some("_Keyboard Shortcuts"), Some("win.shortcuts"));
     menu.append(Some("_About Athena"), Some("app.about"));
     let menu_button = gtk::MenuButton::builder().icon_name("open-menu-symbolic").menu_model(&menu).primary(true).tooltip_text("Main Menu").build();
     let sidebar_header = adw::HeaderBar::new();
@@ -94,7 +110,9 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
             split.set_show_content(true);
         });
     }
-    list.select_row(list.row_at_index(0).as_ref());
+    let start = crate::settings::load().map(|s| s.string("start-page").to_string()).unwrap_or_default();
+    let index = DESTINATIONS.iter().position(|d| d.key == start).unwrap_or(0) as i32;
+    list.select_row(list.row_at_index(index).as_ref());
 
     // The Updates row's badge.
     {
@@ -109,7 +127,19 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
     let breakpoint = adw::Breakpoint::new(adw::BreakpointCondition::parse("max-width: 600sp").unwrap());
     breakpoint.add_setter(&split, "collapsed", Some(&true.to_value()));
     window.add_breakpoint(breakpoint);
-    window.set_content(Some(&split));
+    let shell = gtk::Box::builder().orientation(gtk::Orientation::Vertical).build();
+    let banner = adw::Banner::builder().revealed(false).button_label("View Release").build();
+    shell.append(&banner); shell.append(&split); split.set_vexpand(true);
+    if crate::settings::boolean("check-releases") {
+        crate::util::background(athena_core::releases::check, move |release| {
+            if let Some((tag, url)) = release {
+                banner.set_title(&format!("Athena {tag} is available")); banner.set_revealed(true);
+                banner.connect_button_clicked(move |banner| { gtk::UriLauncher::new(&url).launch(None::<&gtk::Window>, None::<&gio::Cancellable>, |_| {}); banner.set_revealed(false); });
+            }
+        });
+    }
+    ctx.navigation.add(&adw::NavigationPage::builder().title("Athena").child(&shell).build());
+    window.set_content(Some(&ctx.navigation));
 
     // Ctrl+F: the current page's filter (Installed), else Search.
     let find = gio::SimpleAction::new("find", None);
@@ -200,6 +230,24 @@ pub fn build(app: &adw::Application) -> adw::ApplicationWindow {
         );
     }
 
+    let setup = gio::SimpleAction::new("setup", None);
+    { let ctx = ctx.clone(); setup.connect_activate(move |_, _| crate::setup::show(&ctx)); }
+    window.add_action(&setup);
+    if crate::settings::load().is_some_and(|s| !s.boolean("setup-complete")) {
+        let ctx = ctx.clone();
+        gtk::glib::idle_add_local_once(move || crate::setup::show(&ctx));
+    }
+    let shortcuts = gio::SimpleAction::new("shortcuts", None);
+    { let window = window.clone(); shortcuts.connect_activate(move |_, _| {
+        let dialog = adw::Dialog::builder().title("Keyboard Shortcuts").content_width(460).build();
+        let page = adw::PreferencesPage::new(); let group = adw::PreferencesGroup::new();
+        for (action, key) in [("Find packages", "Ctrl+F"), ("Reload package information", "Ctrl+R"), ("Preferences", "Ctrl+,"), ("Keyboard shortcuts", "Ctrl+?"), ("Close window", "Ctrl+W"), ("Quit", "Ctrl+Q"), ("Select multiple packages", "Ctrl+click / Shift+click")] {
+            group.add(&adw::ActionRow::builder().title(action).subtitle(key).build());
+        }
+        page.add(&group); dialog.set_child(Some(&page)); dialog.present(Some(&window));
+    }); }
+    window.add_action(&shortcuts);
+    app.set_accels_for_action("win.shortcuts", &["<Control>question"]);
     app.set_accels_for_action("app.quit", &["<Control>q"]);
     app.set_accels_for_action("window.close", &["<Control>w"]);
 

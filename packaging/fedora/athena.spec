@@ -29,4 +29,5 @@ install -Dm644 %{_license_file} %{buildroot}%{_licensedir}/%{name}/LICENSE
 %license %{_licensedir}/%{name}/LICENSE
 %{_bindir}/athena
 %{_datadir}/applications/io.github.niruxx.Athena.desktop
+%{_datadir}/glib-2.0/schemas/io.github.niruxx.Athena.gschema.xml
 %{_datadir}/icons/hicolor/*/apps/io.github.niruxx.Athena.*

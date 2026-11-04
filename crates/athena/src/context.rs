@@ -17,6 +17,7 @@ pub struct Item {
 
 pub struct Context {
     pub backends: Vec<Arc<dyn Backend>>,
+    pub navigation: adw::NavigationView,
     pub window: adw::ApplicationWindow,
     pub toasts: adw::ToastOverlay,
     listeners: RefCell<Vec<Box<dyn Fn()>>>,
@@ -24,7 +25,7 @@ pub struct Context {
 
 impl Context {
     pub fn new(backends: Vec<Arc<dyn Backend>>, window: adw::ApplicationWindow, toasts: adw::ToastOverlay) -> Rc<Self> {
-        Rc::new(Self { backends, window, toasts, listeners: RefCell::default() })
+        Rc::new(Self { backends, window, toasts, navigation: adw::NavigationView::new(), listeners: RefCell::default() })
     }
 
     pub fn toast(&self, text: &str) {
