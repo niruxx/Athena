@@ -1,5 +1,6 @@
-build/
-build-*/
+/target/
+/dist*/
 *.rpm
 *.deb
 *.AppImage
+*.pkg.tar.zst

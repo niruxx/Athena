@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Athena
+GenericName=Package Manager
+Comment=Install, update, and remove software from pacman, DNF, APT, Flatpak, and Snap
+Exec=athena
+Icon=io.github.niruxx.Athena
+Terminal=false
+Categories=GTK;System;Settings;PackageManager;
+Keywords=package;software;install;update;flatpak;snap;pacman;dnf;apt;
+StartupNotify=true

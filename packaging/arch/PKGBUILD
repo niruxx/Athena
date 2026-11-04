@@ -1,41 +1,46 @@
 # Maintainer: niruxxdaboi <perezkyle98@protonmail.com>
 #
-# This PKGBUILD builds from the checked-out repository itself rather than a
-# downloaded source tarball, so it must stay exactly two directories below
-# the repository root (packaging/arch/PKGBUILD) — build()/package() locate
-# the source tree via $startdir/../..
+# Builds from the checked-out repository itself rather than a downloaded
+# source tarball, so it must stay two directories below the repository
+# root (packaging/arch/PKGBUILD): build() and package() find the source
+# tree through $startdir/../..
 
 pkgname=athena
-pkgver=3.0.0
-pkgrel=2
-pkgdesc="Cross-distro GUI package manager for DNF, APT, Pacman, and Flatpak"
-arch=('x86_64')
+# Cargo.toml's version without hyphens (pacman doesn't allow them):
+# sh packaging/version.sh arch
+pkgver=4.0.0alpha.1
+pkgrel=1
+pkgdesc="Install, update, and remove software from pacman, Flatpak, and Snap in one GTK app"
+arch=('x86_64' 'aarch64')
 url="https://github.com/niruxx/Athena"
 license=('GPL-3.0-or-later')
 # pkexec is in polkit; its password prompt needs an authentication agent
-# running in the session. Athena starts this one itself when the desktop
-# doesn't run any (bare compositors such as niri, Hyprland, or sway).
-depends=('qt6-base' 'polkit' 'polkit-kde-agent')
-makedepends=('cmake')
-optdepends=('git: AUR support'
-            'base-devel: building AUR packages'
-            'paru: preferred AUR helper (yay also works; makepkg is used otherwise)'
-            'archlinux-appstream-data: find apps that are not installed yet in Discover'
-            'kimageformats: app icons from the Arch app catalog (JPEG XL)'
-            'snapper: system snapshots before changes, and restoring them (Btrfs)'
-            'timeshift: system snapshots before changes, and restoring them')
+# running in the session. Athena starts polkit-gnome itself when the
+# desktop doesn't run an agent (bare compositors such as niri or sway).
+depends=('gtk4' 'libadwaita' 'polkit' 'polkit-gnome')
+makedepends=('cargo')
+optdepends=('flatpak: Flatpak apps'
+            'snapd: snaps (from the AUR)')
+options=('!lto')
 source=()
 sha256sums=()
 
 _reporoot="$startdir/../.."
 
 build() {
-    cmake -S "$_reporoot" -B "$srcdir/build" \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr
-    cmake --build "$srcdir/build" -j"$(nproc)"
+    cd "$_reporoot"
+    export CARGO_TARGET_DIR="$srcdir/target"
+    cargo build --release --locked -p athena
+}
+
+check() {
+    cd "$_reporoot"
+    export CARGO_TARGET_DIR="$srcdir/target"
+    cargo test --release --locked -p athena-core
 }
 
 package() {
-    DESTDIR="$pkgdir" cmake --install "$srcdir/build"
+    cd "$_reporoot"
+    DESTDIR="$pkgdir" sh packaging/install.sh "$srcdir/target/release/athena"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

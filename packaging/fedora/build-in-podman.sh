@@ -1,33 +1,31 @@
 #!/bin/bash
-# Builds the Fedora .rpm inside a fedora:latest container, since a real RPM
-# needs to be linked against Fedora's own Qt6/glibc, not the host distro's.
-# Run from the repository root on a host with podman. Mirrors the "fedora"
-# job in .github/workflows/c-cpp.yml.
+# Builds the Fedora RPM inside a fedora:latest container (GTK 4 and
+# libadwaita from Fedora itself), using Fedora's own Rust. Writes
+# dist-fedora/. Run on a host with podman.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT_DIR="$REPO_ROOT/dist-fedora"
 mkdir -p "$OUT_DIR"
+VERSION="$(sh "$REPO_ROOT/packaging/version.sh" tilde)"
 
 podman run --rm \
     -v "$REPO_ROOT":/repo:ro,Z \
     -v "$OUT_DIR":/output:Z \
+    -e VERSION="$VERSION" \
     docker.io/library/fedora:latest \
     bash -c '
         set -euo pipefail
-        dnf install -y cmake gcc-c++ qt6-qtbase-devel rpm-build
-        cp -r /repo /build
+        dnf install -y cargo rust gtk4-devel libadwaita-devel rpm-build
+        mkdir /build
+        tar -C /repo --exclude=./target --exclude="./dist-*" -cf - . | tar -C /build -xf -
         cd /build
-        # The host'"'"'s own build/ (with its own CMakeCache.txt, pointing at
-        # the host path) came along with the copy — drop it so this
-        # container'"'"'s cmake run starts fresh rather than erroring out over
-        # a cache generated somewhere else.
-        rm -rf build
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-        cmake --build build -j"$(nproc)"
-        cd build
-        cpack -G RPM
-        cp -v ./*.rpm /output/
+        cargo build --release --locked -p athena
+        cargo test --release --locked -p athena-core
+        DESTDIR=/stage sh packaging/install.sh target/release/athena
+        sed "s/@VERSION@/$VERSION/" packaging/fedora/athena.spec > /tmp/athena.spec
+        rpmbuild -bb --define "_stage /stage" --define "_topdir /tmp/rpm" --define "_license_file /build/LICENSE" /tmp/athena.spec
+        cp -v /tmp/rpm/RPMS/*/*.rpm /output/
         chmod 666 /output/*.rpm
     '
 

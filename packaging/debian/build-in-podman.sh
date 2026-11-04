@@ -1,36 +1,49 @@
 #!/bin/bash
-# Builds the Debian .deb inside a debian:latest container, since a real
-# .deb needs to be linked against Debian's own Qt6/glibc, not the host
-# distro's. Run from the repository root on a host with podman. Mirrors
-# the "debian" build steps in .github/workflows/c-cpp.yml (which uses
-# ubuntu-latest for CI convenience — this uses Debian itself instead).
+# Builds the Debian package inside a debian:stable container (GTK 4 and
+# libadwaita from Debian itself), using Debian's own Rust. Writes
+# dist-debian/. Run on a host with podman.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 OUT_DIR="$REPO_ROOT/dist-debian"
 mkdir -p "$OUT_DIR"
+VERSION="$(sh "$REPO_ROOT/packaging/version.sh" tilde)"
 
 podman run --rm \
     -v "$REPO_ROOT":/repo:ro,Z \
     -v "$OUT_DIR":/output:Z \
-    docker.io/library/debian:latest \
+    -e VERSION="$VERSION" \
+    docker.io/library/debian:stable \
     bash -c '
         set -euo pipefail
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
-        apt-get install -y cmake g++ qt6-base-dev
-        cp -r /repo /build
+        apt-get install -y --no-install-recommends cargo rustc pkg-config libgtk-4-dev libadwaita-1-dev ca-certificates
+        mkdir /build
+        tar -C /repo --exclude=./target --exclude="./dist-*" -cf - . | tar -C /build -xf -
         cd /build
-        # The host'"'"'s own build/ (with its own CMakeCache.txt, pointing at
-        # the host path) came along with the copy — drop it so this
-        # container'"'"'s cmake run starts fresh rather than erroring out over
-        # a cache generated somewhere else.
-        rm -rf build
-        cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-        cmake --build build -j"$(nproc)"
-        cd build
-        cpack -G DEB
-        cp -v ./*.deb /output/
+        cargo build --release --locked -p athena
+        cargo test --release --locked -p athena-core
+        DESTDIR=/stage sh packaging/install.sh target/release/athena
+        install -Dm644 LICENSE /stage/usr/share/doc/athena/copyright
+        ARCH="$(dpkg --print-architecture)"
+        mkdir -p /stage/DEBIAN
+        cat > /stage/DEBIAN/control <<CONTROL
+Package: athena
+Version: $VERSION
+Section: admin
+Priority: optional
+Architecture: $ARCH
+Maintainer: niruxxdaboi <perezkyle98@protonmail.com>
+Depends: libgtk-4-1 (>= 4.14), libadwaita-1-0 (>= 1.5), libc6, pkexec | policykit-1, policykit-1-gnome | polkit-1-auth-agent
+Suggests: flatpak, snapd
+Homepage: https://github.com/niruxx/Athena
+Description: package manager for APT, Flatpak, and Snap
+ Install, update, and remove software from every source on the system
+ in one GTK app: searches all of them at once, lists everything installed,
+ and runs each change in a window with its progress and full output.
+CONTROL
+        dpkg-deb --build --root-owner-group /stage "/output/athena_${VERSION}_${ARCH}.deb"
         chmod 666 /output/*.deb
     '
 

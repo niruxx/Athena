@@ -1,0 +1,74 @@
+name: Build and test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    # Nightly, so a broken build surfaces even without a same-day push.
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  test:
+    # Ubuntu 24.04 ships GTK 4.14 and libadwaita 1.5, the oldest versions
+    # Athena supports, so this also checks that it still builds against them.
+    name: Test (GTK 4.14 / libadwaita 1.5)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GTK and libadwaita
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev pkg-config
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Test
+        run: cargo test --locked --workspace
+      - name: Clippy
+        run: cargo clippy --locked --workspace -- -D warnings
+
+  archlinux:
+    name: Arch Linux (.pkg.tar.zst)
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed git base-devel rust gtk4 libadwaita polkit polkit-gnome
+      - uses: actions/checkout@v4
+      - name: Create unprivileged build user
+        run: |
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+      - name: Build package
+        run: su builder -c "cd $GITHUB_WORKSPACE/packaging/arch && BUILDDIR=/tmp/build PKGDEST=/tmp/output makepkg -f --noconfirm"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: athena-archlinux
+          path: /tmp/output/*.pkg.tar.zst
+
+  debian:
+    name: Debian (.deb)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build package
+        run: bash packaging/debian/build-in-podman.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: athena-debian
+          path: dist-debian/*.deb
+
+  fedora:
+    name: Fedora (.rpm)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build package
+        run: bash packaging/fedora/build-in-podman.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: athena-fedora
+          path: dist-fedora/*.rpm

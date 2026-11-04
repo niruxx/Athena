@@ -3,6 +3,52 @@
 All notable changes to Athena are documented in this file. Newest release first;
 append new entries above as changes land.
 
+## [4.0.0-alpha.1] - Unreleased
+
+Athena is being rewritten in **Rust with GTK 4 and libadwaita**. This first
+alpha covers searching, installing, removing, updating, and repositories;
+everything else from 3.0 is planned, phase by phase, in
+[ROADMAP.md](ROADMAP.md).
+
+### Added
+
+- A libadwaita interface following the GNOME guidelines: a sidebar (Search,
+  Installed, Updates, Repositories) beside the current page, collapsing to
+  one pane in narrow windows, and the system's light/dark style and accent
+  color.
+- **Search** across every source at once, with results as each source
+  answers, ranked by how well the name matches, and a source filter.
+- **Installed**: every package from every source, filtered by name or
+  source, with Reinstall and Remove.
+- **Updates**: grouped by source, with a count on the sidebar. Update one
+  package, a whole source (its own full update), or everything.
+- **Repositories**: on/off switches per repository or Flatpak remote, adding
+  repositories (COPR on Fedora), and updating package lists.
+- Confirmations show the resolved transaction plan, and every change runs
+  in a window with a progress bar, the current step, and the full log.
+- `cargo run -p athena-core --example probe` shows what each backend sees on
+  the system without changing anything.
+
+### Changed
+
+- The backends (pacman, DNF, APT, Flatpak, Snap), process running, polkit
+  agent handling, and progress parsing are ported to Rust in their own
+  crate, `athena-core`, with unit tests for every parser.
+- The app ID is now `io.github.niruxx.Athena`.
+- Packages depend on GTK 4 (4.14+) and libadwaita (1.5+) instead of Qt 6.
+  polkit-gnome is the polkit agent on Arch, and the first choice on Fedora
+  and Debian.
+
+### Removed
+
+- The Qt interface, and with it Athena's own theming: Material You, the
+  accent picker, the Breeze look, the custom title bar, and the animation
+  system. libadwaita provides the look and follows the desktop's settings.
+- For now (back in later roadmap phases): Home, Discover and the app
+  catalog, details pages, Groups, the AUR, the Flatpak and Snap tools,
+  Tools (cleanup, backups, export/import, snapshots), Settings, first-run
+  setup, history, mirrors, the tray icon, and the AppImage.
+
 ## [3.0.0] - 2026-10-14
 
 ### Added

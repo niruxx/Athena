@@ -1,0 +1,11 @@
+[package]
+name = "athena-core"
+description = "Package-manager backends for Athena: pacman, dnf, apt, Flatpak, and Snap, driven through their CLIs"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+regex.workspace = true
