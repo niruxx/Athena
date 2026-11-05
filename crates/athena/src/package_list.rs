@@ -11,6 +11,9 @@ use crate::actions::{self, Kind};
 use crate::context::{Context, Item};
 use crate::util;
 
+/// A package group filter: (source index, package names in the group).
+type GroupMembers = (usize, std::collections::HashSet<String>);
+
 pub struct PackageList {
     pub widget: gtk::ScrolledWindow,
     store: gio::ListStore,
@@ -21,7 +24,7 @@ pub struct PackageList {
     apps_only: Rc<Cell<bool>>,
     repository: Rc<RefCell<String>>,
     architecture: Rc<RefCell<String>>,
-    members: Rc<RefCell<Option<(usize, std::collections::HashSet<String>)>>>,
+    members: Rc<RefCell<Option<GroupMembers>>>,
     _settings: Option<gio::Settings>,
 }
 
@@ -170,7 +173,7 @@ impl PackageList {
         let apps_only = Rc::new(Cell::new(false));
         let repository: Rc<RefCell<String>> = Rc::default();
         let architecture: Rc<RefCell<String>> = Rc::default();
-        let members: Rc<RefCell<Option<(usize, std::collections::HashSet<String>)>>> = Rc::default();
+        let members: Rc<RefCell<Option<GroupMembers>>> = Rc::default();
         let filter = {
             let (text, source, apps_only, repository, architecture, members) =
                 (text.clone(), source.clone(), apps_only.clone(), repository.clone(), architecture.clone(), members.clone());
@@ -421,7 +424,7 @@ impl PackageList {
         self.filter.changed(gtk::FilterChange::Different);
     }
 
-    pub fn set_group(&self, group: Option<(usize, std::collections::HashSet<String>)>) {
+    pub fn set_group(&self, group: Option<GroupMembers>) {
         *self.members.borrow_mut()=group;self.filter.changed(gtk::FilterChange::Different);
     }
 
