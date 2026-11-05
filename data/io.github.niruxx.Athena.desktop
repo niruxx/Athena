@@ -6,6 +6,15 @@ Comment=Install, update, and remove software from pacman, DNF, APT, Flatpak, and
 Exec=athena
 Icon=io.github.niruxx.Athena
 Terminal=false
-Categories=GTK;System;Settings;PackageManager;
+Categories=GTK;System;PackageManager;
 Keywords=package;software;install;update;flatpak;snap;pacman;dnf;apt;
 StartupNotify=true
+Actions=Updates;
+Name[es]=Athena
+GenericName[es]=Gestor de paquetes
+Comment[es]=Instala, actualiza y elimina programas de todas tus fuentes
+
+[Desktop Action Updates]
+Name=Review Updates
+Name[es]=Revisar actualizaciones
+Exec=athena --updates

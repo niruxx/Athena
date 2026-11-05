@@ -25,10 +25,22 @@ fn save(window: &adw::ApplicationWindow, path: &PathBuf) {
 /// the page to load, then a PNG named after it.
 pub type Step = (&'static str, Box<dyn Fn()>);
 
-pub fn run(window: adw::ApplicationWindow, dir: PathBuf, steps: Vec<Step>) {
+pub fn run(window: adw::ApplicationWindow, navigation: adw::NavigationView, dir: PathBuf, steps: Vec<Step>) {
     glib::spawn_future_local(async move {
         let _ = std::fs::create_dir_all(&dir);
+        let selected = std::env::var("ATHENA_SCREENSHOT_STEPS").ok();
         for (name, act) in steps {
+            if selected.as_ref().is_some_and(|selected| !selected.split(',').any(|step| step == name)) {
+                continue;
+            }
+            if let Some(dialog) = window.visible_dialog() {
+                dialog.force_close();
+                // Keep the retiring dialog alive while libadwaita completes its
+                // closing allocation/animation before resizing or presenting next.
+                glib::timeout_future(Duration::from_millis(500)).await;
+            }
+            navigation.pop_to_tag("main");
+            glib::timeout_future(Duration::from_millis(500)).await;
             act();
             glib::timeout_future(Duration::from_secs(6)).await;
             save(&window, &dir.join(format!("{name}.png")));

@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use crate::backend::Backend;
 use crate::backends::{AptBackend, DnfBackend, FlatpakBackend, PacmanBackend, SnapBackend};
-use crate::process::{executable_exists, Command};
+use crate::process::{Command, executable_exists};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DistroFamily {
@@ -60,6 +60,9 @@ pub fn all_backends() -> Vec<Arc<dyn Backend>> {
     }
     if SnapBackend.is_available() {
         backends.push(Arc::new(SnapBackend));
+    }
+    if detect_family() == DistroFamily::Arch && executable_exists("pacman") {
+        backends.push(Arc::new(crate::aur::AurBackend));
     }
     backends
 }

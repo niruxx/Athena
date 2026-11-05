@@ -1,0 +1,21 @@
+#!/bin/bash
+# Keep host package managers out of the bundle's library/module environment.
+set -e
+export ATHENA_HOST_PATH="$PATH"
+export ATHENA_HOST_LD_LIBRARY_PATH="${LD_LIBRARY_PATH-}"
+export ATHENA_HOST_XDG_DATA_DIRS="${XDG_DATA_DIRS-/usr/local/share:/usr/share}"
+export APPDIR="${APPDIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)}"
+export LD_LIBRARY_PATH="$APPDIR/usr/lib:${LD_LIBRARY_PATH-}"
+export PATH="$APPDIR/usr/bin:$PATH"
+export ATHENA_LOCALEDIR="$APPDIR/usr/share/locale"
+export GSETTINGS_SCHEMA_DIR="$APPDIR/usr/share/glib-2.0/schemas"
+# The GTK plugin also sets its pixbuf cache. Preserve native Wayland support
+# and libadwaita's own appearance instead of forcing X11/a GTK theme.
+athena_backend="${GDK_BACKEND-}"
+athena_theme="${GTK_THEME-}"
+for hook in "$APPDIR"/apprun-hooks/*.sh; do
+    test ! -f "$hook" || source "$hook"
+done
+if test -n "$athena_backend"; then export GDK_BACKEND="$athena_backend"; else unset GDK_BACKEND; fi
+if test -n "$athena_theme"; then export GTK_THEME="$athena_theme"; else unset GTK_THEME; fi
+exec "$APPDIR/usr/bin/athena" "$@"

@@ -9,7 +9,7 @@ use regex::Regex;
 use super::{by_name, with_names};
 use crate::backend::Backend;
 use crate::package::PackageInfo;
-use crate::process::{self, executable_exists, lines, run, Command};
+use crate::process::{self, Command, executable_exists, lines, run};
 
 pub struct SnapBackend;
 
@@ -72,7 +72,8 @@ impl Backend for SnapBackend {
     }
 
     fn is_available(&self) -> bool {
-        executable_exists("snap")
+        // The client alone is not enough: snapd must be installed and running.
+        executable_exists("snap") && std::path::Path::new("/run/snapd.socket").exists()
     }
 
     fn list_installed(&self) -> Vec<PackageInfo> {
@@ -166,7 +167,12 @@ impl Backend for SnapBackend {
             .map(|l| l.split_whitespace().collect::<Vec<_>>())
             .filter(|f| f.len() >= 2)
             .map(|f| {
-                let mut pkg = PackageInfo { name: f[0].to_owned(), available_version: f[1].to_owned(), installed: true, ..Default::default() };
+                let mut pkg = PackageInfo {
+                    name: f[0].to_owned(),
+                    available_version: f[1].to_owned(),
+                    installed: true,
+                    ..Default::default()
+                };
                 if let Some(i) = installed.get(&pkg.name) {
                     pkg.installed_version = i.installed_version.clone();
                     pkg.repository = i.repository.clone();
@@ -196,11 +202,10 @@ impl Backend for SnapBackend {
             let mut bases = HashSet::new();
             for name in names {
                 let out = run("snap", &["info", name], process::SHORT);
-                if let Some(base) = parse_info(&out.stdout).0.get("base").filter(|b| !b.is_empty()) {
-                    if bases.insert(base.clone()) && !all.contains(base) {
+                if let Some(base) = parse_info(&out.stdout).0.get("base").filter(|b| !b.is_empty())
+                    && bases.insert(base.clone()) && !all.contains(base) {
                         all.push(base.clone());
                     }
-                }
             }
         }
         // `snap download` writes to its working directory. Unprivileged.
@@ -209,7 +214,7 @@ impl Backend for SnapBackend {
     }
 
     fn recent_history(&self) -> String {
-        let out = run("snap", &["changes"], process::SHORT);
+        let out = run("snap", &["changes", "--abs-time"], process::SHORT);
         let mut lines: Vec<&str> = lines(&out.stdout).collect();
         if lines.is_empty() {
             return out.stdout.trim().to_owned();

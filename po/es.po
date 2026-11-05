@@ -1,0 +1,1168 @@
+# Spanish starter translation for Athena.
+# SPDX-License-Identifier: GPL-3.0-or-later
+msgid ""
+msgstr ""
+"Project-Id-Version: Athena 4.0.0\n"
+"Report-Msgid-Bugs-To: https://github.com/niruxx/Athena/issues\n"
+"POT-Creation-Date: 2026-11-04 16:36-0600\n"
+"PO-Revision-Date: 2026-11-04 00:00-0600\n"
+"Last-Translator: Athena contributors\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: crates/athena/src/actions.rs:63 crates/athena/src/actions.rs:296
+#: crates/athena/src/aur_review.rs:20 crates/athena/src/pages/arch.rs:168
+#: crates/athena/src/pages/flatpak.rs:124
+#: crates/athena/src/pages/repositories.rs:152
+#: crates/athena/src/pages/tools.rs:47 crates/athena/src/permissions.rs:231
+#: crates/athena/src/settings.rs:227
+msgid "Cancel"
+msgstr "Cancelar"
+
+#: crates/athena/src/actions.rs:130 crates/athena/src/pages/tools.rs:265
+msgid "Nothing to do."
+msgstr "No hay nada que hacer."
+
+#: crates/athena/src/actions.rs:253 crates/athena/src/package_list.rs:77
+#: crates/athena/src/pages/updates.rs:260
+msgid "Update"
+msgstr "Actualizar"
+
+#: crates/athena/src/actions.rs:292
+msgid "Download packages"
+msgstr "Descargar paquetes"
+
+#: crates/athena/src/actions.rs:297
+msgid "Packages only"
+msgstr "Solo paquetes"
+
+#: crates/athena/src/actions.rs:298
+msgid "Include dependencies"
+msgstr "Incluir dependencias"
+
+#: crates/athena/src/actions.rs:309
+msgid "Download to folder"
+msgstr "Descargar en una carpeta"
+
+#: crates/athena/src/actions.rs:314 crates/athena/src/pages/tools.rs:78
+msgid "Choose a local folder."
+msgstr "Elige una carpeta local."
+
+#: crates/athena/src/actions.rs:351 crates/athena/src/package_list.rs:332
+msgid "No selected packages support this action."
+msgstr ""
+
+#: crates/athena/src/actions.rs:382
+msgid "Each source runs in order. Execution stops if any command fails."
+msgstr ""
+
+#: crates/athena/src/actions.rs:415 crates/athena/src/pages/tools.rs:695
+#: crates/athena/src/setup.rs:55
+msgid "Continue"
+msgstr "Continuar"
+
+#: crates/athena/src/actions.rs:430
+msgid "Invalid Flatpak installation source."
+msgstr ""
+
+#: crates/athena/src/aur_review.rs:16
+msgid "AUR Build Tools Required"
+msgstr ""
+
+#: crates/athena/src/aur_review.rs:21
+msgid "Install Build Tools…"
+msgstr ""
+
+#: crates/athena/src/aur_review.rs:34 crates/athena/src/aur_review.rs:276
+msgid "Review AUR Build Files"
+msgstr ""
+
+#: crates/athena/src/aur_review.rs:54
+msgid "Cannot Prepare AUR Transaction"
+msgstr ""
+
+#: crates/athena/src/aur_review.rs:91
+msgid ""
+"Review every file, including dependencies. Edits are saved to this "
+"transaction's private copy. Build scripts run as your user; native "
+"dependencies and installation use polkit."
+msgstr ""
+
+#: crates/athena/src/aur_review.rs:105
+msgid "Changes from the last approved copy"
+msgstr ""
+
+#: crates/athena/src/aur_review.rs:118
+msgid "Mark This File Reviewed"
+msgstr ""
+
+#: crates/athena/src/aur_review.rs:121
+msgid "Approve Reviewed Copies and Build"
+msgstr ""
+
+#: crates/athena/src/aur_review.rs:235
+msgid "Could not locate Athena's build runner."
+msgstr ""
+
+#: crates/athena/src/background.rs:80
+msgid "Background Checks Unavailable"
+msgstr "Comprobaciones en segundo plano no disponibles"
+
+#: crates/athena/src/background.rs:81 crates/athena/src/terminal.rs:102
+#: crates/athena/src/terminal.rs:140
+msgid "Close"
+msgstr "Cerrar"
+
+#: crates/athena/src/background.rs:153
+msgid "Software Updates Available"
+msgstr "Hay actualizaciones disponibles"
+
+#: crates/athena/src/background.rs:155
+#, rust-format
+msgid "{count} package has an update. Open Athena to review and install it."
+msgid_plural ""
+"{count} packages have updates. Open Athena to review and install them."
+msgstr[0] ""
+"Hay una actualización para {count} paquete. Abre Athena para revisarla e "
+"instalarla."
+msgstr[1] ""
+"Hay actualizaciones para {count} paquetes. Abre Athena para revisarlas e "
+"instalarlas."
+
+#: crates/athena/src/background.rs:161
+msgid "Review Updates"
+msgstr "Revisar actualizaciones"
+
+#: crates/athena/src/background.rs:193
+msgid "Check for software updates and notify you while Athena is closed"
+msgstr "Buscar actualizaciones y avisarte mientras Athena está cerrada"
+
+#: crates/athena/src/background.rs:229
+msgid "The desktop Background portal is unavailable"
+msgstr "El portal de segundo plano del escritorio no está disponible"
+
+#: crates/athena/src/background.rs:278
+msgid "The desktop did not allow Athena to run in the background."
+msgstr "El escritorio no permitió que Athena se ejecutara en segundo plano."
+
+#: crates/athena/src/details.rs:232 crates/athena/src/pages/tools.rs:112
+#: crates/athena/src/pages/tools.rs:120 crates/athena/src/pages/tools.rs:128
+#: crates/athena/src/pages/tools.rs:136
+msgid "Open"
+msgstr "Abrir"
+
+#: crates/athena/src/details.rs:242
+msgid "Other Versions…"
+msgstr ""
+
+#: crates/athena/src/details.rs:248
+msgid "Manage Snap"
+msgstr ""
+
+#: crates/athena/src/details.rs:254
+msgid "View Build Files"
+msgstr ""
+
+#: crates/athena/src/details.rs:283
+msgid "Source"
+msgstr ""
+
+#: crates/athena/src/details.rs:288
+msgid "Screenshots"
+msgstr ""
+
+#: crates/athena/src/details.rs:314
+msgid "Sandbox permissions"
+msgstr ""
+
+#: crates/athena/src/details.rs:345 crates/athena/src/pages/flatpak.rs:104
+msgid "Edit Permissions"
+msgstr ""
+
+#: crates/athena/src/details.rs:371
+msgid "This application's source is not enabled."
+msgstr ""
+
+#: crates/athena/src/i18n.rs:41
+#, rust-format
+msgid "{count} updates from {source}"
+msgstr ""
+
+#: crates/athena/src/package_list.rs:57
+msgid "Install"
+msgstr "Instalar"
+
+#: crates/athena/src/package_list.rs:62
+msgid "More"
+msgstr ""
+
+#: crates/athena/src/package_list.rs:65
+msgid "Reinstall"
+msgstr "Reinstalar"
+
+#: crates/athena/src/package_list.rs:66 crates/athena/src/pages/arch.rs:55
+msgid "Remove…"
+msgstr "Eliminar…"
+
+#: crates/athena/src/package_list.rs:71
+msgid "Details"
+msgstr "Detalles"
+
+#: crates/athena/src/package_list.rs:72 crates/athena/src/pages/updates.rs:231
+msgid "Download…"
+msgstr ""
+
+#: crates/athena/src/package_list.rs:79
+msgid "Install from…"
+msgstr ""
+
+#: crates/athena/src/package_list.rs:81 crates/athena/src/pages/updates.rs:238
+msgid "Select"
+msgstr ""
+
+#: crates/athena/src/package_list.rs:294
+msgid "Select all"
+msgstr ""
+
+#: crates/athena/src/package_list.rs:295
+msgid "Clear selection"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:10 crates/athena/src/window.rs:64
+msgid "Arch and Mirrors"
+msgstr "Arch y servidores espejo"
+
+#: crates/athena/src/pages/arch.rs:14 crates/athena/src/pages/tools.rs:105
+#: crates/athena/src/window.rs:74
+msgid "Tools"
+msgstr "Herramientas"
+
+#: crates/athena/src/pages/arch.rs:15
+msgid "Rank Mirrors and Preview…"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:19
+msgid "Enable DNF Fastest Mirror…"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:34
+msgid "Package name"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:35
+msgid "Read from the AUR"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:36
+msgid "View Build Files…"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:45
+msgid "Optional helper; Athena's reviewed builds use makepkg directly."
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:48
+msgid "Install / Update…"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:82
+msgid "Arch Linux News"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:89
+msgid "Arch Linux news"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:90
+msgid "Check News"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:125
+msgid "Mark Read"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:134
+msgid "Read"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:166
+msgid "Check Arch News Before Updating"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:169
+msgid "Read First"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:170
+msgid "Update Anyway"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:190
+msgid "Package Build Files"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:222
+msgid "Could Not Fetch Build Files"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:231
+msgid "Mirror Ranking Preview"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:260
+msgid "Save Mirror List (Keep Backup)…"
+msgstr ""
+
+#: crates/athena/src/pages/arch.rs:275
+msgid "Could Not Rank Mirrors"
+msgstr ""
+
+#: crates/athena/src/pages/discover.rs:34 crates/athena/src/window.rs:59
+msgid "Discover"
+msgstr "Descubrir"
+
+#: crates/athena/src/pages/discover.rs:35
+msgid "Applications from every source"
+msgstr ""
+
+#: crates/athena/src/pages/discover.rs:40
+msgid "Reload local catalogs"
+msgstr ""
+
+#: crates/athena/src/pages/discover.rs:57
+msgid "Advanced filters"
+msgstr ""
+
+#: crates/athena/src/pages/discover.rs:146
+msgid "Search Packages"
+msgstr ""
+
+#: crates/athena/src/pages/discover.rs:148
+msgid ""
+"Enter a package name or capability above. Advanced filters can restrict "
+"repositories and architectures."
+msgstr ""
+
+#: crates/athena/src/pages/discover.rs:155
+msgid "No App Catalog Found"
+msgstr ""
+
+#: crates/athena/src/pages/discover.rs:157
+msgid ""
+"Install your distribution's AppStream data and refresh Flatpak metadata to "
+"browse applications."
+msgstr ""
+
+#: crates/athena/src/pages/discover.rs:161
+msgid "Install Catalog Support…"
+msgstr ""
+
+#: crates/athena/src/pages/discover.rs:175
+msgid "Install native catalog support"
+msgstr ""
+
+#: crates/athena/src/pages/flatpak.rs:10 crates/athena/src/window.rs:49
+msgid "Flatpak"
+msgstr ""
+
+#: crates/athena/src/pages/flatpak.rs:11
+msgid "Applications and leftovers"
+msgstr ""
+
+#: crates/athena/src/pages/flatpak.rs:16
+#: crates/athena/src/pages/installed.rs:29
+#: crates/athena/src/pages/repositories.rs:28
+#: crates/athena/src/pages/snap.rs:14
+msgid "Reload"
+msgstr ""
+
+#: crates/athena/src/pages/flatpak.rs:40
+msgid "Application data"
+msgstr ""
+
+#: crates/athena/src/pages/flatpak.rs:109
+msgid "Open Data Folder"
+msgstr ""
+
+#: crates/athena/src/pages/flatpak.rs:121
+msgid "Delete application data?"
+msgstr ""
+
+#: crates/athena/src/pages/flatpak.rs:124 crates/athena/src/pages/tools.rs:254
+msgid "Delete"
+msgstr "Eliminar"
+
+#: crates/athena/src/pages/flatpak.rs:134
+msgid "Application data removed."
+msgstr ""
+
+#: crates/athena/src/pages/groups.rs:14 crates/athena/src/window.rs:39
+msgid "Groups"
+msgstr "Grupos"
+
+#: crates/athena/src/pages/history.rs:9 crates/athena/src/pages/home.rs:95
+#: crates/athena/src/window.rs:44
+msgid "History"
+msgstr "Historial"
+
+#: crates/athena/src/pages/history.rs:13
+msgid "Reload history"
+msgstr "Recargar el historial"
+
+#: crates/athena/src/pages/history.rs:59 crates/athena/src/pages/history.rs:94
+msgid "Loading…"
+msgstr "Cargando…"
+
+#: crates/athena/src/pages/home.rs:13 crates/athena/src/window.rs:69
+msgid "Home"
+msgstr "Inicio"
+
+#: crates/athena/src/pages/home.rs:17
+msgid "Refresh dashboard"
+msgstr ""
+
+#: crates/athena/src/pages/home.rs:23
+msgid "Software"
+msgstr "Software"
+
+#: crates/athena/src/pages/home.rs:25
+msgid ""
+"Pending updates and installed totals, by source. AUR totals are also "
+"included in pacman's installed total."
+msgstr ""
+
+#: crates/athena/src/pages/home.rs:31
+msgid "Update Everything…"
+msgstr "Actualizar todo…"
+
+#: crates/athena/src/pages/home.rs:46
+msgid "Open Home to check updates and installed totals"
+msgstr ""
+
+#: crates/athena/src/pages/home.rs:50
+msgid "Review Updates…"
+msgstr "Revisar actualizaciones…"
+
+#: crates/athena/src/pages/home.rs:62 crates/athena/src/pages/tools.rs:106
+msgid "Storage and recovery"
+msgstr "Almacenamiento y recuperación"
+
+#: crates/athena/src/pages/home.rs:64 crates/athena/src/versions.rs:16
+msgid "Package cache"
+msgstr "Caché de paquetes"
+
+#: crates/athena/src/pages/home.rs:65 crates/athena/src/pages/home.rs:77
+#: crates/athena/src/pages/home.rs:101
+msgid "Not checked yet"
+msgstr ""
+
+#: crates/athena/src/pages/home.rs:68
+msgid "Free Up Space…"
+msgstr "Liberar espacio…"
+
+#: crates/athena/src/pages/home.rs:76
+msgid "Latest snapshot"
+msgstr "Última instantánea"
+
+#: crates/athena/src/pages/home.rs:80
+msgid "Snapshots…"
+msgstr "Instantáneas…"
+
+#: crates/athena/src/pages/home.rs:88
+msgid "Recent activity"
+msgstr "Actividad reciente"
+
+#: crates/athena/src/pages/home.rs:89
+msgid "See All"
+msgstr "Ver todo"
+
+#: crates/athena/src/pages/home.rs:136
+msgid "Checking…"
+msgstr "Comprobando…"
+
+#: crates/athena/src/pages/installed.rs:25 crates/athena/src/window.rs:24
+msgid "Installed"
+msgstr "Instalados"
+
+#: crates/athena/src/pages/installed.rs:49
+msgid "Show all"
+msgstr ""
+
+#: crates/athena/src/pages/installed.rs:63
+msgid "No Matches"
+msgstr ""
+
+#: crates/athena/src/pages/installed.rs:64
+msgid "Nothing installed matches the filter."
+msgstr ""
+
+#: crates/athena/src/pages/repositories.rs:24 crates/athena/src/window.rs:34
+msgid "Repositories"
+msgstr "Repositorios"
+
+#: crates/athena/src/pages/repositories.rs:32
+msgid "Update Package Lists"
+msgstr ""
+
+#: crates/athena/src/pages/repositories.rs:97
+msgid "Add…"
+msgstr ""
+
+#: crates/athena/src/pages/repositories.rs:153
+msgid "Add"
+msgstr "Añadir"
+
+#: crates/athena/src/pages/search.rs:28 crates/athena/src/window.rs:19
+#: crates/athena/src/window.rs:202
+msgid "Search"
+msgstr "Buscar"
+
+#: crates/athena/src/pages/search.rs:53
+msgid "Search Your Sources"
+msgstr ""
+
+#: crates/athena/src/pages/search.rs:66
+msgid "No Results"
+msgstr ""
+
+#: crates/athena/src/pages/search.rs:67
+msgid "Try another word, or another source."
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:10 crates/athena/src/window.rs:54
+msgid "Snap Manage"
+msgstr "Gestionar Snap"
+
+#: crates/athena/src/pages/snap.rs:37
+msgid "Installed snaps"
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:84
+msgid "Channel (for example latest/stable)"
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:87
+msgid "Switch Channel and Refresh…"
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:108
+msgid "Interfaces"
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:109
+msgid "Connecting an interface grants the snap additional host access."
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:117
+msgid "Disconnect…"
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:135
+msgid "Plug (snap:plug)"
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:136
+msgid "Slot (snap:slot or :slot)"
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:139
+msgid "Connect Interface…"
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:152
+msgid "Snap information"
+msgstr ""
+
+#: crates/athena/src/pages/snap.rs:164
+msgid "Enter a valid snap, channel, or interface name."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:29
+msgid "Review the exact changes below before continuing."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:94
+msgid "Choose a local file."
+msgstr "Elige un archivo local."
+
+#: crates/athena/src/pages/tools.rs:110 crates/athena/src/pages/tools.rs:143
+msgid "Free Up Space"
+msgstr "Liberar espacio"
+
+#: crates/athena/src/pages/tools.rs:111
+msgid "Inspect package caches, unused dependencies and your files."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:118 crates/athena/src/pages/tools.rs:381
+msgid "Backup & Restore"
+msgstr "Copias de seguridad y restauración"
+
+#: crates/athena/src/pages/tools.rs:119
+msgid "Copy configuration and Flatpak app data, with a portable app list."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:126 crates/athena/src/pages/tools.rs:276
+msgid "Export & Import"
+msgstr "Exportar e importar"
+
+#: crates/athena/src/pages/tools.rs:127
+msgid "One JSON package list across your enabled sources."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:134 crates/athena/src/pages/tools.rs:548
+msgid "Snapshots"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:135
+msgid "Manage configured Snapper or Timeshift snapshots."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:144
+msgid "Packages"
+msgstr "Paquetes"
+
+#: crates/athena/src/pages/tools.rs:144
+msgid ""
+"Cache sizes are upper bounds: retained versions and unreadable files affect "
+"reclaimed space. Dependency previews include the manager's size estimates "
+"when available."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:152
+msgid "Calculating…"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:167
+msgid "Clean…"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:179
+msgid "Clean package cache?"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:181
+msgid "Clean"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:194
+msgid "Resolve the package manager's removal plan before removing anything."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:195
+msgid "Inspect…"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:205
+msgid "Remove unused dependencies?"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:207
+msgid "Remove"
+msgstr "Eliminar"
+
+#: crates/athena/src/pages/tools.rs:215
+msgid "Your files"
+msgstr "Tus archivos"
+
+#: crates/athena/src/pages/tools.rs:215
+msgid ""
+"Only regular files you own are included. Close apps first: caches may be in "
+"use. Temporary files must be older than seven days. Refresh this page after "
+"cleaning."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:218
+msgid "Worth a second look"
+msgstr "Conviene revisarlo"
+
+#: crates/athena/src/pages/tools.rs:220
+msgid ""
+"Trash, history and recent-file lists may contain things you want to keep. "
+"Nothing is selected automatically."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:237
+msgid "Review…"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:252
+msgid "Permanently delete these files?"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:277
+msgid "Portable package list"
+msgstr "Lista de paquetes portátil"
+
+#: crates/athena/src/pages/tools.rs:277
+msgid ""
+"Native packages explicitly installed, Flatpak apps with their remote and "
+"installation scope, and Snap apps. Enable every source you want included "
+"before exporting. Package versions and repositories must still be available "
+"on the destination system."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:281
+msgid "Export installed choices"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:282
+msgid ""
+"Writes a versioned JSON file. Dependencies will be resolved during import."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:283
+msgid "Export…"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:289
+msgid "Import package list"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:290
+msgid ""
+"Shows missing packages to select. AUR packages always require source review."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:291
+msgid "Import…"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:328
+msgid "Choose Missing Packages"
+msgstr "Elegir paquetes que faltan"
+
+#: crates/athena/src/pages/tools.rs:332
+msgid ""
+"Unavailable sources must be enabled first. Flatpak remotes must already "
+"exist. Select only packages you want to install."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:351
+msgid "Install Selected…"
+msgstr "Instalar seleccionados…"
+
+#: crates/athena/src/pages/tools.rs:382
+msgid "Create a backup"
+msgstr "Crear una copia de seguridad"
+
+#: crates/athena/src/pages/tools.rs:382
+msgid ""
+"Choose configuration folders and Flatpak app data. Close apps first for a "
+"consistent copy. Links and special files are skipped and reported; backups "
+"may contain secrets, so store them securely. Your enabled sources' app list "
+"is included."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:405
+msgid "Save selected files"
+msgstr "Guardar los archivos seleccionados"
+
+#: crates/athena/src/pages/tools.rs:407
+msgid ""
+"Backups never overwrite an existing path. Plain copies are saved in a new "
+"timestamped folder; compressed copies use .tar.gz."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:415
+msgid "Includes configuration, selected app data and the app list."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:416
+msgid "Save…"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:425
+msgid "Select files or folders first."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:452
+msgid "Restore a backup"
+msgstr "Restaurar una copia de seguridad"
+
+#: crates/athena/src/pages/tools.rs:452
+msgid ""
+"Preview all paths and replacements first. The app list is shown separately "
+"and does not install packages automatically. Close affected applications "
+"before restoring."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:458
+msgid "Restore files into your home directory."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:459 crates/athena/src/pages/tools.rs:522
+msgid "Choose…"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:490
+msgid "Restore these files?"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:492
+msgid "Restore"
+msgstr "Restaurar"
+
+#: crates/athena/src/pages/tools.rs:521
+msgid "Inspect missing apps without restoring files."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:549
+msgid "System snapshots"
+msgstr "Instantáneas del sistema"
+
+#: crates/athena/src/pages/tools.rs:549
+msgid ""
+"Uses the configured root Snapper profile or Timeshift. Configure the tool "
+"before use. Snapshots cover only the filesystems included in that tool's "
+"configuration."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:554
+msgid "No snapshot provider found"
+msgstr "No se encontró un proveedor de instantáneas"
+
+#: crates/athena/src/pages/tools.rs:555
+msgid "Install and configure Snapper or Timeshift."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:623
+msgid "Could not list snapshots. Check tool configuration and permissions."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:648
+msgid "Take a snapshot"
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:649
+msgid "Creates one snapshot with the description “Athena manual snapshot”."
+msgstr ""
+
+#: crates/athena/src/pages/tools.rs:650
+msgid "Take…"
+msgstr ""
+
+#: crates/athena/src/pages/updates.rs:32 crates/athena/src/window.rs:29
+msgid "Updates"
+msgstr "Actualizaciones"
+
+#: crates/athena/src/pages/updates.rs:36
+msgid "Check for updates"
+msgstr ""
+
+#: crates/athena/src/pages/updates.rs:41
+msgid "Select packages"
+msgstr ""
+
+#: crates/athena/src/pages/updates.rs:72
+msgid "Update Everything"
+msgstr ""
+
+#: crates/athena/src/pages/updates.rs:77
+msgid "Updates available"
+msgstr ""
+
+#: crates/athena/src/pages/updates.rs:91
+msgid "Up to Date"
+msgstr "Todo está actualizado"
+
+#: crates/athena/src/pages/updates.rs:92
+msgid "Every source is up to date."
+msgstr ""
+
+#: crates/athena/src/pages/updates.rs:173
+msgid "Update All"
+msgstr ""
+
+#: crates/athena/src/pages/updates.rs:224
+msgid "Details / Install from…"
+msgstr ""
+
+#: crates/athena/src/permissions.rs:34
+msgid "Could Not Read Permissions"
+msgstr ""
+
+#: crates/athena/src/permissions.rs:43
+msgid "Sandbox access"
+msgstr ""
+
+#: crates/athena/src/permissions.rs:45
+msgid ""
+"Changes are saved as user overrides. Restart the application to apply them."
+msgstr ""
+
+#: crates/athena/src/permissions.rs:126
+msgid "Files, D-Bus and environment"
+msgstr ""
+
+#: crates/athena/src/permissions.rs:142
+msgid "Revoke permission"
+msgstr ""
+
+#: crates/athena/src/permissions.rs:170
+msgid "Permission type"
+msgstr ""
+
+#: crates/athena/src/permissions.rs:180
+msgid "Value (folder may end in :ro)"
+msgstr ""
+
+#: crates/athena/src/permissions.rs:181
+msgid "Add Permission"
+msgstr ""
+
+#: crates/athena/src/permissions.rs:191
+msgid "Enter a permission value."
+msgstr ""
+
+#: crates/athena/src/permissions.rs:195
+msgid "Use KEY=value for an environment variable."
+msgstr ""
+
+#: crates/athena/src/permissions.rs:222
+msgid "Reset User Overrides…"
+msgstr ""
+
+#: crates/athena/src/permissions.rs:228
+msgid "Reset user overrides?"
+msgstr ""
+
+#: crates/athena/src/permissions.rs:231
+msgid "Reset"
+msgstr "Restablecer"
+
+#: crates/athena/src/settings.rs:46 crates/athena/src/settings.rs:61
+msgid "Appearance"
+msgstr "Apariencia"
+
+#: crates/athena/src/settings.rs:64
+msgid "General"
+msgstr "General"
+
+#: crates/athena/src/settings.rs:68
+msgid "Everyday use"
+msgstr "Uso diario"
+
+#: crates/athena/src/settings.rs:90
+msgid "Close terminal automatically on success"
+msgstr "Cerrar la terminal tras finalizar correctamente"
+
+#: crates/athena/src/settings.rs:91
+msgid "Run transactions without asking"
+msgstr "Ejecutar operaciones sin preguntar"
+
+#: crates/athena/src/settings.rs:92
+msgid "Show architecture"
+msgstr "Mostrar arquitectura"
+
+#: crates/athena/src/settings.rs:93
+msgid "Show size"
+msgstr "Mostrar tamaño"
+
+#: crates/athena/src/settings.rs:94
+msgid "Compact rows"
+msgstr "Filas compactas"
+
+#: crates/athena/src/settings.rs:95
+msgid "Hide Groups page"
+msgstr "Ocultar Grupos"
+
+#: crates/athena/src/settings.rs:96
+msgid "Check for Athena updates on startup"
+msgstr "Buscar actualizaciones de Athena al iniciar"
+
+#: crates/athena/src/settings.rs:98
+msgid "Take one system snapshot before each transaction batch"
+msgstr "Crear una instantánea antes de cada lote de operaciones"
+
+#: crates/athena/src/settings.rs:107
+msgid "DNF metadata expiry (hours, after restart)"
+msgstr "Caducidad de metadatos de DNF (horas, tras reiniciar)"
+
+#: crates/athena/src/settings.rs:115
+msgid "Log folder (empty disables logging)"
+msgstr "Carpeta de registros (vacía desactiva el registro)"
+
+#: crates/athena/src/settings.rs:121
+msgid "Check package updates in the background"
+msgstr ""
+
+#: crates/athena/src/settings.rs:123
+msgid ""
+"Requests desktop permission and login startup. Closing Athena keeps checks "
+"running; Quit stops them."
+msgstr ""
+
+#: crates/athena/src/settings.rs:129
+msgid "Update check interval (minutes)"
+msgstr ""
+
+#: crates/athena/src/settings.rs:190
+msgid "Sources and Setup"
+msgstr "Fuentes y configuración"
+
+#: crates/athena/src/settings.rs:194
+msgid "Package sources"
+msgstr "Fuentes de paquetes"
+
+#: crates/athena/src/settings.rs:195
+msgid "Restart Athena after changing source support."
+msgstr ""
+
+#: crates/athena/src/settings.rs:227
+msgid "Apply"
+msgstr "Aplicar"
+
+#: crates/athena/src/settings.rs:242
+msgid "AUR source (after restart)"
+msgstr ""
+
+#: crates/athena/src/settings.rs:243
+msgid "Every build requires PKGBUILD review."
+msgstr ""
+
+#: crates/athena/src/settings.rs:248
+msgid "Run First-time Setup Again"
+msgstr ""
+
+#: crates/athena/src/setup.rs:8 crates/athena/src/setup.rs:15
+msgid "Welcome to Athena"
+msgstr ""
+
+#: crates/athena/src/setup.rs:16
+msgid "Manage packages from your distribution, Flatpak, and Snap in one place."
+msgstr ""
+
+#: crates/athena/src/setup.rs:19
+msgid "Get Started"
+msgstr ""
+
+#: crates/athena/src/setup.rs:27
+msgid "Sources"
+msgstr ""
+
+#: crates/athena/src/setup.rs:29
+msgid ""
+"Your distribution's package manager is detected automatically. Installing "
+"another source requires authentication."
+msgstr ""
+
+#: crates/athena/src/setup.rs:33
+msgid "Flatpak support"
+msgstr ""
+
+#: crates/athena/src/setup.rs:37
+msgid "Snap support"
+msgstr ""
+
+#: crates/athena/src/setup.rs:48
+msgid "Arch User Repository"
+msgstr ""
+
+#: crates/athena/src/setup.rs:49
+msgid "Enable after restart. Every build requires review."
+msgstr ""
+
+#: crates/athena/src/setup.rs:59
+msgid "Preferences"
+msgstr ""
+
+#: crates/athena/src/setup.rs:70
+msgid "Review Setup"
+msgstr ""
+
+#: crates/athena/src/setup.rs:75
+msgid "Ready to Go"
+msgstr ""
+
+#: crates/athena/src/setup.rs:77
+msgid ""
+"Apply your source choices and start using Athena. Preferences can be changed "
+"from the main menu."
+msgstr ""
+
+#: crates/athena/src/setup.rs:80
+msgid "Finish Setup"
+msgstr ""
+
+#: crates/athena/src/setup.rs:131
+msgid "Sources configured. Restart Athena to detect the new sources."
+msgstr ""
+
+#: crates/athena/src/terminal.rs:99
+msgid "Snapshot Provider Required"
+msgstr ""
+
+#: crates/athena/src/terminal.rs:117
+msgid "Running…"
+msgstr ""
+
+#: crates/athena/src/terminal.rs:246
+msgid "Completed successfully"
+msgstr ""
+
+#: crates/athena/src/tray.rs:48
+msgid "Open Athena"
+msgstr "Abrir Athena"
+
+#: crates/athena/src/tray.rs:49
+msgid "Update…"
+msgstr "Actualizar…"
+
+#: crates/athena/src/tray.rs:50
+msgid "Quit"
+msgstr "Salir"
+
+#: crates/athena/src/tray.rs:109
+msgid "Check and install software updates"
+msgstr "Buscar e instalar actualizaciones de software"
+
+#: crates/athena/src/versions.rs:8
+msgid "Other Versions"
+msgstr ""
+
+#: crates/athena/src/versions.rs:17
+msgid "Installing an older version can require matching older dependencies."
+msgstr ""
+
+#: crates/athena/src/versions.rs:19
+msgid "Load Arch Linux Archive Versions"
+msgstr ""
+
+#: crates/athena/src/versions.rs:21
+msgid "Arch Linux Archive"
+msgstr ""
+
+#: crates/athena/src/versions.rs:29
+msgid "Loading archive…"
+msgstr ""
+
+#: crates/athena/src/versions.rs:64
+msgid "Install…"
+msgstr "Instalar…"
+
+#: crates/athena/src/window.rs:99 crates/athena/src/window.rs:198
+#: crates/athena/src/window.rs:279
+msgid "Athena"
+msgstr ""
+
+#: crates/athena/src/window.rs:122
+msgid "No Package Manager Found"
+msgstr "No se encontró ningún gestor de paquetes"
+
+#: crates/athena/src/window.rs:124
+msgid ""
+"Athena works with pacman, DNF, APT, Flatpak, and Snap, and couldn't find any "
+"of them on this system."
+msgstr ""
+
+#: crates/athena/src/window.rs:188
+msgid "Main Menu"
+msgstr ""
+
+#: crates/athena/src/window.rs:519
+msgid "Keyboard Shortcuts"
+msgstr "Atajos de teclado"

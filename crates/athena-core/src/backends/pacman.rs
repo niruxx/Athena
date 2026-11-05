@@ -6,9 +6,9 @@ use std::sync::LazyLock;
 use regex::Regex;
 
 use super::{indented, log_tail, read_lines, write_file_as_root};
-use crate::backend::{field, Backend};
+use crate::backend::{Backend, field};
 use crate::package::{OperationResult, PackageGroupInfo, PackageInfo, RepositoryAddField, RepositoryInfo, TransactionPreview};
-use crate::process::{self, executable_exists, lines, run, Command};
+use crate::process::{self, Command, executable_exists, lines, run};
 
 const PACMAN_CONF: &str = "/etc/pacman.conf";
 
@@ -41,8 +41,7 @@ pub(crate) fn parse_info_blocks(text: &str) -> HashMap<String, HashMap<String, S
 /// `pacman -Ss`: "repo/name version [(groups)] [installed]" headers, each
 /// followed by an indented description line.
 pub(crate) fn parse_search(text: &str) -> Vec<PackageInfo> {
-    static HEADER: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"^(\S+)/(\S+)\s+(\S+)(?:\s+\(([^)]*)\))?(\s+\[installed[^\]]*\])?$").unwrap());
+    static HEADER: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\S+)/(\S+)\s+(\S+)(?:\s+\(([^)]*)\))?(\s+\[installed[^\]]*\])?$").unwrap());
     let mut results: Vec<PackageInfo> = Vec::new();
     for line in text.lines() {
         if line.starts_with(' ') || line.starts_with('\t') {
@@ -99,7 +98,12 @@ pub(crate) fn parse_repositories(lines: &[String]) -> Vec<RepositoryInfo> {
             .take_while(|l| !l.starts_with('['))
             .find_map(|l| URL.captures(l).map(|u| u[1].trim().to_owned()))
             .unwrap_or_default();
-        repos.push(RepositoryInfo { id: i.to_string(), name: name.to_owned(), url, enabled: m.get(1).is_none() });
+        repos.push(RepositoryInfo {
+            id: i.to_string(),
+            name: name.to_owned(),
+            url,
+            enabled: m.get(1).is_none(),
+        });
     }
     repos
 }
@@ -111,7 +115,10 @@ pub(crate) fn toggle_repository(lines: &mut [String], header_index: usize, enabl
     if header_index >= lines.len() {
         return false;
     }
-    let end = lines[header_index + 1..].iter().position(|l| l.trim().starts_with('[')).map_or(lines.len(), |p| header_index + 1 + p);
+    let end = lines[header_index + 1..]
+        .iter()
+        .position(|l| l.trim().starts_with('['))
+        .map_or(lines.len(), |p| header_index + 1 + p);
     for (i, line) in lines.iter_mut().enumerate().take(end).skip(header_index) {
         let trimmed = line.trim().to_owned();
         if i != header_index && !DIRECTIVE.is_match(&trimmed) {
@@ -140,7 +147,11 @@ impl PacmanBackend {
         let lines = indented(lines(&out.stdout));
         TransactionPreview {
             available: out.started,
-            plan_text: if lines.is_empty() { String::new() } else { format!("{heading}\n{}", lines.join("\n")) },
+            plan_text: if lines.is_empty() {
+                String::new()
+            } else {
+                format!("{heading}\n{}", lines.join("\n"))
+            },
         }
     }
 }
@@ -208,7 +219,10 @@ impl Backend for PacmanBackend {
             .iter()
             .filter(|n| local.contains_key(*n) || sync.contains_key(*n))
             .map(|name| {
-                let mut pkg = PackageInfo { name: name.clone(), ..Default::default() };
+                let mut pkg = PackageInfo {
+                    name: name.clone(),
+                    ..Default::default()
+                };
                 if let Some(f) = local.get(name) {
                     pkg.installed_version = f.get("Version").cloned().unwrap_or_default();
                     pkg.installed = true;
@@ -252,7 +266,12 @@ impl Backend for PacmanBackend {
             .collect();
         lines(&all.stdout)
             .map(str::trim)
-            .map(|g| PackageGroupInfo { id: g.to_owned(), name: g.to_owned(), installed: installed.contains(g), ..Default::default() })
+            .map(|g| PackageGroupInfo {
+                id: g.to_owned(),
+                name: g.to_owned(),
+                installed: installed.contains(g),
+                ..Default::default()
+            })
             .collect()
     }
 
@@ -271,12 +290,16 @@ impl Backend for PacmanBackend {
     }
 
     fn install_commands(&self, names: &[String]) -> Vec<Command> {
-        vec![Command::privileged(["pacman", "-S", "--noconfirm"].iter().map(|s| s.to_string()).chain(names.iter().cloned()))]
+        vec![Command::privileged(
+            ["pacman", "-S", "--noconfirm"].iter().map(|s| s.to_string()).chain(names.iter().cloned()),
+        )]
     }
 
     fn remove_commands(&self, names: &[String]) -> Vec<Command> {
         // -Rs: also the dependencies they pulled in that nothing else needs.
-        vec![Command::privileged(["pacman", "-Rs", "--noconfirm"].iter().map(|s| s.to_string()).chain(names.iter().cloned()))]
+        vec![Command::privileged(
+            ["pacman", "-Rs", "--noconfirm"].iter().map(|s| s.to_string()).chain(names.iter().cloned()),
+        )]
     }
 
     fn reinstall_commands(&self, names: &[String]) -> Vec<Command> {
@@ -293,7 +316,12 @@ impl Backend for PacmanBackend {
         if names.is_empty() {
             return vec![Command::privileged(["pacman", "-Syu", "--noconfirm"])];
         }
-        vec![Command::privileged(["pacman", "-S", "--needed", "--noconfirm"].iter().map(|s| s.to_string()).chain(names.iter().cloned()))]
+        vec![Command::privileged(
+            ["pacman", "-S", "--needed", "--noconfirm"]
+                .iter()
+                .map(|s| s.to_string())
+                .chain(names.iter().cloned()),
+        )]
     }
 
     fn clean_unused_commands(&self) -> Vec<Command> {
@@ -302,7 +330,9 @@ impl Backend for PacmanBackend {
         if orphans.is_empty() {
             return Vec::new();
         }
-        vec![Command::privileged(["pacman", "-R", "--noconfirm"].iter().map(|s| s.to_string()).chain(orphans))]
+        vec![Command::privileged(
+            ["pacman", "-R", "--noconfirm"].iter().map(|s| s.to_string()).chain(orphans),
+        )]
     }
 
     fn download_commands(&self, names: &[String], destination: &str, include_dependencies: bool) -> Vec<Command> {
@@ -324,7 +354,11 @@ impl Backend for PacmanBackend {
     }
 
     fn preview_remove(&self, names: &[String]) -> TransactionPreview {
-        Self::plan(&["-Rs", "--print", "--print-format", "%n"], names, "Removing (including now-unused dependencies):")
+        Self::plan(
+            &["-Rs", "--print", "--print-format", "%n"],
+            names,
+            "Removing (including now-unused dependencies):",
+        )
     }
 
     fn refresh_metadata_commands(&self) -> Vec<Command> {
@@ -346,7 +380,10 @@ impl Backend for PacmanBackend {
             return OperationResult::failed(format!("Repository entry no longer found in {PACMAN_CONF}"));
         }
         if write_file_as_root(PACMAN_CONF, &lines) {
-            OperationResult { success: true, output: String::new() }
+            OperationResult {
+                success: true,
+                output: String::new(),
+            }
         } else {
             OperationResult::failed(format!("Failed to write {PACMAN_CONF} (are you authorized for admin actions?)"))
         }
@@ -354,8 +391,18 @@ impl Backend for PacmanBackend {
 
     fn repository_add_fields(&self) -> Vec<RepositoryAddField> {
         vec![
-            RepositoryAddField { key: "name", label: "Repository name", placeholder: "myrepo", required: true },
-            RepositoryAddField { key: "server", label: "Server URL", placeholder: "https://example.com/repo/$arch", required: true },
+            RepositoryAddField {
+                key: "name",
+                label: "Repository name",
+                placeholder: "myrepo",
+                required: true,
+            },
+            RepositoryAddField {
+                key: "server",
+                label: "Server URL",
+                placeholder: "https://example.com/repo/$arch",
+                required: true,
+            },
         ]
     }
 
@@ -370,7 +417,10 @@ impl Backend for PacmanBackend {
         }
         lines.extend([String::new(), format!("[{name}]"), format!("Server = {server}")]);
         if write_file_as_root(PACMAN_CONF, &lines) {
-            OperationResult { success: true, output: String::new() }
+            OperationResult {
+                success: true,
+                output: String::new(),
+            }
         } else {
             OperationResult::failed(format!("Failed to write {PACMAN_CONF} (are you authorized for admin actions?)"))
         }
@@ -410,10 +460,11 @@ mod tests {
 
     #[test]
     fn repositories_round_trip() {
-        let mut conf: Vec<String> = "[options]\nHoldPkg = pacman\n\n#[multilib]\n#Include = /etc/pacman.d/mirrorlist\n\n[core]\nInclude = /etc/pacman.d/mirrorlist\n# a comment\n"
-            .lines()
-            .map(str::to_owned)
-            .collect();
+        let mut conf: Vec<String> =
+            "[options]\nHoldPkg = pacman\n\n#[multilib]\n#Include = /etc/pacman.d/mirrorlist\n\n[core]\nInclude = /etc/pacman.d/mirrorlist\n# a comment\n"
+                .lines()
+                .map(str::to_owned)
+                .collect();
         let repos = parse_repositories(&conf);
         assert_eq!(repos.len(), 2);
         assert_eq!((repos[0].name.as_str(), repos[0].enabled), ("multilib", false));

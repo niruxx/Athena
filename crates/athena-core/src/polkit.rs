@@ -41,8 +41,8 @@ const AGENT_PATHS: &[&str] = &[
     "/usr/lib/mate-polkit/polkit-mate-authentication-agent-1",
     "/usr/libexec/polkit-mate-authentication-agent-1",
     "/usr/lib/xfce-polkit/xfce-polkit",
-    "/usr/lib/polkit-kde-authentication-agent-1", // Arch
-    "/usr/libexec/polkit-kde-authentication-agent-1", // Fedora, openSUSE
+    "/usr/lib/polkit-kde-authentication-agent-1",                          // Arch
+    "/usr/libexec/polkit-kde-authentication-agent-1",                      // Fedora, openSUSE
     "/usr/lib/x86_64-linux-gnu/libexec/polkit-kde-authentication-agent-1", // Debian, Ubuntu
     "/usr/lib/aarch64-linux-gnu/libexec/polkit-kde-authentication-agent-1",
     "/usr/bin/lxqt-policykit-agent",
@@ -62,7 +62,9 @@ fn program_name(pid_dir: &Path) -> Option<String> {
 /// as this user.
 pub fn is_running() -> bool {
     // /proc/self is owned by the user this process runs as.
-    let Ok(uid) = std::fs::metadata("/proc/self").map(|m| m.uid()) else { return false };
+    let Ok(uid) = std::fs::metadata("/proc/self").map(|m| m.uid()) else {
+        return false;
+    };
     let Ok(entries) = std::fs::read_dir("/proc") else { return false };
     entries.flatten().any(|entry| {
         let path = entry.path();
@@ -76,7 +78,9 @@ pub fn is_running() -> bool {
 /// The first agent program installed on this system.
 pub fn installed_agent() -> Option<&'static str> {
     AGENT_PATHS.iter().copied().find(|path| {
-        std::fs::metadata(path).map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0).unwrap_or(false)
+        std::fs::metadata(path)
+            .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false)
     })
 }
 

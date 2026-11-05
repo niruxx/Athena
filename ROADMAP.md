@@ -42,122 +42,126 @@ The core and a usable app: search, install, remove and update across every sourc
 
 ## Phase 2: Feature parity, everyday use
 
-- [ ] **Settings** (GSettings schema `io.github.niruxx.Athena`, AdwPreferencesDialog):
+- [x] **Settings** (GSettings schema `io.github.niruxx.Athena`, AdwPreferencesDialog):
   - [x] Appearance (follow system / light / dark), through AdwStyleManager
-  - [ ] Start on page
-  - [ ] Close the terminal window automatically on success
-  - [ ] Skip confirmations ("Run transactions without asking")
-  - [ ] Package-list options: show architecture and size, compact rows
-  - [ ] DNF metadata expiry (hours)
-  - [ ] Hide the Groups page
-  - [ ] Check for Athena updates on startup
-  - [ ] Logging to a folder, with a level
-  - [ ] Flatpak / Snap support: install or remove (`distro::flatpak_install_commands` etc. exist)
-  - [ ] Run first-time setup again
-- [ ] **Details page** (AdwNavigationView page pushed from any list):
-  - [ ] Source picker when several sources offer the same app
-  - [ ] Install, Remove, Update, Reinstall, Open (launch from its .desktop file)
-  - [ ] Summary, full description, version, size, repository, homepage
-  - [ ] Screenshots, fetched once and cached
-  - [ ] Flatpak: sandbox summary with risky permissions highlighted, and "Edit Permissions"
-  - [ ] pacman: "Other Versions…" (downgrade from the cache or the Arch Linux Archive)
-- [ ] **Selection mode** on Search, Installed, and Updates (batch install, remove, update, download)
-- [ ] **Right-click menus** on list rows: Details, Install / Install from…, Update, Reinstall, Remove, Select
-- [ ] **Download without installing:** folder picker (GtkFileDialog), with or without dependencies
-- [ ] **Installed:**
-  - [ ] "Apps only" toggle, with a "Show all" count of hidden packages
-  - [ ] Real app names and icons from installed .desktop files
-- [ ] **Groups page:**
-  - [ ] Searchable group list, with installed groups marked
-  - [ ] Per group: description, "N of M installed", Install missing, Remove installed
-  - [ ] All / Installed / Not installed filter and search within the group
-- [ ] **History:** per-source raw log, and the cross-source timeline (pacman.log, APT history, dnf history, Flatpak history, `snap changes`)
-- [ ] **First-run setup** (AdwNavigationView or AdwCarousel):
-  - [ ] Welcome
-  - [ ] Sources (Flatpak/Snap support, and on Arch the AUR)
-  - [ ] Preferences
-  - [ ] Summary
-- [ ] **Keyboard shortcuts window**
-- [ ] **Release notices:** GitHub release check, with an AdwBanner when a newer version is out
+  - [x] Start on page
+  - [x] Close the terminal window automatically on success
+  - [x] Skip confirmations ("Run transactions without asking")
+  - [x] Package-list options: show architecture and size, compact rows
+  - [x] DNF metadata expiry (hours)
+  - [x] Hide the Groups page
+  - [x] Check for Athena updates on startup
+  - [x] Logging to a folder, with a level
+  - [x] Flatpak / Snap support: install or remove (`distro::flatpak_install_commands` etc. exist)
+  - [x] Run first-time setup again
+- [x] **Details page** (AdwNavigationView page pushed from any list):
+  - [x] Source picker when several sources offer the same app
+  - [x] Install, Remove, Update, Reinstall, Open (launch from its .desktop file)
+  - [x] Summary, full description, version, size, repository, homepage
+  - [x] Screenshots from available AppStream metadata, fetched once and cached (the complete catalog is Phase 3)
+  - [x] Flatpak: sandbox summary with risky permissions highlighted, and "Edit Permissions"
+  - [x] pacman: "Other Versions…" (downgrade from the cache or the Arch Linux Archive)
+- [x] **Selection mode** on Search, Installed, and Updates (batch install, remove, update, download)
+- [x] **Right-click menus** on list rows: Details, Install / Install from…, Update, Reinstall, Remove, Select
+- [x] **Download without installing:** folder picker (GtkFileDialog), with or without dependencies
+- [x] **Installed:**
+  - [x] "Apps only" toggle, with a "Show all" count of hidden packages
+  - [x] Real app names and icons from installed .desktop files
+- [x] **Groups page:**
+  - [x] Searchable group list, with installed groups marked
+  - [x] Per group: description, "N of M installed", Install missing, Remove installed
+  - [x] All / Installed / Not installed filter and search within the group
+- [x] **History:** per-source raw log, and the cross-source timeline (pacman.log, APT history, dnf history, Flatpak history, `snap changes`)
+- [x] **First-run setup** (AdwNavigationView or AdwCarousel):
+  - [x] Welcome
+  - [x] Sources (Flatpak/Snap support, and an AUR opt-in on Arch)
+  - [x] Preferences
+  - [x] Summary
+- [x] **Keyboard shortcuts window**
+- [x] **Release notices:** GitHub release check, with an AdwBanner when a newer version is out
 
 ## Phase 3: Discover and the app catalog
 
-- [ ] **AppStream index:** distro catalogs (Arch `archlinux-appstream-data`, Fedora, Debian/Ubuntu DEP-11) and every Flatpak remote's appstream (system and user), gzip, JPEG XL icons (needs `kimageformats` or a JXL loader for GdkPixbuf). Evaluate libappstream through GObject introspection against Athena's own parser.
-- [ ] **Discover page:**
-  - [ ] All apps (the whole catalog)
-  - [ ] Categories (Audio & Video, Development, Education, Games, Graphics, Internet, Office, Science, System, Utilities)
-  - [ ] App cards in a grid (GtkGridView), with one card per app across sources (`firefox`, Flathub's Firefox and `firefox-bin` merged)
-  - [ ] Apps / Packages views
-  - [ ] Advanced: Dependency Query, repository and architecture filters
-- [ ] Catalog names, icons and descriptions on Installed and Updates too
+- [x] **AppStream index:** distro catalogs (Arch `archlinux-appstream-data`, Fedora, Debian/Ubuntu DEP-11) and every Flatpak remote's appstream (system and user), gzip and JPEG XL icons (GdkPixbuf loader or cached `djxl` conversion). The own-parser/libappstream choice is documented in [catalog-and-aur.md](docs/catalog-and-aur.md).
+- [x] **Discover page:**
+  - [x] All apps (the whole catalog)
+  - [x] Categories (Audio & Video, Development, Education, Games, Graphics, Internet, Office, Science, System, Utilities)
+  - [x] App cards in a grid (GtkGridView), with one card per app across sources (`firefox`, Flathub's Firefox and `firefox-bin` merged)
+  - [x] Apps / Packages views
+  - [x] Advanced: Dependency Query, repository and architecture filters
+- [x] Catalog names, icons and descriptions on Installed and Updates too
 
 ## Phase 4: Arch and the AUR
 
-- [ ] **AUR backend:**
-  - [ ] RPC v5 search and info
-  - [ ] Installed foreign packages, and updates through `vercmp`
-  - [ ] AUR-only dependency resolution (built first, installed `--asdeps`)
-  - [ ] Builds through paru or yay, or the built-in `git clone` + `makepkg` fallback (`PACMAN_AUTH=pkexec`)
-- [ ] **PKGBUILD review**, on by default and failing closed:
-  - [ ] Every build file is shown and editable, risky lines are flagged, and exactly the reviewed copy is built
-  - [ ] Approved copies are kept, and updates open on a diff against them
-- [ ] **AUR helper install and removal** (yay or paru, from its AUR git repository with `makepkg -si`)
-- [ ] **PKGBUILD viewer** (read any package's build files)
-- [ ] **AUR results in Search and Discover** ranked by relevance, and AUR updates going to review after "Update Everything"
-- [ ] **Arch news:**
-  - [ ] Unread archlinux.org posts on Home
-  - [ ] Updating everything stops for unread news (Read first / Update anyway)
-- [ ] **Mirror ranking:** reflector or rate-mirrors, with a preview before saving and a backup; DNF's fastestmirror
+- [x] **AUR backend:**
+  - [x] RPC v5 search and info
+  - [x] Installed foreign packages, and updates through `vercmp`
+  - [x] AUR-only dependency resolution (built first, installed `--asdeps`)
+  - [x] Builds through the reviewed local `git clone` + `makepkg` executor (`PACMAN_AUTH=pkexec`); helpers cannot refetch a different copy after approval
+- [x] **PKGBUILD review**, on by default and failing closed:
+  - [x] Every build file is shown and editable, risky lines are flagged, and exactly the reviewed copy is built
+  - [x] Approved copies are kept, and updates open on a diff against them
+- [x] **AUR helper install and removal** (yay or paru, from its AUR git repository with `makepkg -si`)
+- [x] **PKGBUILD viewer** (read any package's build files)
+- [x] **AUR results in Search and Discover** ranked by relevance, and AUR updates going to review after "Update Everything"
+- [x] **Arch news:**
+  - [x] Unread archlinux.org posts on Home
+  - [x] Updating everything stops for unread news (Read first / Update anyway)
+- [x] **Mirror ranking:** reflector or rate-mirrors, with a preview before saving and a backup; DNF's fastestmirror
 
 ## Phase 5: Flatpak and Snap tools
 
-- [ ] **Flatpak page:**
-  - [ ] Permissions editor: switch rows per permission with explanations; list cards for folders, D-Bus names and environment variables; Reset
-  - [ ] App data (`~/.var/app` per app, sizes, open, clear)
-  - [ ] Leftovers (data and overrides of uninstalled apps)
-- [ ] **Snap Manage page:**
-  - [ ] Switch channel
-  - [ ] Revert to the previous revision
-  - [ ] Enable/disable
-  - [ ] Connect and disconnect interfaces
-  - [ ] Classic-confinement note
-- [ ] **Deep link:** "Edit Permissions" in Details opens the app in the Flatpak page
+- [x] **Flatpak page:**
+  - [x] Permissions editor: switch rows per permission with explanations; list cards for folders, D-Bus names and environment variables; Reset
+  - [x] App data (`~/.var/app` per app, sizes, open, clear)
+  - [x] Leftovers (data and overrides of uninstalled apps)
+- [x] **Snap Manage page:**
+  - [x] Switch channel
+  - [x] Revert to the previous revision
+  - [x] Enable/disable
+  - [x] Connect and disconnect interfaces
+  - [x] Classic-confinement note
+- [x] **Deep link:** "Edit Permissions" in Details opens the app in the Flatpak page
 
 ## Phase 6: Tools and Home
 
-- [ ] **Home dashboard:**
-  - [ ] Pending updates by source, with Update Everything
-  - [ ] Package cache size, with Free Up Space
-  - [ ] Installed totals
-  - [ ] AUR updates waiting for review
-  - [ ] Latest snapshot
-  - [ ] Arch news
-  - [ ] Recent activity, with "See All"
-- [ ] **Free up space:**
-  - [ ] Package cache (`paccache` / `pacman -Sc`, `apt clean`, `dnf clean`) and unused dependencies, with sizes first
-  - [ ] Your files, everyday (`/tmp` files you own, `~/.cache`) and worth a second look (trash, thumbnails, shell history, recent files)
-- [ ] **Backup & restore:**
-  - [ ] Dotfiles and config (compressed or plain copy), restore with a preview
-  - [ ] Flatpak app data and app list
-- [ ] **Export & import:**
-  - [ ] Everything you chose to install, from every source, to one JSON file
-  - [ ] Import shows what's missing to pick from, with AUR packages going through review
-- [ ] **Snapshots** (Snapper or Timeshift):
-  - [ ] A snapshot before each transaction (setting), one per batch
-  - [ ] Browse, take, delete
-  - [ ] Restore: Snapper rollback or undo changes, Timeshift restore
-  - [ ] Timeshift lists only behind an administrator button
+- [x] **Home dashboard:**
+  - [x] Pending updates by source, with Update Everything
+  - [x] Package cache size, with Free Up Space
+  - [x] Installed totals
+  - [x] AUR updates waiting for review
+  - [x] Latest snapshot
+  - [x] Arch news
+  - [x] Recent activity, with "See All"
+- [x] **Free up space:**
+  - [x] Package cache (`paccache` / `pacman -Sc`, `apt clean`, `dnf clean`) and unused dependencies, with sizes first
+  - [x] Your files, everyday (`/tmp` files you own, `~/.cache`) and worth a second look (trash, thumbnails, shell history, recent files)
+- [x] **Backup & restore:**
+  - [x] Dotfiles and config (compressed or plain copy), restore with a preview
+  - [x] Flatpak app data and app list
+- [x] **Export & import:**
+  - [x] Everything you chose to install, from every source, to one JSON file
+  - [x] Import shows what's missing to pick from, with AUR packages going through review
+- [x] **Snapshots** (Snapper or Timeshift):
+  - [x] A snapshot before each transaction (setting), one per batch
+  - [x] Browse, take, delete
+  - [x] Restore: Snapper rollback or undo changes, Timeshift restore wizard
+  - [x] Timeshift lists only behind an administrator button
+
+Implementation and verification notes: [Tools and recovery](docs/tools-and-recovery.md).
 
 ## Phase 7: Desktop integration and release
 
-- [ ] **Background update checks** on an interval, with a notification (GNotification). GNOME has no tray, so: the Background portal for "run in background", plus a StatusNotifierItem tray icon where the desktop supports one (KDE, others), with Update and Quit.
-- [ ] **AppStream metainfo** (`io.github.niruxx.Athena.metainfo.xml`) with screenshots, for software centers
-- [ ] **Translations** (gettext)
-- [ ] **New README screenshots** (the debug build saves them: `ATHENA_SCREENSHOTS=<dir>`)
-- [ ] **4.0.0 release** once phases 2–6 are done; the Qt version is fully replaced
+- [x] **Background update checks** on an interval, with a notification (GNotification). Background portal consent and login startup; StatusNotifierItem/DBusMenu on supported desktops, with Open, Update and Quit. Portal/tray protocol verified on a private bus.
+- [x] **AppStream metainfo** (`io.github.niruxx.Athena.metainfo.xml`) with screenshots, for software centers
+- [x] **Translations** (gettext infrastructure, extraction/install tooling, Spanish starter catalog; further translation coverage is welcome)
+- [x] **New README screenshots** (debug harness, wide/narrow GTK pages)
+- [ ] **4.0.0 publication** after CI/distribution verification; local version, changelog, metadata and release build are prepared. No release/tag has been published.
 - [ ] **Distribution formats:**
-  - [ ] AppImage (CI built one for Qt; GTK AppImages need care with the bundled GTK)
-  - [ ] Flathub: Athena drives the host's package managers, so a Flatpak build would need `flatpak-spawn --host` and Flathub's approval for that
+  - [ ] AppImage: pinned GTK4 build recipe and Ubuntu 24.04 CI job prepared. Local Arch build hit the upstream plugin's Glycin/module-directory incompatibility; the baseline CI artifact still needs validation.
+  - [ ] Flathub: host-companion integration and permission review remain. [Readiness assessment](packaging/flatpak/README.md).
+
+Implementation, checks and publication steps: [Desktop integration and releasing](docs/releasing.md).
 
 ## Dropped on purpose
 

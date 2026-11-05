@@ -7,8 +7,8 @@ use std::rc::Rc;
 use std::thread;
 
 use adw::prelude::*;
-use athena_core::progress;
 use athena_core::Command;
+use athena_core::progress;
 use gtk::glib;
 
 enum Event {
@@ -80,9 +80,41 @@ fn run_all(commands: Vec<Command>, tx: async_channel::Sender<Event>) {
 /// `done` with whether they all succeeded once the user closes it (or
 /// right away on success, with `close_on_success`).
 pub fn run(parent: &impl IsA<gtk::Widget>, title: &str, commands: Vec<Command>, close_on_success: bool, done: impl FnOnce(bool) + 'static) {
-    let dialog = adw::Dialog::builder().title(title).content_width(680).content_height(480).can_close(false).build();
+    run_in_batch(parent, title, commands, close_on_success, true, done);
+}
 
-    let status = gtk::Label::builder().label("Running…").xalign(0.0).wrap(true).build();
+pub fn run_in_batch(
+    parent: &impl IsA<gtk::Widget>,
+    title: &str,
+    mut commands: Vec<Command>,
+    close_on_success: bool,
+    snapshot: bool,
+    done: impl FnOnce(bool) + 'static,
+) {
+    if snapshot && crate::settings::boolean("snapshot-before-transactions") && athena_core::snapshots::is_transaction(&commands) {
+        match athena_core::snapshots::Provider::detect() {
+            Some(provider) => commands.insert(0, provider.create(&format!("Athena: {title}"))),
+            None => {
+                let alert = adw::AlertDialog::new(
+                    Some(&crate::i18n::gettext("Snapshot Provider Required")),
+                    Some("Install and configure Snapper or Timeshift, or disable snapshots before transactions in Preferences. No transaction was started."),
+                );
+                alert.add_response("close", &crate::i18n::gettext("Close"));
+                alert.present(Some(parent));
+                done(false);
+                return;
+            }
+        }
+    }
+    let close_on_success = close_on_success || crate::settings::boolean("close-on-success");
+    let dialog = adw::Dialog::builder()
+        .title(title)
+        .content_width(680)
+        .content_height(480)
+        .can_close(false)
+        .build();
+
+    let status = gtk::Label::builder().label(crate::i18n::gettext("Running…")).xalign(0.0).wrap(true).build();
     status.add_css_class("heading");
     let progress = gtk::ProgressBar::new();
     let step = gtk::Label::builder().xalign(0.0).ellipsize(gtk::pango::EllipsizeMode::End).build();
@@ -104,7 +136,11 @@ pub fn run(parent: &impl IsA<gtk::Widget>, title: &str, commands: Vec<Command>, 
     let frame = gtk::Frame::builder().child(&scroller).build();
     let end_mark = buffer.create_mark(None, &buffer.end_iter(), false);
 
-    let close = gtk::Button::builder().label("Close").sensitive(false).halign(gtk::Align::End).build();
+    let close = gtk::Button::builder()
+        .label(crate::i18n::gettext("Close"))
+        .sensitive(false)
+        .halign(gtk::Align::End)
+        .build();
     close.add_css_class("pill");
 
     let body = gtk::Box::builder()
@@ -174,9 +210,18 @@ pub fn run(parent: &impl IsA<gtk::Widget>, title: &str, commands: Vec<Command>, 
                         append("\n");
                     }
                     append(&format!("$ {line}\n"));
+                    output.push_str(&format!("$ {line}\n"));
                     progress.add_css_class("pulsing");
-                    let program = line.split_whitespace().find(|w| !w.starts_with('-') && *w != "pkexec" && *w != "env" && !w.contains('=')).unwrap_or("").to_owned();
-                    step.set_label(&if count > 1 { format!("Step {index} of {count}: running {program}…") } else { format!("Running {program}…") });
+                    let program = line
+                        .split_whitespace()
+                        .find(|w| !w.starts_with('-') && *w != "pkexec" && *w != "env" && !w.contains('='))
+                        .unwrap_or("")
+                        .to_owned();
+                    step.set_label(&if count > 1 {
+                        format!("Step {index} of {count}: running {program}…")
+                    } else {
+                        format!("Running {program}…")
+                    });
                 }
                 Event::Output(line) => {
                     output.push_str(&line);
@@ -198,7 +243,7 @@ pub fn run(parent: &impl IsA<gtk::Widget>, title: &str, commands: Vec<Command>, 
                     pulse.remove();
                     progress.set_visible(false);
                     if ok {
-                        status.set_label("Completed successfully");
+                        status.set_label(&crate::i18n::gettext("Completed successfully"));
                         status.add_css_class("success");
                         step.set_visible(false);
                     } else {

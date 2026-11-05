@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.niruxx.Athena</id>
+  <name>Athena</name>
+  <summary>Manage software from all your package sources</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <developer id="io.github.niruxx"><name>Athena contributors</name></developer>
+  <launchable type="desktop-id">io.github.niruxx.Athena.desktop</launchable>
+  <description>
+    <p>Athena brings your distribution's package manager, Flatpak, Snap and the Arch User Repository together in a GTK application.</p>
+    <p>Discover applications, review updates and dependencies, manage repositories, and follow each transaction's progress. AUR builds require editable source review before execution.</p>
+    <p>Inspect cleanup candidates, back up configuration and Flatpak data, export package choices, and manage configured Snapper or Timeshift snapshots. Optional background checks notify you when updates are available.</p>
+  </description>
+  <url type="homepage">https://github.com/niruxx/Athena</url>
+  <url type="bugtracker">https://github.com/niruxx/Athena/issues</url>
+  <url type="vcs-browser">https://github.com/niruxx/Athena</url>
+  <url type="translate">https://github.com/niruxx/Athena/blob/main/po/README.md</url>
+  <provides><binary>athena</binary></provides>
+  <categories><category>System</category><category>PackageManager</category></categories>
+  <keywords><keyword>packages</keyword><keyword>updates</keyword><keyword>Flatpak</keyword><keyword>Snap</keyword><keyword>AUR</keyword></keywords>
+  <screenshots>
+    <screenshot type="default"><caption>Discover applications across package sources</caption><image>https://raw.githubusercontent.com/niruxx/Athena/main/docs/screenshots/discover.png</image></screenshot>
+    <screenshot><caption>Review software updates and recent activity on Home</caption><image>https://raw.githubusercontent.com/niruxx/Athena/main/docs/screenshots/home.png</image></screenshot>
+    <screenshot><caption>Review AUR build files before installation</caption><image>https://raw.githubusercontent.com/niruxx/Athena/main/docs/screenshots/aur-review.png</image></screenshot>
+  </screenshots>
+  <content_rating type="oars-1.1"/>
+  <supports><control>pointing</control><control>keyboard</control><control>touch</control></supports>
+  <translation type="gettext">athena</translation>
+  <releases><release version="4.0.0" date="2026-11-04"><description><p>Replaces the Qt application with GTK 4 and libadwaita, reviewed AUR builds, application discovery, recovery tools and desktop update notifications.</p></description></release></releases>
+</component>

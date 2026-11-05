@@ -21,7 +21,10 @@ fn main() {
             backend.list_groups().len()
         );
         if let Some(first) = results.first() {
-            println!("    first result: {} {} ({}) — {}", first.name, first.available_version, first.repository, first.description);
+            println!(
+                "    first result: {} {} ({}) — {}",
+                first.name, first.available_version, first.repository, first.description
+            );
         }
     }
 }

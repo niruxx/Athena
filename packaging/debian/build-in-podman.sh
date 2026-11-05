@@ -18,7 +18,9 @@ podman run --rm \
         set -euo pipefail
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
-        apt-get install -y --no-install-recommends cargo rustc pkg-config libgtk-4-dev libadwaita-1-dev ca-certificates
+        apt-get install -y --no-install-recommends curl build-essential gettext pkg-config libgtk-4-dev libadwaita-1-dev ca-certificates
+        curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain 1.92.0
+        . "$HOME/.cargo/env"
         mkdir /build
         tar -C /repo --exclude=./target --exclude="./dist-*" -cf - . | tar -C /build -xf -
         cd /build
@@ -35,8 +37,8 @@ Section: admin
 Priority: optional
 Architecture: $ARCH
 Maintainer: niruxxdaboi <perezkyle98@protonmail.com>
-Depends: libgtk-4-1 (>= 4.14), libadwaita-1-0 (>= 1.5), libc6, pkexec | policykit-1, policykit-1-gnome | polkit-1-auth-agent
-Suggests: flatpak, snapd
+Depends: curl, libgtk-4-1 (>= 4.14), libadwaita-1-0 (>= 1.5), libc6, pkexec | policykit-1, policykit-1-gnome | polkit-1-auth-agent
+Suggests: flatpak, snapd, appstream, libjxl-tools, snapper, timeshift
 Homepage: https://github.com/niruxx/Athena
 Description: package manager for APT, Flatpak, and Snap
  Install, update, and remove software from every source on the system

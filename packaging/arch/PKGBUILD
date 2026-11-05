@@ -8,7 +8,7 @@
 pkgname=athena
 # Cargo.toml's version without hyphens (pacman doesn't allow them):
 # sh packaging/version.sh arch
-pkgver=4.0.0alpha.1
+pkgver=4.0.0
 pkgrel=1
 pkgdesc="Install, update, and remove software from pacman, Flatpak, and Snap in one GTK app"
 arch=('x86_64' 'aarch64')
@@ -17,9 +17,17 @@ license=('GPL-3.0-or-later')
 # pkexec is in polkit; its password prompt needs an authentication agent
 # running in the session. Athena starts polkit-gnome itself when the
 # desktop doesn't run an agent (bare compositors such as niri or sway).
-depends=('gtk4' 'libadwaita' 'polkit' 'polkit-gnome')
-makedepends=('cargo')
-optdepends=('flatpak: Flatpak apps'
+depends=('git' 'curl' 'gtk4' 'libadwaita' 'polkit' 'polkit-gnome')
+makedepends=('cargo' 'gettext')
+optdepends=('base-devel: AUR build prerequisites'
+            'pacman-contrib: retained-version package cache cleanup'
+            'snapper: system snapshots (configure root first)'
+            'timeshift: alternate system snapshots and restore wizard'
+            'archlinux-appstream-data: native application catalog'
+            'libjxl: JPEG XL catalog icons when no image loader is available'
+            'reflector: mirror ranking'
+            'rate-mirrors: alternate mirror ranking'
+            'flatpak: Flatpak apps'
             'snapd: snaps (from the AUR)')
 options=('!lto')
 source=()

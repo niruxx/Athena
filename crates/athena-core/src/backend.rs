@@ -30,7 +30,12 @@ pub trait Backend: Send + Sync {
         Vec::new()
     }
     fn group_details(&self, id: &str, is_meta: bool) -> PackageGroupInfo {
-        PackageGroupInfo { id: id.to_owned(), name: id.to_owned(), is_meta, ..Default::default() }
+        PackageGroupInfo {
+            id: id.to_owned(),
+            name: id.to_owned(),
+            is_meta,
+            ..Default::default()
+        }
     }
 
     /// One transaction, one password prompt, for any number of packages.

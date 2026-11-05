@@ -25,7 +25,11 @@ impl Command {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        Self { program: program.to_owned(), args: args.into_iter().map(Into::into).collect(), working_dir: None }
+        Self {
+            program: program.to_owned(),
+            args: args.into_iter().map(Into::into).collect(),
+            working_dir: None,
+        }
     }
 
     /// The same command through pkexec.
@@ -44,7 +48,10 @@ impl Command {
 
     /// `program arg arg…`, for display.
     pub fn display(&self) -> String {
-        std::iter::once(self.program.as_str()).chain(self.args.iter().map(String::as_str)).collect::<Vec<_>>().join(" ")
+        std::iter::once(self.program.as_str())
+            .chain(self.args.iter().map(String::as_str))
+            .collect::<Vec<_>>()
+            .join(" ")
     }
 
     /// The arguments to start it with (see [`launch_args`]).
@@ -95,22 +102,36 @@ pub fn executable_exists(program: &str) -> bool {
     use std::os::unix::fs::PermissionsExt;
     let Some(path) = std::env::var_os("PATH") else { return false };
     std::env::split_paths(&path).any(|dir| {
-        std::fs::metadata(dir.join(program)).map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0).unwrap_or(false)
+        std::fs::metadata(dir.join(program))
+            .map(|m| m.is_file() && m.permissions().mode() & 0o111 != 0)
+            .unwrap_or(false)
     })
 }
 
 /// Builds the std command: unlocalized output (parsing depends on it) and
 /// pkexec's text prompt turned off.
 pub fn std_command(command: &Command) -> std::process::Command {
-    if command.program == "pkexec" {
+    if command.program == "pkexec" || command.program == "timeshift-launcher" {
         polkit::ensure_running(); // a password prompt needs an agent to show it
     }
     let mut cmd = std::process::Command::new(&command.program);
     cmd.args(command.launch_args()).env("LC_ALL", "C");
+    if let Some(appdir)=std::env::var_os("APPDIR")
+        && !std::path::Path::new(&command.program).starts_with(&appdir) {
+            host_environment(&mut cmd);
+        }
     if let Some(dir) = &command.working_dir {
         cmd.current_dir(dir);
     }
     cmd
+}
+
+/// AppImage GUI libraries must never be injected into native package tools.
+fn host_environment(cmd:&mut std::process::Command) {
+    for key in ["LD_LIBRARY_PATH","GSETTINGS_SCHEMA_DIR","GIO_MODULE_DIR","GIO_EXTRA_MODULES","GTK_PATH","GTK_EXE_PREFIX","GTK_DATA_PREFIX","GTK_IM_MODULE_FILE","GDK_PIXBUF_MODULE_FILE","GDK_PIXBUF_MODULEDIR","GI_TYPELIB_PATH","GTK_THEME"] {cmd.env_remove(key);}
+    for (target,source) in [("PATH","ATHENA_HOST_PATH"),("LD_LIBRARY_PATH","ATHENA_HOST_LD_LIBRARY_PATH"),("XDG_DATA_DIRS","ATHENA_HOST_XDG_DATA_DIRS")] {
+        if let Some(value)=std::env::var_os(source) { if value.is_empty(){cmd.env_remove(target);}else{cmd.env(target,value);} }
+    }
 }
 
 fn run_command(command: &Command, stdin_data: Option<&[u8]>, timeout: Duration) -> Output {
@@ -159,7 +180,12 @@ fn run_command(command: &Command, stdin_data: Option<&[u8]>, timeout: Duration) 
     };
     let stdout = String::from_utf8_lossy(&out_reader.join().unwrap_or_default()).into_owned();
     let stderr = String::from_utf8_lossy(&err_reader.join().unwrap_or_default()).into_owned();
-    Output { started: true, exit_code: status.and_then(|s| s.code()).unwrap_or(-1), stdout, stderr }
+    Output {
+        started: true,
+        exit_code: status.and_then(|s| s.code()).unwrap_or(-1),
+        stdout,
+        stderr,
+    }
 }
 
 /// Runs `program` and waits for it (killed after `timeout`).
@@ -175,7 +201,10 @@ pub fn run_with_stdin<S: AsRef<str>>(program: &str, args: &[S], stdin_data: &[u8
 /// Runs each command in order, stopping at the first failure; the output
 /// of every command that ran, concatenated.
 pub fn run_sequence(commands: &[Command], timeout_per_command: Duration) -> Output {
-    let mut all = Output { started: true, ..Default::default() };
+    let mut all = Output {
+        started: true,
+        ..Default::default()
+    };
     for command in commands {
         let output = run_command(command, None, timeout_per_command);
         all.stdout.push_str(&output.stdout);
@@ -220,7 +249,11 @@ mod tests {
 
     #[test]
     fn sequence_stops_at_first_failure() {
-        let commands = [Command::new("sh", ["-c", "echo one"]), Command::new("sh", ["-c", "exit 3"]), Command::new("sh", ["-c", "echo three"])];
+        let commands = [
+            Command::new("sh", ["-c", "echo one"]),
+            Command::new("sh", ["-c", "exit 3"]),
+            Command::new("sh", ["-c", "echo three"]),
+        ];
         let out = run_sequence(&commands, SHORT);
         assert_eq!(out.exit_code, 3);
         assert_eq!(out.stdout, "one\n");
@@ -229,5 +262,16 @@ mod tests {
     #[test]
     fn stdin_is_passed_through() {
         assert_eq!(run_with_stdin("cat", &[] as &[&str], b"data", SHORT).stdout, "data");
+    }
+}
+
+#[cfg(test)]
+mod bundle_tests {
+    #[test]
+    fn host_commands_do_not_inherit_bundled_modules() {
+        let mut command=std::process::Command::new("true");
+        for key in ["GSETTINGS_SCHEMA_DIR","GTK_PATH","GIO_MODULE_DIR","GDK_PIXBUF_MODULE_FILE"]{command.env(key,"/bundle/resources");}
+        super::host_environment(&mut command);
+        for key in ["GSETTINGS_SCHEMA_DIR","GTK_PATH","GIO_MODULE_DIR","GDK_PIXBUF_MODULE_FILE"]{assert!(command.get_envs().any(|(name,value)|name==key&&value.is_none()));}
     }
 }

@@ -11,7 +11,7 @@
       <summary>Appearance</summary>
       <description>"default" follows the system style; "light" and "dark" force one.</description>
     </key>
-    <key name="start-page" type="s"><default>"search"</default></key>
+    <key name="start-page" type="s"><default>"discover"</default></key>
     <key name="close-on-success" type="b"><default>false</default></key>
     <key name="skip-confirmations" type="b"><default>false</default></key>
     <key name="show-architecture" type="b"><default>false</default></key>
@@ -23,5 +23,12 @@
     <key name="log-folder" type="s"><default>""</default></key>
     <key name="log-level" type="s"><default>"info"</default></key>
     <key name="setup-complete" type="b"><default>false</default></key>
+    <key name="arch-news-read" type="as"><default>[]</default></key>
+    <key name="aur-enabled" type="b"><default>true</default></key>
+    <key name="snapshot-before-transactions" type="b"><default>false</default></key>
+    <key name="background-updates" type="b"><default>false</default></key>
+    <key name="update-check-minutes" type="u"><range min="15" max="1440"/><default>240</default></key>
+    <key name="flatpak-enabled" type="b"><default>true</default></key>
+    <key name="snap-enabled" type="b"><default>true</default></key>
   </schema>
 </schemalist>

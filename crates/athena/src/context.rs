@@ -20,12 +20,50 @@ pub struct Context {
     pub navigation: adw::NavigationView,
     pub window: adw::ApplicationWindow,
     pub toasts: adw::ToastOverlay,
+    catalog_listeners: RefCell<Vec<Box<dyn Fn()>>>,
     listeners: RefCell<Vec<Box<dyn Fn()>>>,
 }
 
 impl Context {
     pub fn new(backends: Vec<Arc<dyn Backend>>, window: adw::ApplicationWindow, toasts: adw::ToastOverlay) -> Rc<Self> {
-        Rc::new(Self { backends, window, toasts, navigation: adw::NavigationView::new(), listeners: RefCell::default() })
+        Rc::new(Self {
+            backends,
+            window,
+            toasts,
+            navigation: adw::NavigationView::new(),
+            catalog_listeners: RefCell::default(),
+            listeners: RefCell::default(),
+        })
+    }
+
+    pub fn on_catalog_changed(&self, listener: impl Fn() + 'static) {
+        self.catalog_listeners.borrow_mut().push(Box::new(listener));
+    }
+    pub fn reload_catalog(self: &Rc<Self>) {
+        let native = self
+            .backends
+            .iter()
+            .find(|b| matches!(b.key(), "pacman" | "apt" | "dnf"))
+            .map(|b| b.key())
+            .unwrap_or("")
+            .to_owned();
+        let weak = Rc::downgrade(self);
+        crate::util::background(
+            move || athena_core::catalog::reload(&native),
+            move |catalog| {
+                if std::env::var_os("ATHENA_SCREENSHOTS").is_some() {
+                    eprintln!("Catalog: {} apps, {} warnings", catalog.apps.len(), catalog.warnings.len());
+                    for warning in &catalog.warnings {
+                        eprintln!("Catalog: {warning}");
+                    }
+                }
+                if let Some(ctx) = weak.upgrade() {
+                    for listener in ctx.catalog_listeners.borrow().iter() {
+                        listener();
+                    }
+                }
+            },
+        );
     }
 
     pub fn toast(&self, text: &str) {
@@ -38,6 +76,7 @@ impl Context {
     }
 
     pub fn packages_changed(&self) {
+        crate::desktop::refresh();
         for listener in self.listeners.borrow().iter() {
             listener();
         }
@@ -50,6 +89,7 @@ impl Context {
             "apt" => "APT",
             "flatpak" => "Flatpak",
             "snap" => "Snap",
+            "aur" => "AUR",
             other => other,
         }
     }

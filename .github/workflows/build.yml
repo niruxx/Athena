@@ -21,12 +21,19 @@ jobs:
       - name: Install GTK and libadwaita
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev pkg-config
+          sudo apt-get install -y libgtk-4-dev libadwaita-1-dev pkg-config gettext appstream desktop-file-utils xvfb dbus-x11
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
       - name: Test
         run: cargo test --locked --workspace
+      - name: Portal and tray protocol integration
+        run: ATHENA_PRIVATE_BUS_TEST=1 GIO_USE_VFS=local GDK_BACKEND=x11 GSK_RENDERER=cairo xvfb-run -a dbus-run-session -- cargo test --locked -p athena portal_consent_cancellation_and_tray_wire_protocol -- --ignored --test-threads=1
+      - name: Desktop metadata and translations
+        run: |
+          appstreamcli validate --no-net data/io.github.niruxx.Athena.metainfo.xml
+          desktop-file-validate data/io.github.niruxx.Athena.desktop
+          for language in $(cat po/LINGUAS); do msgfmt --check --check-format po/$language.po -o /tmp/athena-$language.mo; done
       - name: Clippy
         run: cargo clippy --locked --workspace -- -D warnings
 
@@ -36,7 +43,7 @@ jobs:
     container: archlinux:latest
     steps:
       - name: Install dependencies
-        run: pacman -Syu --noconfirm --needed git base-devel rust gtk4 libadwaita polkit polkit-gnome
+        run: pacman -Syu --noconfirm --needed git base-devel rust gettext gtk4 libadwaita polkit polkit-gnome
       - uses: actions/checkout@v4
       - name: Create unprivileged build user
         run: |
@@ -72,3 +79,20 @@ jobs:
         with:
           name: athena-fedora
           path: dist-fedora/*.rpm
+
+  appimage:
+    name: AppImage (GTK 4, x86_64)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install GTK packaging dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libadwaita-1-dev libgirepository1.0-dev librsvg2-dev librsvg2-common gobject-introspection pkg-config gettext file patchelf appstream desktop-file-utils
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build relocatable AppImage
+        run: bash packaging/appimage/build.sh
+      - name: Smoke check AppImage command line
+        run: APPIMAGE_EXTRACT_AND_RUN=1 dist-appimage/Athena-*-x86_64.AppImage --help
+      - uses: actions/upload-artifact@v4
+        with:
+          name: athena-appimage
+          path: dist-appimage/*

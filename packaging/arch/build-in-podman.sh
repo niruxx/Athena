@@ -14,7 +14,7 @@ podman run --rm \
     docker.io/library/archlinux:latest \
     bash -c '
         set -euo pipefail
-        pacman -Syu --noconfirm --needed base-devel rust gtk4 libadwaita polkit polkit-gnome
+        pacman -Syu --noconfirm --needed base-devel rust gettext gtk4 libadwaita polkit polkit-gnome
         useradd -m builder
         mkdir /home/builder/repo
         # The source without build output (target/ can be gigabytes).

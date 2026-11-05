@@ -20,9 +20,17 @@ pub struct RepositoriesPage {
 
 impl RepositoriesPage {
     pub fn new(ctx: &Rc<Context>) -> Rc<Self> {
-        let header = adw::HeaderBar::builder().title_widget(&adw::WindowTitle::new("Repositories", "")).build();
-        let refresh = gtk::Button::builder().icon_name("view-refresh-symbolic").tooltip_text("Reload").build();
-        let update_lists = gtk::Button::builder().icon_name("emblem-synchronizing-symbolic").tooltip_text("Update Package Lists").build();
+        let header = adw::HeaderBar::builder()
+            .title_widget(&adw::WindowTitle::new(&crate::i18n::gettext("Repositories"), ""))
+            .build();
+        let refresh = gtk::Button::builder()
+            .icon_name("view-refresh-symbolic")
+            .tooltip_text(crate::i18n::gettext("Reload"))
+            .build();
+        let update_lists = gtk::Button::builder()
+            .icon_name("emblem-synchronizing-symbolic")
+            .tooltip_text(crate::i18n::gettext("Update Package Lists"))
+            .build();
         header.pack_start(&refresh);
         header.pack_end(&update_lists);
 
@@ -34,7 +42,13 @@ impl RepositoriesPage {
         let widget = adw::ToolbarView::new();
         widget.add_top_bar(&header);
         widget.set_content(Some(&stack));
-        let page = Rc::new(Self { widget, stack, content, groups: RefCell::default(), ctx: ctx.clone() });
+        let page = Rc::new(Self {
+            widget,
+            stack,
+            content,
+            groups: RefCell::default(),
+            ctx: ctx.clone(),
+        });
         {
             let page = page.clone();
             refresh.connect_clicked(move |_| page.reload());
@@ -58,9 +72,10 @@ impl RepositoriesPage {
         self.stack.set_visible_child_name("loading");
         let backends = self.ctx.backends.clone();
         let page = self.clone();
-        util::background(move || backends.iter().map(|b| b.list_repositories()).collect::<Vec<Vec<RepositoryInfo>>>(), move |per_source| {
-            page.show(per_source)
-        });
+        util::background(
+            move || backends.iter().map(|b| b.list_repositories()).collect::<Vec<Vec<RepositoryInfo>>>(),
+            move |per_source| page.show(per_source),
+        );
     }
 
     fn show(self: &Rc<Self>, per_source: Vec<Vec<RepositoryInfo>>) {
@@ -77,7 +92,11 @@ impl RepositoriesPage {
                 .description(if backend.key() == "flatpak" { "Remotes" } else { "Repositories" })
                 .build();
             if !backend.repository_add_fields().is_empty() {
-                let add = gtk::Button::builder().icon_name("list-add-symbolic").tooltip_text("Add…").valign(gtk::Align::Center).build();
+                let add = gtk::Button::builder()
+                    .icon_name("list-add-symbolic")
+                    .tooltip_text(crate::i18n::gettext("Add…"))
+                    .valign(gtk::Align::Center)
+                    .build();
                 add.add_css_class("flat");
                 let page = self.clone();
                 add.connect_clicked(move |_| page.add_dialog(source));
@@ -95,13 +114,16 @@ impl RepositoriesPage {
                     let (backend, id, enabled) = (page.ctx.backends[source].clone(), id.clone(), row.is_active());
                     row.set_sensitive(false);
                     let (page, row) = (page.clone(), row.clone());
-                    util::background(move || backend.set_repository_enabled(&id, enabled), move |result| {
-                        if !result.success {
-                            page.ctx.toast(&format!("Couldn't change the repository: {}", result.output.trim()));
-                        }
-                        page.reload(); // show what actually took effect
-                        row.set_sensitive(true);
-                    });
+                    util::background(
+                        move || backend.set_repository_enabled(&id, enabled),
+                        move |result| {
+                            if !result.success {
+                                page.ctx.toast(&format!("Couldn't change the repository: {}", result.output.trim()));
+                            }
+                            page.reload(); // show what actually took effect
+                            row.set_sensitive(true);
+                        },
+                    );
                 });
                 group.add(&row);
             }
@@ -127,18 +149,25 @@ impl RepositoriesPage {
             })
             .collect();
         dialog.set_extra_child(Some(&list));
-        dialog.add_response("cancel", "Cancel");
-        dialog.add_response("add", "Add");
+        dialog.add_response("cancel", &crate::i18n::gettext("Cancel"));
+        dialog.add_response("add", &crate::i18n::gettext("Add"));
         dialog.set_response_appearance("add", adw::ResponseAppearance::Suggested);
         dialog.set_close_response("cancel");
         let page = self.clone();
         dialog.connect_response(Some("add"), move |_, _| {
             let values: Vec<(String, String)> = entries.iter().map(|(k, row)| ((*k).to_owned(), row.text().to_string())).collect();
             let (backend, page) = (backend.clone(), page.clone());
-            util::background(move || backend.add_repository(&values), move |result| {
-                page.ctx.toast(&if result.success { "Repository added".to_owned() } else { format!("Couldn't add it: {}", result.output.trim()) });
-                page.reload();
-            });
+            util::background(
+                move || backend.add_repository(&values),
+                move |result| {
+                    page.ctx.toast(&if result.success {
+                        "Repository added".to_owned()
+                    } else {
+                        format!("Couldn't add it: {}", result.output.trim())
+                    });
+                    page.reload();
+                },
+            );
         });
         dialog.present(Some(&self.ctx.window));
     }

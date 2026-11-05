@@ -16,7 +16,7 @@ podman run --rm \
     docker.io/library/fedora:latest \
     bash -c '
         set -euo pipefail
-        dnf install -y cargo rust gtk4-devel libadwaita-devel rpm-build
+        dnf install -y cargo rust gettext gtk4-devel libadwaita-devel rpm-build
         mkdir /build
         tar -C /repo --exclude=./target --exclude="./dist-*" -cf - . | tar -C /build -xf -
         cd /build

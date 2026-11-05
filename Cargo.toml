@@ -3,11 +3,11 @@ resolver = "3"
 members = ["crates/athena-core", "crates/athena"]
 
 [workspace.package]
-version = "4.0.0-alpha.1"
+version = "4.0.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
 repository = "https://github.com/niruxx/Athena"
-rust-version = "1.85"
+rust-version = "1.92"
 
 [workspace.dependencies]
 athena-core = { path = "crates/athena-core" }

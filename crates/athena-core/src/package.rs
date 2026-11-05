@@ -6,6 +6,8 @@
 pub struct PackageInfo {
     /// What install/remove act on: a package name, Flatpak app ID, or snap name.
     pub name: String,
+    /// Optional source-specific install reference, e.g. a Flatpak branch/architecture.
+    pub install_ref: String,
     /// Empty when not installed.
     pub installed_version: String,
     /// The newest version known to be available; empty when unknown.
@@ -73,6 +75,9 @@ pub struct OperationResult {
 
 impl OperationResult {
     pub fn failed(message: impl Into<String>) -> Self {
-        Self { success: false, output: message.into() }
+        Self {
+            success: false,
+            output: message.into(),
+        }
     }
 }

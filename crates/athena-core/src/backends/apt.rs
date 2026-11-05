@@ -6,9 +6,9 @@ use std::sync::LazyLock;
 use regex::Regex;
 
 use super::{by_name, human_size, log_tail, read_lines, with_names, write_file_as_root};
-use crate::backend::{field, Backend};
+use crate::backend::{Backend, field};
 use crate::package::{OperationResult, PackageGroupInfo, PackageInfo, RepositoryAddField, RepositoryInfo, TransactionPreview};
-use crate::process::{self, executable_exists, lines, run, Command};
+use crate::process::{self, Command, executable_exists, lines, run};
 
 pub struct AptBackend;
 
@@ -69,7 +69,11 @@ pub(crate) fn parse_show(text: &str) -> HashMap<String, Description> {
     let mut in_description = false;
     let mut flush = |name: &mut String, homepage: &mut String, size: &mut String, description: &mut Vec<String>| {
         if !name.is_empty() && !description.is_empty() && !result.contains_key(name.as_str()) {
-            let long = description[1..].iter().map(|l| if l == "." { "" } else { l.as_str() }).collect::<Vec<_>>().join(" ");
+            let long = description[1..]
+                .iter()
+                .map(|l| if l == "." { "" } else { l.as_str() })
+                .collect::<Vec<_>>()
+                .join(" ");
             result.insert(
                 name.clone(),
                 Description {
@@ -97,7 +101,13 @@ pub(crate) fn parse_show(text: &str) -> HashMap<String, Description> {
             in_description = false;
         } else if let Some(v) = line.strip_prefix("Installed-Size:") {
             // In KiB.
-            size = v.trim().parse::<u64>().ok().filter(|k| *k > 0).map(|k| human_size(k * 1024)).unwrap_or_default();
+            size = v
+                .trim()
+                .parse::<u64>()
+                .ok()
+                .filter(|k| *k > 0)
+                .map(|k| human_size(k * 1024))
+                .unwrap_or_default();
             in_description = false;
         } else if line.starts_with("Description:") || line.starts_with("Description-en:") {
             description = vec![line.split_once(':').map(|(_, v)| v.trim().to_owned()).unwrap_or_default()];
@@ -174,7 +184,12 @@ pub(crate) fn parse_classic(path: &str, lines: &[String]) -> Vec<RepositoryInfo>
         .filter_map(|(i, line)| {
             let m = CLASSIC_ENTRY.captures(line.trim())?;
             let active = m[2].split_whitespace().collect::<Vec<_>>().join(" ");
-            Some(RepositoryInfo { id: format!("L{ID_SEP}{path}{ID_SEP}{i}"), url: classic_uri(&active), name: active, enabled: m.get(1).is_none() })
+            Some(RepositoryInfo {
+                id: format!("L{ID_SEP}{path}{ID_SEP}{i}"),
+                url: classic_uri(&active),
+                name: active,
+                enabled: m.get(1).is_none(),
+            })
         })
         .collect()
 }
@@ -235,7 +250,12 @@ pub(crate) fn toggle_deb822(lines: &mut Vec<String>, start: usize, enabled: bool
 }
 
 fn plan(raw: &str) -> String {
-    raw.lines().filter(|l| !l.trim().is_empty() && !l.trim().ends_with("... Done")).collect::<Vec<_>>().join("\n").trim().to_owned()
+    raw.lines()
+        .filter(|l| !l.trim().is_empty() && !l.trim().ends_with("... Done"))
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_owned()
 }
 
 impl Backend for AptBackend {
@@ -281,7 +301,12 @@ impl Backend for AptBackend {
         lines(&out.stdout)
             .filter_map(|l| ROW.captures(l))
             .map(|m| {
-                let mut pkg = PackageInfo { name: m[1].to_owned(), description: m[2].to_owned(), repository: "available".into(), ..Default::default() };
+                let mut pkg = PackageInfo {
+                    name: m[1].to_owned(),
+                    description: m[2].to_owned(),
+                    repository: "available".into(),
+                    ..Default::default()
+                };
                 if let Some(i) = installed.get(&pkg.name) {
                     pkg.installed = true;
                     pkg.installed_version = i.installed_version.clone();
@@ -393,8 +418,17 @@ impl Backend for AptBackend {
                 packages.push(m[1].to_owned());
             }
         }
-        let installed = run("dpkg-query", &["-W", "-f", "${Status}", &metapackage], process::SHORT).stdout.contains("install ok installed");
-        PackageGroupInfo { id: id.to_owned(), name: id.to_owned(), is_meta: true, installed, packages, ..Default::default() }
+        let installed = run("dpkg-query", &["-W", "-f", "${Status}", &metapackage], process::SHORT)
+            .stdout
+            .contains("install ok installed");
+        PackageGroupInfo {
+            id: id.to_owned(),
+            name: id.to_owned(),
+            is_meta: true,
+            installed,
+            packages,
+            ..Default::default()
+        }
     }
 
     fn install_commands(&self, names: &[String]) -> Vec<Command> {
@@ -439,8 +473,20 @@ impl Backend for AptBackend {
         static DEP: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\s*\|?(?:Pre)?Depends:\s*([A-Za-z0-9.+\-]+)(?:\s*\([^)]*\))?\s*$").unwrap());
         let mut all = names.to_vec();
         if include_dependencies {
-            // Direct dependencies only; <virtual> names aren't downloadable.
-            let args = with_names(&["depends", "--no-recommends", "--no-suggests", "--no-conflicts", "--no-breaks", "--no-replaces", "--no-enhances"], names);
+            // Recurse through dependencies; <virtual> names are not downloadable.
+            let args = with_names(
+                &[
+                    "depends",
+                    "--recurse",
+                    "--no-recommends",
+                    "--no-suggests",
+                    "--no-conflicts",
+                    "--no-breaks",
+                    "--no-replaces",
+                    "--no-enhances",
+                ],
+                names,
+            );
             for m in lines(&run("apt-cache", &args, process::SHORT).stdout).filter_map(|l| DEP.captures(l)) {
                 if !all.contains(&m[1].to_owned()) {
                     all.push(m[1].to_owned());
@@ -454,12 +500,18 @@ impl Backend for AptBackend {
 
     fn preview_install(&self, names: &[String]) -> TransactionPreview {
         let out = run("apt-get", &with_names(&["install", "--dry-run"], names), process::LONG);
-        TransactionPreview { available: out.started, plan_text: plan(&out.stdout) }
+        TransactionPreview {
+            available: out.started,
+            plan_text: plan(&out.stdout),
+        }
     }
 
     fn preview_remove(&self, names: &[String]) -> TransactionPreview {
         let out = run("apt-get", &with_names(&["remove", "--dry-run", "--auto-remove"], names), process::LONG);
-        TransactionPreview { available: out.started, plan_text: plan(&out.stdout) }
+        TransactionPreview {
+            available: out.started,
+            plan_text: plan(&out.stdout),
+        }
     }
 
     fn refresh_metadata_commands(&self) -> Vec<Command> {
@@ -475,22 +527,37 @@ impl Backend for AptBackend {
             .iter()
             .flat_map(|path| {
                 let lines = read_lines(path);
-                if path.ends_with(".sources") { parse_deb822(path, &lines) } else { parse_classic(path, &lines) }
+                if path.ends_with(".sources") {
+                    parse_deb822(path, &lines)
+                } else {
+                    parse_classic(path, &lines)
+                }
             })
             .collect()
     }
 
     fn set_repository_enabled(&self, id: &str, enabled: bool) -> OperationResult {
         let parts: Vec<&str> = id.split(ID_SEP).collect();
-        let [kind, path, index] = parts[..] else { return OperationResult::failed("Malformed repository id") };
-        let Ok(index) = index.parse::<usize>() else { return OperationResult::failed("Malformed repository id") };
+        let [kind, path, index] = parts[..] else {
+            return OperationResult::failed("Malformed repository id");
+        };
+        let Ok(index) = index.parse::<usize>() else {
+            return OperationResult::failed("Malformed repository id");
+        };
         let mut lines = read_lines(path);
-        let found = if kind == "S" { toggle_deb822(&mut lines, index, enabled) } else { toggle_classic(&mut lines, index, enabled) };
+        let found = if kind == "S" {
+            toggle_deb822(&mut lines, index, enabled)
+        } else {
+            toggle_classic(&mut lines, index, enabled)
+        };
         if !found {
             return OperationResult::failed(format!("Repository entry no longer found in {path}"));
         }
         if write_file_as_root(path, &lines) {
-            OperationResult { success: true, output: String::new() }
+            OperationResult {
+                success: true,
+                output: String::new(),
+            }
         } else {
             OperationResult::failed(format!("Failed to write {path} (are you authorized for admin actions?)"))
         }
@@ -498,9 +565,24 @@ impl Backend for AptBackend {
 
     fn repository_add_fields(&self) -> Vec<RepositoryAddField> {
         vec![
-            RepositoryAddField { key: "uri", label: "Repository URL", placeholder: "https://example.com/debian", required: true },
-            RepositoryAddField { key: "suite", label: "Suite/Distribution", placeholder: "stable", required: true },
-            RepositoryAddField { key: "components", label: "Components", placeholder: "main", required: true },
+            RepositoryAddField {
+                key: "uri",
+                label: "Repository URL",
+                placeholder: "https://example.com/debian",
+                required: true,
+            },
+            RepositoryAddField {
+                key: "suite",
+                label: "Suite/Distribution",
+                placeholder: "stable",
+                required: true,
+            },
+            RepositoryAddField {
+                key: "components",
+                label: "Components",
+                placeholder: "main",
+                required: true,
+            },
         ]
     }
 
@@ -515,7 +597,10 @@ impl Backend for AptBackend {
         let slug = UNSAFE.replace_all(&SCHEME.replace(uri, ""), "-").into_owned();
         let path = format!("/etc/apt/sources.list.d/athena-{}.list", if slug.is_empty() { "custom" } else { &slug });
         if write_file_as_root(&path, &[format!("deb {uri} {suite} {components}")]) {
-            OperationResult { success: true, output: String::new() }
+            OperationResult {
+                success: true,
+                output: String::new(),
+            }
         } else {
             OperationResult::failed(format!("Failed to write {path} (are you authorized for admin actions?)"))
         }
@@ -539,7 +624,9 @@ mod tests {
 
     #[test]
     fn show() {
-        let d = parse_show("Package: vlc\nInstalled-Size: 2048\nHomepage: https://videolan.org\nDescription: multimedia player\n VLC plays\n .\n everything\n\nPackage: vlc\nDescription: second stanza\n");
+        let d = parse_show(
+            "Package: vlc\nInstalled-Size: 2048\nHomepage: https://videolan.org\nDescription: multimedia player\n VLC plays\n .\n everything\n\nPackage: vlc\nDescription: second stanza\n",
+        );
         assert_eq!(d["vlc"].summary, "multimedia player");
         assert_eq!(d["vlc"].long, "VLC plays everything");
         assert_eq!(d["vlc"].size, "2.0 MB");
@@ -553,7 +640,8 @@ mod tests {
 
     #[test]
     fn classic_sources() {
-        let mut lines = owned("deb [arch=amd64 signed-by=/k.gpg] http://deb.debian.org/debian trixie main\n# deb-src http://deb.debian.org/debian trixie main\n");
+        let mut lines =
+            owned("deb [arch=amd64 signed-by=/k.gpg] http://deb.debian.org/debian trixie main\n# deb-src http://deb.debian.org/debian trixie main\n");
         let repos = parse_classic("/etc/apt/sources.list", &lines);
         assert_eq!(repos[0].url, "http://deb.debian.org/debian");
         assert!(repos[0].enabled && !repos[1].enabled);
@@ -563,7 +651,8 @@ mod tests {
 
     #[test]
     fn deb822_sources() {
-        let mut lines = owned("Types: deb\nURIs: http://deb.debian.org/debian\nSuites: trixie\nComponents: main\n\nTypes: deb\nURIs: http://x\nSuites: y\nEnabled: no\n");
+        let mut lines =
+            owned("Types: deb\nURIs: http://deb.debian.org/debian\nSuites: trixie\nComponents: main\n\nTypes: deb\nURIs: http://x\nSuites: y\nEnabled: no\n");
         let repos = parse_deb822("/etc/apt/sources.list.d/debian.sources", &lines);
         assert_eq!(repos.len(), 2);
         assert!(repos[0].enabled && !repos[1].enabled);

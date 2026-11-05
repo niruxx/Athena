@@ -6,9 +6,9 @@ use std::sync::LazyLock;
 use regex::Regex;
 
 use super::{by_name, human_size, with_names};
-use crate::backend::{field, Backend};
+use crate::backend::{Backend, field};
 use crate::package::{OperationResult, PackageGroupInfo, PackageInfo, RepositoryAddField, RepositoryInfo, TransactionPreview};
-use crate::process::{self, executable_exists, lines, run, Command};
+use crate::process::{self, Command, executable_exists, lines, run};
 
 pub struct DnfBackend {
     executable: &'static str,
@@ -24,7 +24,10 @@ impl Default for DnfBackend {
 
 impl DnfBackend {
     pub fn new() -> Self {
-        Self { executable: if executable_exists("dnf5") { "dnf5" } else { "dnf" }, metadata_expire_hours: 24 }
+        Self {
+            executable: if executable_exists("dnf5") { "dnf5" } else { "dnf" },
+            metadata_expire_hours: 24,
+        }
     }
 
     pub fn with_metadata_expire_hours(mut self, hours: u32) -> Self {
@@ -101,7 +104,13 @@ pub(crate) fn parse_group_table(text: &str, is_meta: bool) -> Vec<PackageGroupIn
             continue;
         }
         index.insert(m[1].to_owned(), groups.len());
-        groups.push(PackageGroupInfo { id: m[1].to_owned(), name: m[2].trim().to_owned(), installed, is_meta, ..Default::default() });
+        groups.push(PackageGroupInfo {
+            id: m[1].to_owned(),
+            name: m[2].trim().to_owned(),
+            installed,
+            is_meta,
+            ..Default::default()
+        });
     }
     groups
 }
@@ -131,7 +140,11 @@ pub(crate) fn parse_package_info(text: &str) -> Vec<PackageInfo> {
             if pkg.architecture.is_empty() {
                 pkg.architecture = first(fields, "Architecture");
             }
-            let repo = if fields.contains_key("From repository") { first(fields, "From repository") } else { first(fields, "Repository") };
+            let repo = if fields.contains_key("From repository") {
+                first(fields, "From repository")
+            } else {
+                first(fields, "Repository")
+            };
             if !repo.is_empty() {
                 pkg.repository = repo;
             }
@@ -230,7 +243,11 @@ impl Backend for DnfBackend {
 
     fn list_installed(&self) -> Vec<PackageInfo> {
         // rpm reads the local database directly; much faster than dnf.
-        let out = run("rpm", &["-qa", "--queryformat", "%{NAME}\t%{VERSION}-%{RELEASE}\t%{ARCH}\t%{SIZE}\t%{URL}\t%{SUMMARY}\n"], process::LONG);
+        let out = run(
+            "rpm",
+            &["-qa", "--queryformat", "%{NAME}\t%{VERSION}-%{RELEASE}\t%{ARCH}\t%{SIZE}\t%{URL}\t%{SUMMARY}\n"],
+            process::LONG,
+        );
         let mut packages: Vec<PackageInfo> = lines(&out.stdout)
             .map(|l| l.split('\t').collect::<Vec<_>>())
             .filter(|f| f.len() >= 6)
@@ -257,7 +274,13 @@ impl Backend for DnfBackend {
             .filter_map(|l| l.split_once('\t')) // skips "Matched fields:" headers
             .map(|(name_arch, summary)| {
                 let (name, architecture) = split_arch(name_arch.trim());
-                let mut pkg = PackageInfo { name, architecture, description: summary.trim().to_owned(), repository: "available".into(), ..Default::default() };
+                let mut pkg = PackageInfo {
+                    name,
+                    architecture,
+                    description: summary.trim().to_owned(),
+                    repository: "available".into(),
+                    ..Default::default()
+                };
                 if let Some(i) = installed.get(&pkg.name) {
                     pkg.installed = true;
                     pkg.installed_version = i.installed_version.clone();
@@ -327,7 +350,12 @@ impl Backend for DnfBackend {
         let kind = if is_meta { "environment" } else { "group" };
         let fields = parse_key_value_block(&self.dnf(&[kind.into(), "info".into(), id.into()]).stdout);
         let first = |k: &str| fields.get(k).and_then(|v| v.first()).cloned();
-        let mut group = PackageGroupInfo { id: id.to_owned(), name: first("Name").unwrap_or_else(|| id.to_owned()), is_meta, ..Default::default() };
+        let mut group = PackageGroupInfo {
+            id: id.to_owned(),
+            name: first("Name").unwrap_or_else(|| id.to_owned()),
+            is_meta,
+            ..Default::default()
+        };
         group.description = fields.get("Description").map(|v| v.join(" ")).unwrap_or_default();
         group.installed = first("Installed").is_some_and(|v| v.eq_ignore_ascii_case("yes") || v.eq_ignore_ascii_case("true"));
         for (key, values) in &fields {
@@ -394,16 +422,26 @@ impl Backend for DnfBackend {
 
     fn preview_install(&self, names: &[String]) -> TransactionPreview {
         let out = self.dnf(&with_names(&["--assumeno", "install"], names));
-        TransactionPreview { available: out.started, plan_text: clean_plan(&out.stdout) }
+        TransactionPreview {
+            available: out.started,
+            plan_text: clean_plan(&out.stdout),
+        }
     }
 
     fn preview_remove(&self, names: &[String]) -> TransactionPreview {
         let out = self.dnf(&with_names(&["--assumeno", "remove", "--setopt=clean_requirements_on_remove=True"], names));
-        TransactionPreview { available: out.started, plan_text: clean_plan(&out.stdout) }
+        TransactionPreview {
+            available: out.started,
+            plan_text: clean_plan(&out.stdout),
+        }
     }
 
     fn refresh_metadata_commands(&self) -> Vec<Command> {
-        vec![Command::privileged([self.executable.to_owned(), "makecache".into(), self.metadata_expire_arg()])]
+        vec![Command::privileged([
+            self.executable.to_owned(),
+            "makecache".into(),
+            self.metadata_expire_arg(),
+        ])]
     }
 
     fn recent_history(&self) -> String {
@@ -414,22 +452,54 @@ impl Backend for DnfBackend {
         static ROW: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\S+)\s+(.+?)\s+(enabled|disabled)\s*$").unwrap());
         lines(&self.dnf(&["repo".into(), "list".into(), "--all".into()]).stdout)
             .filter_map(|l| ROW.captures(l))
-            .map(|m| RepositoryInfo { id: m[1].to_owned(), name: m[2].trim().to_owned(), url: String::new(), enabled: &m[3] == "enabled" })
+            .map(|m| RepositoryInfo {
+                id: m[1].to_owned(),
+                name: m[2].trim().to_owned(),
+                url: String::new(),
+                enabled: &m[3] == "enabled",
+            })
             .collect()
     }
 
     fn set_repository_enabled(&self, id: &str, enabled: bool) -> OperationResult {
-        let out = run("pkexec", &[self.executable, "config-manager", if enabled { "enable" } else { "disable" }, id], process::LONG);
-        OperationResult { success: out.success(), output: out.combined() }
+        let out = run(
+            "pkexec",
+            &[self.executable, "config-manager", if enabled { "enable" } else { "disable" }, id],
+            process::LONG,
+        );
+        OperationResult {
+            success: out.success(),
+            output: out.combined(),
+        }
     }
 
     fn repository_add_fields(&self) -> Vec<RepositoryAddField> {
         // Two ways in one form: a COPR, or an ID and base URL.
         vec![
-            RepositoryAddField { key: "copr", label: "COPR repository (owner/project)", placeholder: "owner/project", required: false },
-            RepositoryAddField { key: "id", label: "Repository ID", placeholder: "myrepo", required: false },
-            RepositoryAddField { key: "baseurl", label: "Base URL", placeholder: "https://example.com/repo/", required: false },
-            RepositoryAddField { key: "name", label: "Display name (optional)", placeholder: "My Repo", required: false },
+            RepositoryAddField {
+                key: "copr",
+                label: "COPR repository (owner/project)",
+                placeholder: "owner/project",
+                required: false,
+            },
+            RepositoryAddField {
+                key: "id",
+                label: "Repository ID",
+                placeholder: "myrepo",
+                required: false,
+            },
+            RepositoryAddField {
+                key: "baseurl",
+                label: "Base URL",
+                placeholder: "https://example.com/repo/",
+                required: false,
+            },
+            RepositoryAddField {
+                key: "name",
+                label: "Display name (optional)",
+                placeholder: "My Repo",
+                required: false,
+            },
         ]
     }
 
@@ -444,13 +514,22 @@ impl Backend for DnfBackend {
         } else if id.is_empty() || base.is_empty() {
             return OperationResult::failed("Provide either a COPR repository (owner/project) or a Repository ID and Base URL.");
         } else {
-            let mut args = vec![self.executable.to_owned(), "config-manager".into(), "addrepo".into(), format!("--id={id}"), format!("--set=baseurl={base}")];
+            let mut args = vec![
+                self.executable.to_owned(),
+                "config-manager".into(),
+                "addrepo".into(),
+                format!("--id={id}"),
+                format!("--set=baseurl={base}"),
+            ];
             if !name.is_empty() {
                 args.push(format!("--set=name={name}"));
             }
             run("pkexec", &args, process::LONG)
         };
-        OperationResult { success: out.success(), output: out.combined() }
+        OperationResult {
+            success: out.success(),
+            output: out.combined(),
+        }
     }
 }
 

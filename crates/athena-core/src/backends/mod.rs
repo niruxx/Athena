@@ -26,7 +26,11 @@ pub fn human_size(bytes: u64) -> String {
         size /= 1024.0;
         unit += 1;
     }
-    if unit == 0 { format!("{size:.0} {}", UNITS[unit]) } else { format!("{size:.1} {}", UNITS[unit]) }
+    if unit == 0 {
+        format!("{size:.0} {}", UNITS[unit])
+    } else {
+        format!("{size:.1} {}", UNITS[unit])
+    }
 }
 
 /// Installed packages by name, to mark search results and fill in updates.
@@ -52,7 +56,9 @@ pub(crate) fn write_file_as_root(path: &str, lines: &[String]) -> bool {
 }
 
 pub(crate) fn read_lines(path: &str) -> Vec<String> {
-    std::fs::read_to_string(path).map(|t| t.lines().map(str::to_owned).collect()).unwrap_or_default()
+    std::fs::read_to_string(path)
+        .map(|t| t.lines().map(str::to_owned).collect())
+        .unwrap_or_default()
 }
 
 /// The last `max` lines of a log file, newest first.

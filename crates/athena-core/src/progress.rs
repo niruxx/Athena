@@ -26,7 +26,11 @@ fn counted(label: String, current: &str, total: &str, offset: f64) -> Progress {
     let (current, total) = (current.parse::<f64>().unwrap_or(0.0), total.parse::<f64>().unwrap_or(0.0));
     Progress {
         label,
-        fraction: if total > 0.0 { Some(((current - offset) / total).clamp(0.0, 1.0)) } else { None },
+        fraction: if total > 0.0 {
+            Some(((current - offset) / total).clamp(0.0, 1.0))
+        } else {
+            None
+        },
     }
 }
 
@@ -38,10 +42,8 @@ pub fn parse_line(line: &str) -> Option<Progress> {
     static PACMAN: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\(\s*(\d+)/(\d+)\)\s+(.+)$").unwrap());
     static DNF5: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^\[\s*(\d+)/(\d+)\]\s+(.+)$").unwrap());
     static DNF4: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\w[\w ]*?)\s*:\s*(\S+)\s+(\d+)/(\d+)$").unwrap());
-    static FLATPAK: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"^(Installing|Updating|Uninstalling)\s+(\d+)/(\d+)\S*\s*(.*)$").unwrap());
-    static FLATPAK_REF: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"^(Installing|Updating|Uninstalling)\s+(?:app|runtime)/([^/\s]+)").unwrap());
+    static FLATPAK: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(Installing|Updating|Uninstalling)\s+(\d+)/(\d+)\S*\s*(.*)$").unwrap());
+    static FLATPAK_REF: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(Installing|Updating|Uninstalling)\s+(?:app|runtime)/([^/\s]+)").unwrap());
     static SNAP: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\S+)\s.*\b(installed|refreshed|removed|reverted)$").unwrap());
 
     let line = line.trim();
@@ -50,7 +52,10 @@ pub fn parse_line(line: &str) -> Option<Progress> {
     }
     if let Some(m) = APT.captures(line) {
         let percent = m[2].parse::<f64>().unwrap_or(0.0);
-        return Some(Progress { label: sentence(&m[3]), fraction: Some((percent / 100.0).clamp(0.0, 1.0)) });
+        return Some(Progress {
+            label: sentence(&m[3]),
+            fraction: Some((percent / 100.0).clamp(0.0, 1.0)),
+        });
     }
     if let Some(m) = PACMAN.captures(line).or_else(|| DNF5.captures(line)) {
         return Some(counted(format!("{} — {} of {}", sentence(&m[3]), &m[1], &m[2]), &m[1], &m[2], 0.0));
@@ -63,10 +68,16 @@ pub fn parse_line(line: &str) -> Option<Progress> {
         return Some(counted(format!("{} {} — {} of {}", &m[1], m[4].trim(), &m[2], &m[3]), &m[2], &m[3], 1.0));
     }
     if let Some(m) = FLATPAK_REF.captures(line) {
-        return Some(Progress { label: format!("{} {}", &m[1], &m[2]), fraction: None });
+        return Some(Progress {
+            label: format!("{} {}", &m[1], &m[2]),
+            fraction: None,
+        });
     }
     if let Some(m) = SNAP.captures(line) {
-        return Some(Progress { label: sentence(&format!("{} {}", &m[1], &m[2])), fraction: None });
+        return Some(Progress {
+            label: sentence(&format!("{} {}", &m[1], &m[2])),
+            fraction: None,
+        });
     }
     None
 }
@@ -118,7 +129,10 @@ mod tests {
 
     #[test]
     fn flatpak_and_snap() {
-        assert_eq!(parse_line("Updating app/org.mozilla.firefox/x86_64/stable").unwrap().label, "Updating org.mozilla.firefox");
+        assert_eq!(
+            parse_line("Updating app/org.mozilla.firefox/x86_64/stable").unwrap().label,
+            "Updating org.mozilla.firefox"
+        );
         assert_eq!(parse_line("Installing 2/4… org.kde.Platform").unwrap().fraction, Some(0.25));
         assert_eq!(parse_line("firefox 131.0 from Mozilla** refreshed").unwrap().label, "Firefox refreshed");
         assert!(parse_line("random chatter").is_none());
@@ -126,7 +140,11 @@ mod tests {
 
     #[test]
     fn failures() {
-        assert!(explain_failure("Error creating textual authentication agent: …/dev/tty").unwrap().contains("polkit"));
+        assert!(
+            explain_failure("Error creating textual authentication agent: …/dev/tty")
+                .unwrap()
+                .contains("polkit")
+        );
         assert!(explain_failure("Request dismissed").unwrap().starts_with("Cancelled"));
         assert!(explain_failure("error: target not found").is_none());
     }

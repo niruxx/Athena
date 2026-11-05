@@ -18,3 +18,22 @@ pub use process::Command;
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub mod releases;
+
+pub mod media;
+
+pub mod history;
+
+pub mod arch;
+pub mod aur;
+pub mod catalog;
+pub mod source_tools;
+pub mod versions;
+
+pub mod cleanup;
+pub mod snapshots;
+
+pub mod transfer;
+
+pub mod backup;
+
+mod safe_path;

@@ -16,3 +16,9 @@ install -Dm644 "data/icons/$APP_ID.svg" "$ROOT/share/icons/hicolor/scalable/apps
 for size in 64 128 256; do
     install -Dm644 "data/icons/icon-$size.png" "$ROOT/share/icons/hicolor/${size}x$size/apps/$APP_ID.png"
 done
+
+install -Dm644 "data/$APP_ID.metainfo.xml" "$ROOT/share/metainfo/$APP_ID.metainfo.xml"
+for language in $(cat po/LINGUAS); do
+    install -d "$ROOT/share/locale/$language/LC_MESSAGES"
+    msgfmt --check --check-format "po/$language.po" -o "$ROOT/share/locale/$language/LC_MESSAGES/athena.mo"
+done

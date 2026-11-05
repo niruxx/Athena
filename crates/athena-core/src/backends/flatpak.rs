@@ -6,9 +6,9 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::PathBuf;
 
 use super::{by_name, indented, tab_rows, with_names};
-use crate::backend::{field, Backend};
+use crate::backend::{Backend, field};
 use crate::package::{OperationResult, PackageInfo, RepositoryAddField, RepositoryInfo, TransactionPreview};
-use crate::process::{self, executable_exists, run, Command};
+use crate::process::{self, Command, executable_exists, run};
 
 pub struct FlatpakBackend;
 
@@ -126,7 +126,10 @@ impl FlatpakBackend {
     /// The runtime an app on `remote` needs ("org.kde.Platform/x86_64/6.8").
     fn runtime_of(remote: &str, app_id: &str) -> Option<String> {
         let out = run("flatpak", &["remote-info", remote, app_id], process::SHORT);
-        out.stdout.lines().find_map(|l| l.trim().strip_prefix("Runtime:").map(|r| r.trim().to_owned())).filter(|r| !r.is_empty())
+        out.stdout
+            .lines()
+            .find_map(|l| l.trim().strip_prefix("Runtime:").map(|r| r.trim().to_owned()))
+            .filter(|r| !r.is_empty())
     }
 
     fn user_override(app_id: &str, flags: &[String]) -> OperationResult {
@@ -135,11 +138,23 @@ impl FlatpakBackend {
         args.extend(flags.iter().cloned());
         args.push(app_id.to_owned());
         let out = run("flatpak", &args, process::SHORT);
-        OperationResult { success: out.success(), output: out.combined() }
+        OperationResult {
+            success: out.success(),
+            output: out.combined(),
+        }
     }
 
     pub fn permissions(app_id: &str) -> Permissions {
-        parse_permissions(&run("flatpak", &["info", "--show-permissions", app_id], process::SHORT).stdout)
+        Self::try_permissions(app_id).unwrap_or_default()
+    }
+
+    pub fn try_permissions(app_id: &str) -> Result<Permissions, String> {
+        let out = run("flatpak", &["info", "--show-permissions", app_id], process::SHORT);
+        if out.success() {
+            Ok(parse_permissions(&out.stdout))
+        } else {
+            Err(out.combined())
+        }
     }
 
     pub fn set_shared(app_id: &str, name: &str, enabled: bool) -> OperationResult {
@@ -182,13 +197,12 @@ impl FlatpakBackend {
     }
 
     pub fn revoke_dbus_name(app_id: &str, bus: &str, kind: &str, name: &str) -> OperationResult {
-        // There's --no-talk-name but no --no-own-name; owned names go
-        // through the generic policy flag.
-        if kind == "own" {
-            return Self::user_override(app_id, &[format!("--remove-policy={bus}-bus.{name}=own")]);
-        }
+        // D-Bus policies are ordered none < see < talk < own. Setting no-talk
+        // overrides an owned name with none as well; generic --remove-policy
+        // applies to a different policy subsystem.
+        let _ = kind;
         let prefix = if bus == "system" { "--system-no-" } else { "--no-" };
-        Self::user_override(app_id, &[format!("{prefix}{kind}-name={name}")])
+        Self::user_override(app_id, &[format!("{prefix}talk-name={name}")])
     }
 
     pub fn reset_overrides(app_id: &str) -> OperationResult {
@@ -202,7 +216,11 @@ impl FlatpakBackend {
 
     /// ~/.local/share/flatpak/overrides
     pub fn user_overrides_root() -> PathBuf {
-        home().join(".local/share/flatpak/overrides")
+        std::env::var_os("XDG_DATA_HOME")
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .unwrap_or_else(|| home().join(".local/share"))
+            .join("flatpak/overrides")
     }
 }
 
@@ -225,8 +243,12 @@ impl Backend for FlatpakBackend {
 
     fn list_installed(&self) -> Vec<PackageInfo> {
         installed_rows(
-            &run("flatpak", &["list", "--app", "--columns=name,description,application,version,branch,arch,origin,size"], process::SHORT)
-                .stdout,
+            &run(
+                "flatpak",
+                &["list", "--app", "--columns=name,description,application,version,branch,arch,origin,size"],
+                process::SHORT,
+            )
+            .stdout,
         )
     }
 
@@ -324,7 +346,10 @@ impl Backend for FlatpakBackend {
         let mut commands = Vec::new();
         let mut runtimes = HashSet::new();
         for (remote, ids) in Self::by_remote(names) {
-            commands.push(Command::new("flatpak", with_names(&["install", "--no-deploy", "-y", "--noninteractive", &remote], &ids)));
+            commands.push(Command::new(
+                "flatpak",
+                with_names(&["install", "--no-deploy", "-y", "--noninteractive", &remote], &ids),
+            ));
             if !include_dependencies {
                 continue;
             }
@@ -347,11 +372,10 @@ impl Backend for FlatpakBackend {
         for id in names {
             let remote = Self::remote_for(id);
             installs.push(format!("  {id} (from {remote})"));
-            if let Some(runtime) = Self::runtime_of(&remote, id) {
-                if !installed_refs.contains(&runtime) && !runtimes.contains(&runtime) {
+            if let Some(runtime) = Self::runtime_of(&remote, id)
+                && !installed_refs.contains(&runtime) && !runtimes.contains(&runtime) {
                     runtimes.push(runtime);
                 }
-            }
         }
         let mut plan = vec!["Installing:".to_owned()];
         plan.extend(installs);
@@ -360,23 +384,24 @@ impl Backend for FlatpakBackend {
             plan.push("Also installing runtime(s):".into());
             plan.extend(indented(runtimes.iter().map(String::as_str)));
         }
-        TransactionPreview { available: true, plan_text: plan.join("\n") }
+        TransactionPreview {
+            available: true,
+            plan_text: plan.join("\n"),
+        }
     }
 
     fn preview_remove(&self, names: &[String]) -> TransactionPreview {
-        let runtime_by_app: HashMap<String, String> =
-            tab_rows(&run("flatpak", &["list", "--app", "--columns=application,runtime"], process::SHORT).stdout)
-                .filter(|f| f.len() >= 2)
-                .map(|f| (f[0].to_owned(), f[1].to_owned()))
-                .collect();
+        let runtime_by_app: HashMap<String, String> = tab_rows(&run("flatpak", &["list", "--app", "--columns=application,runtime"], process::SHORT).stdout)
+            .filter(|f| f.len() >= 2)
+            .map(|f| (f[0].to_owned(), f[1].to_owned()))
+            .collect();
         let still_used: HashSet<&String> = runtime_by_app.iter().filter(|(app, _)| !names.contains(app)).map(|(_, r)| r).collect();
         let mut orphaned: Vec<String> = Vec::new();
         for id in names {
-            if let Some(runtime) = runtime_by_app.get(id) {
-                if !still_used.contains(runtime) && !orphaned.contains(runtime) {
+            if let Some(runtime) = runtime_by_app.get(id)
+                && !still_used.contains(runtime) && !orphaned.contains(runtime) {
                     orphaned.push(runtime.clone());
                 }
-            }
         }
         let mut plan = vec!["Removing:".to_owned()];
         plan.extend(indented(names.iter().map(String::as_str)));
@@ -385,15 +410,28 @@ impl Backend for FlatpakBackend {
             plan.push("Also removing (no longer used):".into());
             plan.extend(indented(orphaned.iter().map(String::as_str)));
         }
-        TransactionPreview { available: true, plan_text: plan.join("\n") }
+        TransactionPreview {
+            available: true,
+            plan_text: plan.join("\n"),
+        }
     }
 
     fn refresh_metadata_commands(&self) -> Vec<Command> {
-        vec![Command::new("flatpak", ["update", "--appstream"])]
+        vec![
+            Command::new("flatpak", ["update", "--user", "--appstream"]),
+            Command::new("flatpak", ["update", "--system", "--appstream"]),
+        ]
     }
 
     fn recent_history(&self) -> String {
-        run("flatpak", &["history", "--reverse", "--columns=time,change,application,branch,remote"], process::SHORT).stdout.trim().to_owned()
+        run(
+            "flatpak",
+            &["history", "--reverse", "--columns=time,change,application,branch,remote"],
+            process::SHORT,
+        )
+        .stdout
+        .trim()
+        .to_owned()
     }
 
     fn list_repositories(&self) -> Vec<RepositoryInfo> {
@@ -410,14 +448,31 @@ impl Backend for FlatpakBackend {
     }
 
     fn set_repository_enabled(&self, id: &str, enabled: bool) -> OperationResult {
-        let out = run("flatpak", &["remote-modify", if enabled { "--enable" } else { "--disable" }, id], process::SHORT);
-        OperationResult { success: out.success(), output: out.combined() }
+        let out = run(
+            "flatpak",
+            &["remote-modify", if enabled { "--enable" } else { "--disable" }, id],
+            process::SHORT,
+        );
+        OperationResult {
+            success: out.success(),
+            output: out.combined(),
+        }
     }
 
     fn repository_add_fields(&self) -> Vec<RepositoryAddField> {
         vec![
-            RepositoryAddField { key: "name", label: "Remote name", placeholder: "myremote", required: true },
-            RepositoryAddField { key: "url", label: "Remote URL", placeholder: "https://example.com/repo/repo.flatpakrepo", required: true },
+            RepositoryAddField {
+                key: "name",
+                label: "Remote name",
+                placeholder: "myremote",
+                required: true,
+            },
+            RepositoryAddField {
+                key: "url",
+                label: "Remote URL",
+                placeholder: "https://example.com/repo/repo.flatpakrepo",
+                required: true,
+            },
         ]
     }
 
@@ -427,7 +482,10 @@ impl Backend for FlatpakBackend {
             return OperationResult::failed("Remote name and URL are required");
         }
         let out = run("flatpak", &["remote-add", "--if-not-exists", name, url], process::SHORT);
-        OperationResult { success: out.success(), output: out.combined() }
+        OperationResult {
+            success: out.success(),
+            output: out.combined(),
+        }
     }
 }
 

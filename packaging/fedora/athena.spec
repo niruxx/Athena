@@ -11,10 +11,15 @@ URL:            https://github.com/niruxx/Athena
 Requires:       gtk4 >= 4.14
 Requires:       libadwaita >= 1.5
 Requires:       polkit
+Requires:       curl
 # pkexec's password prompt needs an agent; any one will do.
 Requires:       (polkit-gnome or polkit-kde or lxqt-policykit or mate-polkit or xfce-polkit)
 Suggests:       flatpak
 Suggests:       snapd
+Suggests:       appstream-data
+Suggests:       libjxl-tools
+Suggests:       snapper
+Suggests:       timeshift
 
 %description
 Install, update, and remove software from every source on the system in
@@ -31,3 +36,6 @@ install -Dm644 %{_license_file} %{buildroot}%{_licensedir}/%{name}/LICENSE
 %{_datadir}/applications/io.github.niruxx.Athena.desktop
 %{_datadir}/glib-2.0/schemas/io.github.niruxx.Athena.gschema.xml
 %{_datadir}/icons/hicolor/*/apps/io.github.niruxx.Athena.*
+
+%{_datadir}/metainfo/io.github.niruxx.Athena.metainfo.xml
+%{_datadir}/locale/*/LC_MESSAGES/athena.mo

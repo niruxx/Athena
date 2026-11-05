@@ -3,14 +3,64 @@
 All notable changes to Athena are documented in this file. Newest release first;
 append new entries above as changes land.
 
-## [4.0.0-alpha.1] - Unreleased
+## [4.0.0] - Unreleased
 
-Athena is being rewritten in **Rust with GTK 4 and libadwaita**. This first
-alpha covers searching, installing, removing, updating, and repositories;
-everything else from 3.0 is planned, phase by phase, in
-[ROADMAP.md](ROADMAP.md).
+Athena replaces its Qt interface with **Rust, GTK 4 and libadwaita**.
+The 4.0.0 source release is prepared; publishing and distribution validation
+remain tracked in [ROADMAP.md](ROADMAP.md).
 
 ### Added
+
+- Interface refresh: a sectioned sidebar (Browse, Library, Sources, News);
+  a redesigned Discover with a scrolling category strip and cards showing size,
+  version, source and install state; a unified Search with built-in Groups,
+  suggestions and a source picker; Installed filters for source and group on
+  one row; icon-rich Flatpak, Snap and permission pages; a carousel-based
+  first-run setup; and transitions and entrance animations throughout.
+- A news reader for each supported distribution (Arch, Fedora, Debian, Ubuntu)
+  with unread markers, mark-all-read and previous/next navigation; hidden where
+  no feed is known.
+
+- Opt-in background update checks with a configurable interval, portal-managed
+  background/login consent, deduplicated GNotifications, and a StatusNotifierItem
+  tray menu with Open, Update and Quit on compatible desktops.
+- Gettext localization, extraction/install tooling, a starter Spanish catalog,
+  and AppStream metainfo with current GTK screenshots.
+- A pinned GTK4 AppImage build recipe and Ubuntu 24.04 CI job. Native package
+  layouts include metainfo and translation catalogs.
+
+- Phase 6 Home dashboard and Tools: cache and owned-file cleanup previews,
+  compressed/plain configuration and Flatpak-data backups with verified restore,
+  explicit package JSON export/import, and Snapper/Timeshift controls with
+  optional snapshots once per transaction batch.
+
+- Discover with a virtualized grid, native/Flatpak AppStream XML and DEP-11
+  catalogs, merged application offers, categories, package/dependency queries,
+  repository/architecture filters, and JPEG XL icon decoding.
+- AUR RPC v5 search and foreign-package updates, native/AUR dependency planning,
+  mandatory editable review of every build input, saved approvals and diffs,
+  one-use hashed manifests, and a reviewed local makepkg executor. Split-package
+  dependency reasons and selected Flatpak installation/branch references are preserved.
+- Arch news on Home and a full-update news gate, PKGBUILD viewing, AUR helper
+  install/remove controls, and mirror ranking previews with backups.
+- Flatpak app-data and leftover management, complete permission switches and
+  scoped Details actions; Snap channel/revision/state/interface management and
+  classic-confinement notes.
+
+- Phase 2 preferences: startup page, terminal behavior, optional confirmation
+  skipping, package row options, DNF metadata expiry, Groups visibility,
+  release checks, and transaction logging with a folder and level.
+- Package details with exact AppStream source matching, cached screenshots,
+  desktop launching, Flatpak permission editing, and pacman cache/archive
+  version selection.
+- Selection mode and context menus across Search, Installed, and Updates,
+  serial batches across sources, and downloads to a chosen folder with optional
+  dependencies.
+- Installed app names/icons and an Apps only filter with a hidden-package count.
+- Searchable Groups with installed-member actions and filters; raw History
+  and a cross-source timeline.
+- First-run setup, Flatpak/Snap support management, keyboard shortcuts, and
+  a banner for newer GitHub releases.
 
 - A libadwaita interface following the GNOME guidelines: a sidebar (Search,
   Installed, Updates, Repositories) beside the current page, collapsing to
@@ -32,6 +82,8 @@ everything else from 3.0 is planned, phase by phase, in
   the system without changing anything.
 
 ### Changed
+
+- The minimum Rust version is 1.92, matching the GTK bindings.
 
 - The backends (pacman, DNF, APT, Flatpak, Snap), process running, polkit
   agent handling, and progress parsing are ported to Rust in their own
