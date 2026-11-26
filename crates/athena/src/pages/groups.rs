@@ -5,7 +5,7 @@ use crate::{
     util,
 };
 use adw::prelude::*;
-use std::rc::Rc;
+use std::{cell::RefCell, collections::BTreeSet, rc::Rc};
 
 pub fn content(ctx: &Rc<Context>, search: &gtk::SearchEntry) -> gtk::Box {
     let view=gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(16).margin_start(18).margin_end(18).margin_top(4).margin_bottom(18).build();view.add_css_class("page-enter");
@@ -140,7 +140,7 @@ fn load_group(ctx: &Rc<Context>, source: usize, id: &str, meta: bool, view: &adw
             body.append(&hero);
             let buttons = gtk::Box::builder().spacing(10).build();
             buttons.add_css_class("action-buttons");
-            for (label, names, kind) in [("Install missing", missing, Kind::Install), ("Remove installed", present, Kind::Remove)] {
+            for (label, names, kind) in [("Install missing", missing, Kind::Install), ("Remove all installed", present, Kind::Remove)] {
                 let button = gtk::Button::with_label(label);
                 button.add_css_class("pill");
                 if kind == Kind::Install { button.add_css_class("suggested-action"); }
@@ -157,6 +157,13 @@ fn load_group(ctx: &Rc<Context>, source: usize, id: &str, meta: bool, view: &adw
             filters.append(&search);
             filters.append(&filter);
             body.append(&filters);
+            let selected_actions = gtk::Box::builder().spacing(10).build();
+            let install = selection_action(&ctx, source, Kind::Install, "Install selected");
+            let remove = selection_action(&ctx, source, Kind::Remove, "Remove selected");
+            selected_actions.append(&install.0);
+            selected_actions.append(&remove.0);
+            body.append(&selected_actions);
+
             let list = gtk::ListBox::builder().selection_mode(gtk::SelectionMode::None).build();
             list.add_css_class("boxed-list");
             for name in group.packages {
@@ -167,6 +174,22 @@ fn load_group(ctx: &Rc<Context>, source: usize, id: &str, meta: bool, view: &adw
                     .build();
                 row.add_prefix(&gtk::Image::from_icon_name(if yes { "emblem-ok-symbolic" } else { "package-x-generic-symbolic" }));
                 row.set_activatable(true);
+                let check = gtk::CheckButton::builder().valign(gtk::Align::Center).build();
+                check.update_property(&[gtk::accessible::Property::Label(&name)]);
+                let (button, selected) = if yes { &remove } else { &install };
+                let (button, selected, selected_name) = (button.downgrade(), selected.clone(), name.clone());
+                check.connect_toggled(move |check| {
+                    let mut selected = selected.borrow_mut();
+                    if check.is_active() {
+                        selected.insert(selected_name.clone());
+                    } else {
+                        selected.remove(&selected_name);
+                    }
+                    if let Some(button) = button.upgrade() {
+                        button.set_sensitive(!selected.is_empty());
+                    }
+                });
+                row.add_prefix(&check);
                 let (ctx, package) = (
                     ctx.clone(),
                     athena_core::PackageInfo {
@@ -208,4 +231,22 @@ fn load_group(ctx: &Rc<Context>, source: usize, id: &str, meta: bool, view: &adw
             view.set_content(Some(&gtk::ScrolledWindow::builder().child(&adw::Clamp::builder().maximum_size(1000).child(&body).build()).hscrollbar_policy(gtk::PolicyType::Never).build()));
         },
     );
+}
+
+fn selection_action(
+    ctx: &Rc<Context>,
+    source: usize,
+    kind: Kind,
+    label: &str,
+) -> (gtk::Button, Rc<RefCell<BTreeSet<String>>>) {
+    let button = gtk::Button::with_label(&crate::i18n::gettext(label));
+    button.set_sensitive(false);
+    button.add_css_class(if kind == Kind::Install { "suggested-action" } else { "destructive-action" });
+    let selected = Rc::new(RefCell::new(BTreeSet::<String>::new()));
+    let (ctx, names) = (ctx.clone(), selected.clone());
+    button.connect_clicked(move |_| {
+        let names = names.borrow().iter().cloned().collect();
+        actions::transaction(&ctx, source, kind, names);
+    });
+    (button, selected)
 }

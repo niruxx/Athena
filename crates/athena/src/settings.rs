@@ -133,6 +133,21 @@ pub fn dialog(settings: &gio::Settings) -> adw::PreferencesDialog {
     });
     general.add(&interval);
     page.add(&general);
+    let support = adw::PreferencesGroup::builder()
+        .title(crate::i18n::gettext("Support"))
+        .build();
+    let link = gtk::LinkButton::with_label(
+        "https://github.com/niruxx/Athena/issues",
+        &crate::i18n::gettext("Open GitHub"),
+    );
+    link.set_valign(gtk::Align::Center);
+    let report = adw::ActionRow::builder()
+        .title(crate::i18n::gettext("Report an issue"))
+        .activatable_widget(&link)
+        .build();
+    report.add_suffix(&link);
+    support.add(&report);
+    page.add(&support);
     let dialog = adw::PreferencesDialog::new();
     dialog.add(&page);
     dialog

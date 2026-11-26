@@ -32,7 +32,7 @@ fn item_of(list_item: &gtk::ListItem) -> Option<Item> {
     list_item.item().and_downcast::<glib::BoxedAnyObject>().map(|o| o.borrow::<Item>().clone())
 }
 
-fn row_widgets(ctx: &Rc<Context>, list_item: &gtk::ListItem, selection: &gtk::MultiSelection, selecting: &gtk::ToggleButton) -> gtk::Box {
+fn row_widgets(ctx: &Rc<Context>, list_item: &gtk::ListItem, selection: &gtk::MultiSelection, selecting: Option<&gtk::ToggleButton>) -> gtk::Box {
     let icon = gtk::Image::builder().pixel_size(32).build();
     let title = util::label("", &["heading"]);
     let subtitle = util::label("", &["dim-label", "caption"]);
@@ -82,9 +82,9 @@ fn row_widgets(ctx: &Rc<Context>, list_item: &gtk::ListItem, selection: &gtk::Mu
     popover_box.append(&update);
     let from = gtk::Button::with_label(&crate::i18n::gettext("Install from…"));
     popover_box.append(&from);
-    let select = gtk::Button::with_label(&crate::i18n::gettext("Select"));
-    popover_box.append(&select);
-    {
+    if let Some(selecting) = selecting {
+        let select = gtk::Button::with_label(&crate::i18n::gettext("Select"));
+        popover_box.append(&select);
         let (selection, selecting, weak) = (selection.clone(), selecting.clone(), list_item.downgrade());
         select.connect_clicked(move |_| {
             if let Some(item) = weak.upgrade() {
@@ -158,6 +158,24 @@ fn row_widgets(ctx: &Rc<Context>, list_item: &gtk::ListItem, selection: &gtk::Mu
     ] {
         row.append(widget);
     }
+    if selecting.is_none() {
+        let check = gtk::CheckButton::builder().valign(gtk::Align::Center).build();
+        list_item.bind_property("selected", &check, "active").sync_create().build();
+        let (selection, item) = (selection.clone(), list_item.downgrade());
+        check.connect_toggled(move |check| {
+            let Some(item) = item.upgrade() else { return };
+            let position = item.position();
+            if position >= selection.n_items() || check.is_active() == item.is_selected() {
+                return;
+            }
+            if check.is_active() {
+                selection.select_item(position, false);
+            } else {
+                selection.unselect_item(position);
+            }
+        });
+        row.prepend(&check);
+    }
     let click = gtk::GestureClick::new();
     click.set_button(3);
     click.connect_pressed(move |_, _, _, _| popover.popup());
@@ -167,6 +185,14 @@ fn row_widgets(ctx: &Rc<Context>, list_item: &gtk::ListItem, selection: &gtk::Mu
 
 impl PackageList {
     pub fn new(ctx: &Rc<Context>) -> Self {
+        Self::build(ctx, false).0
+    }
+
+    pub fn new_installed(ctx: &Rc<Context>) -> (Self, gtk::FlowBox) {
+        Self::build(ctx, true)
+    }
+
+    fn build(ctx: &Rc<Context>, inline_selection: bool) -> (Self, gtk::FlowBox) {
         let store = gio::ListStore::new::<glib::BoxedAnyObject>();
         let text: Rc<RefCell<String>> = Rc::default();
         let source: Rc<Cell<Option<usize>>> = Rc::default();
@@ -199,7 +225,7 @@ impl PackageList {
         let filtered = gtk::FilterListModel::new(Some(store.clone()), Some(filter.clone()));
 
         let selection = gtk::MultiSelection::new(Some(filtered.clone()));
-        let selecting = gtk::ToggleButton::with_label("Select Packages");
+        let selecting = (!inline_selection).then(|| gtk::ToggleButton::with_label("Select Packages"));
         let factory = gtk::SignalListItemFactory::new();
         {
             let ctx = ctx.clone();
@@ -207,7 +233,7 @@ impl PackageList {
             factory.connect_setup(move |_, obj| {
                 let list_item = obj.downcast_ref::<gtk::ListItem>().unwrap();
                 list_item.set_activatable(true);
-                list_item.set_child(Some(&row_widgets(&ctx, list_item, &selection, &selecting)));
+                list_item.set_child(Some(&row_widgets(&ctx, list_item, &selection, selecting.as_ref())));
             });
         }
         {
@@ -217,7 +243,11 @@ impl PackageList {
                 let (Some(item), Some(row)) = (item_of(list_item), list_item.child().and_downcast::<gtk::Box>()) else {
                     return;
                 };
-                let children: Vec<gtk::Widget> = std::iter::successors(row.first_child(), |w| w.next_sibling()).collect();
+                let mut children = std::iter::successors(row.first_child(), |w| w.next_sibling());
+                if inline_selection && let Some(check) = children.next().and_downcast::<gtk::CheckButton>() {
+                    check.update_property(&[gtk::accessible::Property::Label(&item.package.name)]);
+                }
+                let children: Vec<_> = children.collect();
                 let pkg = &item.package;
                 children[0]
                     .downcast_ref::<gtk::Image>()
@@ -270,7 +300,12 @@ impl PackageList {
             });
         }
 
-        let view = gtk::ListView::builder().model(&selection).factory(&factory).show_separators(true).build();
+        let view = gtk::ListView::builder()
+            .model(&selection)
+            .factory(&factory)
+            .show_separators(true)
+            .single_click_activate(inline_selection)
+            .build();
         {
             let (ctx, model) = (ctx.clone(), filtered.clone());
             view.connect_activate(move |_, position| {
@@ -279,12 +314,17 @@ impl PackageList {
                 }
             });
         }
-        let no_selection = gtk::NoSelection::new(Some(filtered.clone()));
-        view.set_model(Some(&no_selection));
         let content = gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(8).build();
-        let batch = gtk::Box::builder().orientation(gtk::Orientation::Vertical).spacing(6).build();
+        let batch = gtk::FlowBox::builder()
+            .selection_mode(gtk::SelectionMode::None)
+            .column_spacing(6)
+            .row_spacing(6)
+            .max_children_per_line(if inline_selection { 5 } else { 1 })
+            .build();
         batch.set_visible(false);
-        {
+        if let Some(selecting) = selecting {
+            let no_selection = gtk::NoSelection::new(Some(filtered.clone()));
+            view.set_model(Some(&no_selection));
             let (view, batch, selection) = (view.clone(), batch.clone(), selection.clone());
             selecting.connect_toggled(move |button| {
                 batch.set_visible(button.is_active());
@@ -295,8 +335,20 @@ impl PackageList {
                     view.set_model(Some(&no_selection));
                 }
             });
+            content.append(&selecting);
+        } else {
+            let update = {
+                let batch = batch.downgrade();
+                move |selection: &gtk::MultiSelection| {
+                    if let Some(batch) = batch.upgrade() {
+                        batch.set_visible(!selection.selection().is_empty());
+                    }
+                }
+            };
+            let selection_changed = update.clone();
+            selection.connect_selection_changed(move |selection, _, _| selection_changed(selection));
+            selection.connect_items_changed(move |selection, _, _, _| update(selection));
         }
-        content.append(&selecting);
         let all = gtk::Button::with_label(&crate::i18n::gettext("Select all"));
         let none = gtk::Button::with_label(&crate::i18n::gettext("Clear selection"));
         let model = selection.clone();
@@ -307,15 +359,24 @@ impl PackageList {
         none.connect_clicked(move |_| {
             model.unselect_all();
         });
-        batch.append(&all);
-        batch.append(&none);
+        batch.insert(&all, -1);
+        batch.insert(&none, -1);
         for (label, kind) in [
             ("Install", Some(Kind::Install)),
             ("Remove", Some(Kind::Remove)),
             ("Update", Some(Kind::Update)),
             ("Download", None),
         ] {
-            let button = gtk::Button::with_label(label);
+            let label = if inline_selection {
+                match kind {
+                    Some(Kind::Install) => continue,
+                    Some(Kind::Remove) => "Remove selected",
+                    _ => label,
+                }
+            } else {
+                label
+            };
+            let button = gtk::Button::with_label(&crate::i18n::gettext(label));
             let (ctx, model, filtered) = (ctx.clone(), selection.clone(), filtered.clone());
             button.connect_clicked(move |_| {
                 let mut groups = std::collections::BTreeMap::<usize, Vec<String>>::new();
@@ -345,9 +406,11 @@ impl PackageList {
                     actions::download_batch(&ctx, groups);
                 }
             });
-            batch.append(&button);
+            batch.insert(&button, -1);
         }
-        content.append(&batch);
+        if !inline_selection {
+            content.append(&batch);
+        }
         content.append(&view);
         view.add_css_class("package-list");
         view.add_css_class("card");
@@ -385,7 +448,7 @@ impl PackageList {
                 }
             });
         }
-        Self {
+        let list = Self {
             widget,
             store,
             filter,
@@ -397,7 +460,8 @@ impl PackageList {
             architecture,
             members,
             _settings: settings,
-        }
+        };
+        (list, batch)
     }
 
     pub fn set_items(&self, items: Vec<Item>) {
@@ -426,6 +490,10 @@ impl PackageList {
 
     pub fn set_group(&self, group: Option<GroupMembers>) {
         *self.members.borrow_mut()=group;self.filter.changed(gtk::FilterChange::Different);
+    }
+
+    pub fn group(&self) -> Option<GroupMembers> {
+        self.members.borrow().clone()
     }
 
     pub fn set_source(&self, source: Option<usize>) {

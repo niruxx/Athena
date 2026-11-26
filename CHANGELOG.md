@@ -3,6 +3,13 @@
 All notable changes to Athena are documented in this file. Newest release first;
 append new entries above as changes land.
 
+## [4.0.1] - Unreleased
+
+- Add a GitHub issue-reporting link in Preferences.
+- Select multiple packages in Groups and Installed, and remove all installed
+  packages in a specific group.
+- Open package details in Installed with one click.
+
 ## [4.0.0] - Unreleased
 
 Athena replaces its Qt interface with **Rust, GTK 4 and libadwaita**.

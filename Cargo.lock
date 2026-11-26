@@ -40,7 +40,7 @@ dependencies = [
 
 [[package]]
 name = "athena"
-version = "4.0.0"
+version = "4.0.1"
 dependencies = [
  "async-channel",
  "athena-core",
@@ -51,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "athena-core"
-version = "4.0.0"
+version = "4.0.1"
 dependencies = [
  "chrono",
  "csv",

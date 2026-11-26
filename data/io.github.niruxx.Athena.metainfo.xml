@@ -27,5 +27,5 @@
   <content_rating type="oars-1.1"/>
   <supports><control>pointing</control><control>keyboard</control><control>touch</control></supports>
   <translation type="gettext">athena</translation>
-  <releases><release version="4.0.0" date="2026-11-04"><description><p>Replaces the Qt application with GTK 4 and libadwaita, reviewed AUR builds, application discovery, recovery tools and desktop update notifications.</p></description></release></releases>
+  <releases><release version="4.0.1" date="2026-11-26"><description><p>Adds batch selection in Groups and Installed, single-click package details in Installed, and issue reporting from Preferences.</p></description></release><release version="4.0.0" date="2026-11-04"><description><p>Replaces the Qt application with GTK 4 and libadwaita, reviewed AUR builds, application discovery, recovery tools and desktop update notifications.</p></description></release></releases>
 </component>

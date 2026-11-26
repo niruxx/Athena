@@ -6,7 +6,6 @@ use crate::{context::{Context,Item},package_list::PackageList,util};
 pub struct InstalledPage {
     pub widget:adw::ToolbarView,
     pub search:gtk::SearchEntry,
-    pub groups:gtk::DropDown,
     list:Rc<PackageList>,stack:gtk::Stack,title:adw::WindowTitle,ctx:Rc<Context>,
     apps:gtk::ToggleButton,show_all:gtk::Button,group_generation:Cell<u64>,
 }
@@ -23,10 +22,20 @@ impl InstalledPage {
         let group_label=gtk::Box::builder().spacing(6).build();group_label.append(&gtk::Image::from_icon_name("folder-symbolic"));group_label.append(&util::label("Group",&["dim-label"]));
         let source_label=gtk::Box::builder().spacing(6).margin_start(6).build();source_label.append(&gtk::Image::from_icon_name("network-server-symbolic"));source_label.append(&util::label("Source",&["dim-label"]));
         let show_all=gtk::Button::builder().visible(false).halign(gtk::Align::Start).build();let toggle=apps.clone();show_all.connect_clicked(move |_|toggle.set_active(false));
-        let list=Rc::new(PackageList::new(ctx));let stack=util::animated_stack();stack.add_named(&util::loading_page("Loading installed packages…"),Some("loading"));stack.add_named(&list.widget,Some("list"));
+        let (list, selection_actions) = PackageList::new_installed(ctx);
+        let list = Rc::new(list);
+        selection_actions.set_margin_start(12);
+        selection_actions.set_margin_end(12);
+        selection_actions.set_margin_bottom(8);
+        let list_view = gtk::Box::new(gtk::Orientation::Vertical, 0);
+        list_view.append(&list.widget);
+        list_view.append(&adw::Clamp::builder().maximum_size(1000).child(&selection_actions).build());
+        let stack = util::animated_stack();
+        stack.add_named(&util::loading_page("Loading installed packages…"), Some("loading"));
+        stack.add_named(&list_view, Some("list"));
         stack.add_named(&adw::StatusPage::builder().icon_name("system-search-symbolic").title("No matches").description("Try another source, group, or search term.").build(),Some("empty"));
         let widget=adw::ToolbarView::new();widget.add_top_bar(&header);widget.add_top_bar(&adw::Clamp::builder().maximum_size(1100).child(&filters).build());widget.set_content(Some(&stack));
-        let page=Rc::new(Self{widget,search:search.clone(),groups:groups.clone(),list,stack,title,ctx:ctx.clone(),apps:apps.clone(),show_all:show_all.clone(),group_generation:Cell::new(0)});
+        let page=Rc::new(Self{widget,search:search.clone(),list,stack,title,ctx:ctx.clone(),apps:apps.clone(),show_all:show_all.clone(),group_generation:Cell::new(0)});
         let weak=Rc::downgrade(&page);let sources=util::source_dropdown(ctx,move |source|{if let Some(page)=weak.upgrade(){page.list.set_source(source);page.update_view();}});
         let options=gtk::FlowBox::builder().selection_mode(gtk::SelectionMode::None).column_spacing(10).row_spacing(8).max_children_per_line(6).build();options.add_css_class("filter-bar");
         let source_cell=gtk::Box::builder().spacing(6).build();source_cell.append(&source_label);source_cell.append(&sources);
@@ -34,6 +43,48 @@ impl InstalledPage {
         options.insert(&apps,-1);options.insert(&source_cell,-1);options.insert(&group_cell,-1);
         let has_groups=ctx.backends.iter().any(|b|matches!(b.key(),"pacman"|"apt"|"dnf"));group_cell.set_visible(has_groups);
         filters.append(&options);filters.append(&show_all);
+        let remove_group = gtk::Button::builder()
+            .label(crate::i18n::gettext("Remove all installed in group"))
+            .halign(gtk::Align::Start)
+            .visible(false)
+            .build();
+        remove_group.add_css_class("destructive-action");
+        filters.append(&remove_group);
+        {
+            let weak = Rc::downgrade(&page);
+            remove_group.connect_clicked(move |button| {
+                let Some(page) = weak.upgrade() else { return };
+                let Some((source, members)) = page.list.group() else { return };
+                let backend = page.ctx.backends[source].clone();
+                let revision = page.group_generation.get();
+                button.set_sensitive(false);
+                let button = button.downgrade();
+                util::background(
+                    move || {
+                        let mut names: Vec<_> = backend.list_installed().into_iter()
+                            .map(|package| package.name)
+                            .filter(|name| members.contains(name))
+                            .collect();
+                        names.sort_unstable();
+                        names.dedup();
+                        names
+                    },
+                    move |names| {
+                        if page.group_generation.get() != revision {
+                            return;
+                        }
+                        if let Some(button) = button.upgrade() {
+                            button.set_sensitive(true);
+                        }
+                        if names.is_empty() {
+                            page.ctx.toast(&crate::i18n::gettext("No installed packages in this group."));
+                        } else {
+                            crate::actions::transaction(&page.ctx, source, crate::actions::Kind::Remove, names);
+                        }
+                    },
+                );
+            });
+        }
         {let page=page.clone();search.connect_search_changed(move |entry|{page.list.set_text(&entry.text());page.update_view();});}
         {let page=page.clone();apps.connect_toggled(move |toggle|{page.list.set_apps_only(toggle.is_active());page.update_view();});}
         {let page=page.clone();refresh.connect_clicked(move |_|page.reload());}
@@ -41,12 +92,15 @@ impl InstalledPage {
         {
             let page=page.clone();let choices=group_choices.clone();
             groups.connect_selected_notify(move |choice|{
+                remove_group.set_visible(false);
+                remove_group.set_sensitive(true);
                 let revision=page.group_generation.get()+1;page.group_generation.set(revision);
                 if choice.selected()==0 {page.list.set_group(None);page.update_view();return;}
                 let Some((source,group))=choices.borrow().get(choice.selected() as usize-1).cloned()else{return;};
                 let backend=page.ctx.backends[source].clone();let target=page.clone();page.stack.set_visible_child_name("loading");
+                let remove_group = remove_group.clone();
                 util::background(move ||{let mut details=backend.group_details(&group.id,group.is_meta);for child in details.sub_groups.clone(){details.packages.extend(backend.group_details(&child,false).packages);}details.packages.into_iter().collect()},move |names|{
-                    if target.group_generation.get()!=revision{return;}target.list.set_group(Some((source,names)));target.update_view();
+                    if target.group_generation.get()!=revision{return;}target.list.set_group(Some((source,names)));remove_group.set_visible(true);target.update_view();
                 });
             });
         }

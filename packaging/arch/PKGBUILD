@@ -8,7 +8,7 @@
 pkgname=athena
 # Cargo.toml's version without hyphens (pacman doesn't allow them):
 # sh packaging/version.sh arch
-pkgver=4.0.0
+pkgver=4.0.1
 pkgrel=1
 pkgdesc="Install, update, and remove software from pacman, Flatpak, and Snap in one GTK app"
 arch=('x86_64' 'aarch64')
